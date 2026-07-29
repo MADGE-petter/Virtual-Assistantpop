@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POP Assistant — Trợ Lý AI Máy Tính Mã Nguồn Mở</title>
+    <meta name="description" content="POP Assistant là trợ lý AI mã nguồn mở chạy trên máy tính, hỗ trợ tương tác giọng nói, mô hình AI, tự động hóa và bảo mật tuyệt đối.">
+    <meta name="theme-color" content="#0A0E17">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="icon" href="data:image/svg+xml,">
+</head>
+<body class="lang-vi">
+    <!-- Cinematic Background -->
+    <div class="cinematic-bg">
+        <div class="nebula nebula-1"></div>
+        <div class="nebula nebula-2"></div>
+        <div class="nebula nebula-3"></div>
+    </div>
+    <div class="grid-overlay"></div>
+    <div class="starfield" id="starfield"></div>
+    <div class="mouse-light" id="mouse-light"></div>
+    <div class="noise"></div>
+
+    <!-- ============ NAVIGATION ============ -->
+    <nav class="nav" id="navbar">
+        <div class="nav-inner">
+            <a href="#" class="nav-brand">
+                <img src="../static/images/POP.png" alt="POP Logo" class="nav-logo">
+                <span>POP Assistant</span>
+            </a>
+            <ul class="nav-links" id="nav-links">
+                <li><a href="#about">Giới thiệu</a></li>
+                <li><a href="#features">Tính năng</a></li>
+                <li><a href="#architecture">Kiến trúc</a></li>
+                <li><a href="#gallery">Hình ảnh</a></li>
+                <li><a href="#roadmap">Lộ trình</a></li>
+                <li><a href="https://github.com/MADGE-petter/Virtual-Assistantpop" target="_blank" rel="noopener">GitHub</a></li>
+                <li><a href="#download" class="nav-cta primary">Tải về</a></li>
+            </ul>
+            <button class="nav-toggle" id="nav-toggle" aria-label="Toggle menu">☰</button>
+        </div>
+    </nav>
+
+    <!-- ============ HERO ============ -->
+    <section class="hero" id="hero">
+        <div class="container">
+            <div class="hero-grid">
+                <div class="hero-text">
+                    <div class="hero-badge">
+                        <span class="star"></span>
+                        Mã Nguồn Mở · Python · AI Nội Bộ
+                    </div>
+                    <h1 class="hero-title">
+                        <span class="gradient">POP Assistant</span>
+                    </h1>
+                    <p class="hero-subtitle">
+                        Trợ lý AI cho máy tính hiểu tiếng Việt, ghi nhớ hội thoại, 
+                        tự động hóa công việc và vận hành hoàn toàn nội bộ 
+                        để bảo mật tuyệt đối dữ liệu của bạn.
+                    </p>
+                    <div class="hero-actions">
+                        <a href="#download" class="btn btn-primary">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Tải về ngay
+                        </a>
+                        <a href="https://github.com/MADGE-petter/Virtual-Assistantpop" target="_blank" rel="noopener" class="btn btn-ghost">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+                            GitHub
+                        </a>
+                    </div>
+                    <div class="hero-badges">
+                        <div class="hero-badge-item"><span class="check">✓</span> Python</div>
+                        <div class="hero-badge-item"><span class="check">✓</span> PyQt6</div>
+                        <div class="hero-badge-item"><span class="check">✓</span> AI Nội Bộ</div>
+                        <div class="hero-badge-item"><span class="check">✓</span> Mã Nguồn Mở</div>
+                    </div>
+                </div>
+                <div class="hero-visual">
+                    <div class="halo-logo-container">
+                        <div class="halo-glow"></div>
+                        <div class="halo-glow glow-2"></div>
+                        <div class="halo-glow glow-3"></div>
+                        <div class="halo-core">
+                            <div class="halo-dot"></div>
+                        </div>
+                        <div class="lightning-container" id="lightningContainer"></div>
+                    </div>
+                    <div class="hero-orbit">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ ABOUT ============ -->
+    <section class="section" id="about">
+        <div class="container">
+            <div class="reveal" style="text-align:center;">
+                <span class="section-eyebrow"><span class="dot"></span> Giới thiệu</span>
+                <h2 class="section-title">POP Assistant <span class="highlight">là gì?</span></h2>
+                <p class="section-desc" style="margin:0 auto;">
+                    Một trợ lý AI cá nhân được xây dựng bằng Python, chạy trực tiếp trên máy tính của bạn. 
+                    Không phí thuê bao, không thu thập dữ liệu — chỉ là một công cụ mạnh mẽ phục vụ riêng bạn.
+                </p>
+            </div>
+            <div class="about-grid">
+                <div class="about-text reveal reveal-left">
+                    <p>
+                        POP Assistant ra đời từ mong muốn kết hợp sức mạnh của AI giọng nói, 
+                        các mô hình ngôn ngữ lớn (LLM) chạy nội bộ và khả năng tự động hóa máy tính. 
+                        Hệ thống tích hợp nhận diện từ khóa (wake-word), chuyển đổi giọng nói thành văn bản 
+                        và ngược lại để tạo ra những cuộc hội thoại tự nhiên.
+                    </p>
+                    <p>
+                        Sử dụng SQLite để lưu trữ bộ nhớ dài hạn, POP Assistant ghi nhớ 
+                        các cuộc trò chuyện và sở thích của bạn qua nhiều phiên làm việc. 
+                        Hỗ trợ linh hoạt các mô hình AI nội bộ (Gemma, Qwen qua llama.cpp) hoặc các API đám mây.
+                    </p>
+                    <p>
+                        Với giao diện PyQt6 hiện đại, Dashboard quản lý qua FastAPI và kiến trúc 
+                        plugin mô-đun, bạn có thể dễ dàng mở rộng tính năng. Toàn bộ mã nguồn 
+                        được công khai dưới giấy phép MIT.
+                    </p>
+                </div>
+                <div class="about-highlights reveal reveal-right">
+                    <div class="about-highlight">
+                        <div class="ah-icon purple">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                        </div>
+                        <div class="ah-text">
+                            <strong>Python</strong>
+                            <span>Ngôn ngữ chính, PyQt6 + FastAPI</span>
+                        </div>
+                    </div>
+                    <div class="about-highlight">
+                        <div class="ah-icon purple">
+                            <img src="../static/images/POP.png" alt="POP Icon" class="ah-logo-img">
+                        </div>
+                        <div class="ah-text">
+                            <strong>Ưu tiên Giọng nói</strong>
+                            <span>Wake word, STT, TTS, hội thoại tự nhiên</span>
+                        </div>
+                    </div>
+                    <div class="about-highlight">
+                        <div class="ah-icon blue">
+                            <img src="../static/images/POP.png" alt="POP Icon" class="ah-logo-img">
+                        </div>
+                        <div class="ah-text">
+                            <strong>AI Nội Bộ</strong>
+                            <span>Gemma, Qwen, Llama.cpp — không cần internet</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ FEATURES ============ -->
+    <section class="section" id="features">
+        <div class="container">
+            <div class="reveal" style="text-align:center;">
+                <span class="section-eyebrow"><span class="dot"></span> Tính năng</span>
+                <h2 class="section-title">Mọi thứ bạn cần trong một</h2>
+                <p class="section-desc" style="margin:0 auto;">
+                    Một nền tảng trợ lý AI toàn diện với giọng nói, bộ nhớ, tự động hóa và khả năng mở rộng.
+                </p>
+            </div>
+            <div class="bento-grid">
+                <!-- Voice Interaction - Large -->
+                <div class="bento-card large reveal delay-1">
+                    <div class="bento-icon purple">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                    </div>
+                    <h3>Tương tác Giọng nói</h3>
+                    <p>Hội thoại tự nhiên với nhận diện từ khóa, chuyển đổi giọng nói-văn bản mượt mà. Có thể ngắt lời bất cứ lúc nào.</p>
+                    <div class="bento-tags">
+                        <span class="bento-tag">Wake Word</span>
+                        <span class="bento-tag">Speech-to-Text</span>
+                        <span class="bento-tag">Text-to-Speech</span>
+                        <span class="bento-tag">Edge-TTS</span>
+                        <span class="bento-tag">Whisper</span>
+                    </div>
+                </div>
+                <!-- AI Memory -->
+                <div class="bento-card reveal delay-2">
+                    <div class="bento-icon blue">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                    </div>
+                    <h3>Bộ nhớ AI</h3>
+                    <p>Lưu trữ hội thoại và tùy chỉnh cá nhân qua SQLite, giúp AI hiểu bạn hơn theo thời gian.</p>
+                    <div class="bento-tags">
+                        <span class="bento-tag">SQLite</span>
+                        <span class="bento-tag">Ngữ cảnh</span>
+                        <span class="bento-tag">Sở thích</span>
+                    </div>
+                </div>
+                <!-- Automation -->
+                <div class="bento-card reveal delay-3">
+                    <div class="bento-icon cyan">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                    </div>
+                    <h3>Tự động hóa</h3>
+                    <p>Điều khiển máy tính: mở ứng dụng, quản lý tệp tin, theo dõi hệ thống và thực hiện workflow.</p>
+                    <div class="bento-tags">
+                        <span class="bento-tag">Mở App</span>
+                        <span class="bento-tag">Quản lý File</span>
+                        <span class="bento-tag">Hệ thống</span>
+                    </div>
+                </div>
+                <!-- Local AI - Tall -->
+                <div class="bento-card tall reveal delay-4">
+                    <div class="bento-icon emerald">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                    </div>
+                    <h3>AI Nội Bộ (Local)</h3>
+                    <p>Chạy các mô hình AI ngay trên máy bạn. Dữ liệu không bao giờ rời khỏi thiết bị. Hỗ trợ Gemma, Qwen, Llama qua llama.cpp.</p>
+                    <div class="bento-tags">
+                        <span class="bento-tag">Gemma</span>
+                        <span class="bento-tag">Qwen</span>
+                        <span class="bento-tag">Llama.cpp</span>
+                        <span class="bento-tag">Transformers</span>
+                        <span class="bento-tag">Bảo mật</span>
+                    </div>
+                </div>
+                <!-- Plugin System -->
+                <div class="bento-card reveal delay-5">
+                    <div class="bento-icon amber">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+                    </div>
+                    <h3>Hệ thống Plugin</h3>
+                    <p>Kiến trúc mô-đun cho phép dễ dàng thêm các trình xử lý (handlers) và tích hợp mới.</p>
+                    <div class="bento-tags">
+                        <span class="bento-tag">Handlers</span>
+                        <span class="bento-tag">Services</span>
+                        <span class="bento-tag">Tùy biến</span>
+                    </div>
+                </div>
+                <!-- Web Dashboard -->
+                <div class="bento-card reveal delay-1">
+                    <div class="bento-icon rose">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    </div>
+                    <h3>Web Dashboard</h3>
+                    <p>Theo dõi lịch sử hội thoại và hoạt động của trợ lý từ xa thông qua trình duyệt.</p>
+                    <div class="bento-tags">
+                        <span class="bento-tag">FastAPI</span>
+                        <span class="bento-tag">REST API</span>
+                        <span class="bento-tag">Thời gian thực</span>
+                    </div>
+                </div>
+                <!-- Settings -->
+                <div class="bento-card reveal delay-2">
+                    <div class="bento-icon purple">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    </div>
+                    <h3>Cài đặt linh hoạt</h3>
+                    <p>Tùy chỉnh mọi thứ: giọng nói, mô hình AI, plugin và các phím tắt.</p>
+                    <div class="bento-tags">
+                        <span class="bento-tag">Config</span>
+                        <span class="bento-tag">Hotkeys</span>
+                        <span class="bento-tag">Models</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ ARCHITECTURE ============ -->
+    <section class="section" id="architecture">
+        <div class="container">
+            <div class="reveal" style="text-align:center;">
+                <span class="section-eyebrow"><span class="dot"></span> Kiến trúc</span>
+                <h2 class="section-title">Cách thức vận hành</h2>
+                <p class="section-desc" style="margin:0 auto;">
+                    Kiến trúc mô-đun được thiết kế để tối ưu hiệu suất và dễ dàng mở rộng.
+                </p>
+            </div>
+            <div class="arch-flow reveal delay-1">
+                <div class="arch-node accent">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    Người dùng
+                </div>
+                <div class="arch-connector"></div>
+                <div class="arch-node">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                    AudioService
+                </div>
+                <div class="arch-connector"></div>
+                <div class="arch-node accent">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                    Controller
+                </div>
+                <div class="arch-connector"></div>
+                <div class="arch-node">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                    LLM (AI)
+                </div>
+                <div class="arch-connector"></div>
+                <div class="arch-node accent">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+                    Plugins
+                </div>
+                <div class="arch-connector"></div>
+                <div class="arch-node">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                    SQLite
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ TECH STACK ============ -->
+    <section class="section-sm" id="tech">
+        <div class="container">
+            <div class="reveal" style="text-align:center;">
+                <span class="section-eyebrow"><span class="dot"></span> Công nghệ</span>
+                <h2 class="section-title">Xây dựng từ những công cụ hiện đại</h2>
+            </div>
+            <div class="tech-marquee reveal delay-1">
+                <div class="tech-track">
+                    <div class="tech-pill"><span class="tp-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></span> Python</div>
+                    <div class="tech-pill"><span class="tp-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span> PyQt6</div>
+                    <div class="tech-pill"><span class="tp-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></span> SQLite</div>
+                    <div class="tech-pill"><span class="tp-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span> FastAPI</div>
+                    <div class="tech-pill"><span class="tp-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><line x1="16" y1="8" x2="2" y2="22"/><line x1="17.5" y1="15" x2="9" y2="15"/></svg></span> Transformers</div>
+                    <div class="tech-pill"><span class="tp-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></span> Whisper</div>
+                    <div class="tech-pill"><span class="tp-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span> Llama.cpp</div>
+                    <div class="tech-pill"><span class="tp-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> Gemma</div>
+                    <div class="tech-pill"><span class="tp-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></span> Qwen</div>
+                    <div class="tech-pill"><span class="tp-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg></span> Git</div>
+                    <div class="tech-pill"><span class="tp-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg></span> GitHub</div>
+                    <div class="tech-pill"><span class="tp-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg></span> Edge-TTS</div>
+                    <!-- Duplicate for seamless loop -->
+                    <div class="tech-pill"><span class="tp-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></span> Python</div>
+                    <div class="tech-pill"><span class="tp-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></span> PyQt6</div>
+                    <div class="tech-pill"><span class="tp-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></span> SQLite</div>
+                    <div class="tech-pill"><span class="tp-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span> FastAPI</div>
+                    <div class="tech-pill"><span class="tp-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><line x1="16" y1="8" x2="2" y2="22"/><line x1="17.5" y1="15" x2="9" y2="15"/></svg></span> Transformers</div>
+                    <div class="tech-pill"><span class="tp-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></span> Whisper</div>
+                    <div class="tech-pill"><span class="tp-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span> Llama.cpp</div>
+                    <div class="tech-pill"><span class="tp-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> Gemma</div>
+                    <div class="tech-pill"><span class="tp-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></span> Qwen</div>
+                    <div class="tech-pill"><span class="tp-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg></span> Git</div>
+                    <div class="tech-pill"><span class="tp-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg></span> GitHub</div>
+                    <div class="tech-pill"><span class="tp-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg></span> Edge-TTS</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ GALLERY ============ -->
+    <section class="section" id="gallery">
+        <div class="container">
+            <div class="reveal" style="text-align:center;">
+                <span class="section-eyebrow"><span class="dot"></span> Hình ảnh</span>
+                <h2 class="section-title">Giao diện trực quan</h2>
+                <p class="section-desc" style="margin:0 auto;">
+                    Thiết kế tối giản, hiện đại, tập trung vào hiệu suất làm việc.
+                </p>
+            </div>
+            <div class="gallery-grid">
+                <div class="gallery-card reveal delay-1">
+                    <div class="gallery-thumb">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#A855F7" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                    </div>
+                    <div class="gallery-label">Giao diện chính</div>
+                </div>
+                <div class="gallery-card reveal delay-2">
+                    <div class="gallery-thumb">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="1.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                    </div>
+                    <div class="gallery-label">Chế độ giọng nói</div>
+                </div>
+                <div class="gallery-card reveal delay-3">
+                    <div class="gallery-thumb">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#22D3EE" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    </div>
+                    <div class="gallery-label">Cửa sổ Chat</div>
+                </div>
+                <div class="gallery-card reveal delay-1">
+                    <div class="gallery-thumb">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                    </div>
+                    <div class="gallery-label">Quản lý bộ nhớ</div>
+                </div>
+                <div class="gallery-card reveal delay-2">
+                    <div class="gallery-thumb">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    </div>
+                    <div class="gallery-label">Cài đặt hệ thống</div>
+                </div>
+                <div class="gallery-card reveal delay-3">
+                    <div class="gallery-thumb">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#FB7185" stroke-width="1.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                    </div>
+                    <div class="gallery-label">Dashboard Web</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ ROADMAP ============ -->
+    <section class="section" id="roadmap">
+        <div class="container">
+            <div class="reveal" style="text-align:center;">
+                <span class="section-eyebrow"><span class="dot"></span> Lộ trình</span>
+                <h2 class="section-title">Kế hoạch phát triển</h2>
+                <p class="section-desc" style="margin:0 auto;">
+                    Liên tục cập nhật và cải tiến để mang lại trải nghiệm tốt nhất.
+                </p>
+            </div>
+            <div class="roadmap-timeline">
+                <!-- Done -->
+                <div class="roadmap-row reveal delay-1">
+                    <div class="roadmap-content">
+                        <span class="rm-status done">✓ Hoàn thành</span>
+                        <h4>Ứng dụng Desktop</h4>
+                        <p>App PyQt6 cốt lõi với giao diện giọng nói</p>
+                    </div>
+                    <div class="roadmap-spacer"></div>
+                    <div class="roadmap-marker"></div>
+                </div>
+                <div class="roadmap-row reveal delay-2">
+                    <div class="roadmap-spacer"></div>
+                    <div class="roadmap-content">
+                        <span class="rm-status done">✓ Hoàn thành</span>
+                        <h4>Trợ lý Giọng nói</h4>
+                        <p>Pipeline Wake word, STT, TTS</p>
+                    </div>
+                    <div class="roadmap-marker"></div>
+                </div>
+                <div class="roadmap-row reveal delay-3">
+                    <div class="roadmap-content">
+                        <span class="rm-status done">✓ Hoàn thành</span>
+                        <h4>Hệ thống Bộ nhớ</h4>
+                        <p>Lưu trữ hội thoại & tùy chỉnh qua SQLite</p>
+                    </div>
+                    <div class="roadmap-spacer"></div>
+                    <div class="roadmap-marker"></div>
+                </div>
+                <div class="roadmap-row reveal delay-4">
+                    <div class="roadmap-spacer"></div>
+                    <div class="roadmap-content">
+                        <span class="rm-status done">✓ Hoàn thành</span>
+                        <h4>Tự động hóa & Plugin</h4>
+                        <p>Điều khiển máy tính, launcher, hệ thống plugin</p>
+                    </div>
+                    <div class="roadmap-marker"></div>
+                </div>
+                <!-- In Progress -->
+                <div class="roadmap-row reveal delay-1">
+                    <div class="roadmap-content">
+                        <span class="rm-status progress">◐ Đang phát triển</span>
+                        <h4>Web Dashboard</h4>
+                        <p>Theo dõi và quản lý từ xa qua trình duyệt</p>
+                    </div>
+                    <div class="roadmap-spacer"></div>
+                    <div class="roadmap-marker"></div>
+                </div>
+                <div class="roadmap-row reveal delay-2">
+                    <div class="roadmap-spacer"></div>
+                    <div class="roadmap-content">
+                        <span class="rm-status progress">◐ Đang phát triển</span>
+                        <h4>Nâng cấp Bộ nhớ</h4>
+                        <p>Cải thiện khả năng truy xuất và ngữ cảnh</p>
+                    </div>
+                    <div class="roadmap-marker"></div>
+                </div>
+                <!-- Planned -->
+                <div class="roadmap-row reveal delay-3">
+                    <div class="roadmap-content">
+                        <span class="rm-status planned">○ Dự kiến</span>
+                        <h4>RAG Knowledge Base</h4>
+                        <p>Hiểu và truy xuất thông tin từ tài liệu cá nhân</p>
+                    </div>
+                    <div class="roadmap-spacer"></div>
+                    <div class="roadmap-marker"></div>
+                </div>
+                <div class="roadmap-row reveal delay-4">
+                    <div class="roadmap-spacer"></div>
+                    <div class="roadmap-content">
+                        <span class="rm-status planned">○ Dự kiến</span>
+                        <h4>Vision AI</h4>
+                        <p>Hiểu và phân tích nội dung màn hình</p>
+                    </div>
+                    <div class="roadmap-marker"></div>
+                </div>
+                <div class="roadmap-row reveal delay-5">
+                    <div class="roadmap-content">
+                        <span class="rm-status planned">○ Dự kiến</span>
+                        <h4>Đồng bộ Đám mây</h4>
+                        <p>Đồng bộ mã hóa tùy chọn giữa các thiết bị</p>
+                    </div>
+                    <div class="roadmap-spacer"></div>
+                    <div class="roadmap-marker"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ DOWNLOAD ============ -->
+    <section class="section" id="download">
+        <div class="container">
+            <div class="reveal" style="text-align:center;">
+                <span class="section-eyebrow"><span class="dot"></span> Bắt đầu ngay</span>
+                <h2 class="section-title">Tải về & Cài đặt</h2>
+                <p class="section-desc" style="margin:0 auto;">
+                    Clone repository và thiết lập POP Assistant cho riêng bạn.
+                </p>
+            </div>
+            <div class="download-cards">
+                <div class="download-card reveal delay-1">
+                    <div class="dc-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#A855F7" stroke-width="2">
+                            <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
+                        </svg>
+                    </div>
+                    <h4>Windows</h4>
+                    <p>Tải phiên bản POP Assistant cho Windows từ repository chính thức.</p>
+                    <a href="https://github.com/MADGE-petter/Virtual-Assistantpop" target="_blank" rel="noopener" class="btn btn-primary">Tải xuống</a>
+                </div>
+                <div class="download-card reveal delay-2">
+                    <div class="dc-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#84CC16" stroke-width="2">
+                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                            <line x1="12" y1="22.08" x2="12" y2="12"/>
+                        </svg>
+                    </div>
+                    <h4>Linux</h4>
+                    <p>Tải phiên bản POP Assistant cho Linux từ repository chuyên dụng.</p>
+                    <a href="https://github.com/MADGE-petter/Virtual-Assistantpop-Linux" target="_blank" rel="noopener" class="btn btn-primary">Tải xuống</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ FOOTER ============ -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a href="#" class="nav-brand">
+                        <img src="../static/images/POP.png" alt="POP Logo" class="nav-logo">
+                        <span>POP Assistant</span>
+                    </a>
+                    <p class="brand-desc">
+                        Trợ lý AI mã nguồn mở cho máy tính. Xây dựng bằng Python, 
+                        vận hành bởi AI nội bộ. Bảo mật, linh hoạt và hoàn toàn miễn phí.
+                    </p>
+                </div>
+                <div class="footer-col">
+                    <h4>Sản phẩm</h4>
+                    <ul>
+                        <li><a href="#features">Tính năng</a></li>
+                        <li><a href="#architecture">Kiến trúc</a></li>
+                        <li><a href="#gallery">Hình ảnh</a></li>
+                        <li><a href="#roadmap">Lộ trình</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Tài nguyên</h4>
+                    <ul>
+                        <li><a href="https://github.com/MADGE-petter/Virtual-Assistantpop" target="_blank" rel="noopener">GitHub</a></li>
+                        <li><a href="#">Tài liệu</a></li>
+                        <li><a href="#">Nhật ký thay đổi</a></li>
+                        <li><a href="#">Đóng góp</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Pháp lý</h4>
+                    <ul>
+                        <li><a href="#">Giấy phép MIT</a></li>
+                        <li><a href="#">Quyền riêng tư</a></li>
+                        <li><a href="#">Điều khoản</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <span>© 2026 POP Assistant · Mã Nguồn Mở · Made with Python</span>
+                <span>Giấy phép MIT</span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+</body>
+</html>
