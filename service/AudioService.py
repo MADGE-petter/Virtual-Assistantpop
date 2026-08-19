@@ -57,9 +57,9 @@ class AudioService:
     }
     
     TTS_MODEL_CONFIG = {
-        "name": "vits-piper-vi_VN-25hours_single-low",
-        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-vi_VN-25hours_single-low.tar.bz2",
-        "model": "vi_VN-25hours_single-low.onnx",
+        "name": "vits-piper-vi_VN-25hours_single-medium",
+        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-vi_VN-25hours_single-medium.tar.bz2",
+        "model": "vi_VN-25hours_single-medium.onnx",
         "tokens": "tokens.txt",
         "data_dir": "espeak-ng-data",
         "sample_rate": 22050,
@@ -251,8 +251,16 @@ class AudioService:
             if SHERPA_AVAILABLE:
                 self._synthesize_and_play(text)
             else:
-                # Fallback
-                time.sleep(len(text) * 0.05)
+                # Native System Fallback (macOS 'say -v Linh' / Windows pyttsx3)
+                try:
+                    import subprocess
+                    import platform
+                    if platform.system() == "Darwin":
+                        subprocess.run(["say", "-v", "Linh", text], check=False)
+                    else:
+                        time.sleep(len(text) * 0.05)
+                except Exception:
+                    time.sleep(len(text) * 0.05)
             
             time.sleep(0.3)  # Cooldown
             
