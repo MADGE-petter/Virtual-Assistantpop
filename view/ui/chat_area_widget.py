@@ -1,5 +1,5 @@
 """
-POP Chat Area Widget - Central Chat Area with Top Bar, Messages Scroll Area, Action Toolbar, and Thinking State Loader.
+POP Chat Area Widget - Central Chat Area with Top Bar, Messages Scroll Area, Action Confirmation Cards, and Thinking State Loader.
 """
 
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QSize
@@ -13,6 +13,115 @@ from view.ui.styles import DesignTokens
 from view.ui.icons import get_pop_logo_pixmap, create_vector_icon
 from view.ui.input_bar_widget import InputBarWidget
 from model.pop_chat_model import ChatMessage, ConversationSession
+
+
+class ActionConfirmationCardWidget(QFrame):
+    """Human-in-the-Loop Confirmation Card Widget displaying action summary & execution approval buttons."""
+
+    confirmed = pyqtSignal(str, dict)
+    cancelled = pyqtSignal()
+
+    def __init__(self, title: str, summary: str, tool_name: str, tool_args: dict, parent=None):
+        super().__init__(parent)
+        self.tool_name = tool_name
+        self.tool_args = tool_args
+        self.title = title
+        self.summary = summary
+
+        self.setStyleSheet(
+            f"QFrame {{ background-color: {DesignTokens.SURFACE_2}; border: 1px solid {DesignTokens.CYAN}; border-radius: 14px; }}"
+        )
+        self._setup_ui()
+
+    def _setup_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(16, 12, 16, 12)
+        layout.setSpacing(10)
+
+        # Header Title
+        title_lbl = QLabel(f"⚠️ {self.title}")
+        title_lbl.setStyleSheet(f"color: {DesignTokens.CYAN_ACCENT}; font-weight: 700; font-size: 14px;")
+
+        # Summary text
+        summary_lbl = QLabel(self.summary)
+        summary_lbl.setWordWrap(True)
+        summary_lbl.setStyleSheet(f"color: {DesignTokens.TEXT_MAIN}; font-size: 13px;")
+
+        # Action Buttons
+        btn_box = QHBoxLayout()
+        btn_box.setSpacing(10)
+
+        confirm_btn = QPushButton("✓ Xác nhận & Thực thi")
+        confirm_btn.setHeight = 34
+        confirm_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        confirm_btn.setStyleSheet(
+            f"QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #008EFF, stop:1 #00FFAA); color: #03050B; font-weight: 700; border: none; border-radius: 8px; padding: 6px 14px; }}"
+            f"QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #00A6FF, stop:1 #33FFBC); }}"
+        )
+        confirm_btn.clicked.connect(lambda: self.confirmed.emit(self.tool_name, self.tool_args))
+
+        cancel_btn = QPushButton("✕ Hủy bỏ")
+        cancel_btn.setHeight = 34
+        cancel_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        cancel_btn.setStyleSheet(
+            f"QPushButton {{ background: {DesignTokens.SURFACE_3}; color: {DesignTokens.CORAL_ACCENT}; border: 1px solid {DesignTokens.CORAL_ACCENT}; border-radius: 8px; padding: 6px 14px; font-weight: 600; }}"
+            f"QPushButton:hover {{ background: rgba(255, 75, 110, 0.2); }}"
+        )
+        cancel_btn.clicked.connect(lambda: self.cancelled.emit())
+
+        btn_box.addWidget(confirm_btn)
+        btn_box.addWidget(cancel_btn)
+        btn_box.addStretch()
+
+        layout.addWidget(title_lbl)
+        layout.addWidget(summary_lbl)
+        layout.addLayout(btn_box)
+
+
+class FilePreviewCardWidget(QFrame):
+    """File Preview Card displaying search results with action buttons."""
+
+    openFileRequested = pyqtSignal(str)
+
+    def __init__(self, files: list, parent=None):
+        super().__init__(parent)
+        self.files = files
+        self.setStyleSheet(
+            f"QFrame {{ background-color: {DesignTokens.SURFACE_1}; border: 1px solid {DesignTokens.BORDER}; border-radius: 14px; }}"
+        )
+        self._setup_ui()
+
+    def _setup_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(14, 12, 14, 12)
+        layout.setSpacing(8)
+
+        title = QLabel(f"📁 Tìm thấy {len(self.files)} tệp phù hợp:")
+        title.setStyleSheet(f"color: {DesignTokens.CYAN_ACCENT}; font-size: 13px; font-weight: 700;")
+        layout.addWidget(title)
+
+        for f in self.files:
+            file_row = QHBoxLayout()
+            file_row.setSpacing(8)
+
+            name_lbl = QLabel(f"📄 {f.get('name', 'Tệp')}")
+            name_lbl.setStyleSheet(f"color: {DesignTokens.TEXT_MAIN}; font-weight: 600; font-size: 13px;")
+
+            size_lbl = QLabel(f.get('size', ''))
+            size_lbl.setStyleSheet(f"color: {DesignTokens.TEXT_MUTED}; font-size: 11px;")
+
+            open_btn = QPushButton("Mở tệp")
+            open_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            open_btn.setStyleSheet(f"QPushButton {{ background: {DesignTokens.SURFACE_3}; color: {DesignTokens.CYAN}; border: none; border-radius: 6px; padding: 4px 8px; font-size: 11px; }}")
+            open_btn.clicked.connect(lambda _, p=f.get('path'): self.openFileRequested.emit(p))
+
+            file_row.addWidget(name_lbl, stretch=1)
+            file_row.addWidget(size_lbl)
+            file_row.addWidget(open_btn)
+
+            row_w = QWidget()
+            row_w.setLayout(file_row)
+            layout.addWidget(row_w)
 
 
 class ThinkingIndicatorWidget(QWidget):
@@ -32,11 +141,9 @@ class ThinkingIndicatorWidget(QWidget):
         layout.setContentsMargins(16, 6, 16, 6)
         layout.setSpacing(10)
 
-        # POP Logo
         self.logo_lbl = QLabel()
         self.logo_lbl.setPixmap(get_pop_logo_pixmap(24))
 
-        # Text label
         self.text_lbl = QLabel("POP đang suy nghĩ...")
         self.text_lbl.setStyleSheet(f"color: {DesignTokens.CYAN_ACCENT}; font-size: 13px; font-weight: 500;")
 
@@ -53,7 +160,7 @@ class ThinkingIndicatorWidget(QWidget):
 class MessageBubbleWidget(QWidget):
     """Single Message Bubble Widget (User or AI) matching po #8 & #9."""
 
-    actionClicked = pyqtSignal(str, str)  # action_name, message_id
+    actionClicked = pyqtSignal(str, str)
 
     def __init__(self, msg: ChatMessage, parent=None):
         super().__init__(parent)
@@ -67,7 +174,6 @@ class MessageBubbleWidget(QWidget):
         is_user = (self.msg.sender == "user")
 
         if is_user:
-            # User Message (Right-aligned)
             main_layout.addStretch()
 
             card = QFrame()
@@ -78,12 +184,10 @@ class MessageBubbleWidget(QWidget):
             card_layout.setContentsMargins(14, 10, 14, 10)
             card_layout.setSpacing(4)
 
-            # Time header
             time_lbl = QLabel(self.msg.timestamp)
             time_lbl.setAlignment(Qt.AlignmentFlag.AlignRight)
             time_lbl.setStyleSheet(f"color: {DesignTokens.TEXT_MUTED}; font-size: 10px;")
 
-            # Text
             text_lbl = QLabel(self.msg.text)
             text_lbl.setWordWrap(True)
             text_lbl.setStyleSheet(f"color: {DesignTokens.TEXT_MAIN}; font-size: 14px; line-height: 1.4;")
@@ -91,7 +195,6 @@ class MessageBubbleWidget(QWidget):
             card_layout.addWidget(time_lbl)
             card_layout.addWidget(text_lbl)
 
-            # User Avatar Icon
             avatar_lbl = QLabel()
             avatar_lbl.setPixmap(create_vector_icon("user", "#96D7E9", 32).pixmap(32, 32))
             avatar_lbl.setFixedSize(32, 32)
@@ -100,7 +203,6 @@ class MessageBubbleWidget(QWidget):
             main_layout.addWidget(avatar_lbl, alignment=Qt.AlignmentFlag.AlignTop)
 
         else:
-            # AI Response Message (Left-aligned) (po #9)
             avatar_lbl = QLabel()
             avatar_lbl.setPixmap(get_pop_logo_pixmap(32))
             avatar_lbl.setFixedSize(32, 32)
@@ -113,7 +215,6 @@ class MessageBubbleWidget(QWidget):
             card_layout.setContentsMargins(16, 12, 16, 12)
             card_layout.setSpacing(8)
 
-            # Header: POP + timestamp
             header_layout = QHBoxLayout()
             header_layout.setSpacing(8)
 
@@ -127,12 +228,10 @@ class MessageBubbleWidget(QWidget):
             header_layout.addWidget(time_lbl)
             header_layout.addStretch()
 
-            # Message Text
             text_lbl = QLabel(self.msg.text)
             text_lbl.setWordWrap(True)
             text_lbl.setStyleSheet(f"color: {DesignTokens.TEXT_MAIN}; font-size: 14px; line-height: 1.5;")
 
-            # Bottom Action Toolbar (Copy, Like, Dislike, Retry)
             toolbar_layout = QHBoxLayout()
             toolbar_layout.setSpacing(6)
 
@@ -162,7 +261,7 @@ class MessageBubbleWidget(QWidget):
 
 
 class ChatAreaWidget(QWidget):
-    """Central Chat Area Widget containing Header Bar, Message Scroll Area, and Input Bar."""
+    """Central Chat Area Widget containing Header Bar, Message Scroll Area, Action Cards, and Input Bar."""
 
     sendMessage = pyqtSignal(str)
     voiceToggled = pyqtSignal()
@@ -173,6 +272,7 @@ class ChatAreaWidget(QWidget):
     windowMinimize = pyqtSignal()
     windowMaximize = pyqtSignal()
     windowClose = pyqtSignal()
+    executeToolRequested = pyqtSignal(str, dict)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -185,7 +285,7 @@ class ChatAreaWidget(QWidget):
         main_layout.setSpacing(0)
 
         # ----------------------------------------------------
-        # 1. TOP HEADER BAR (po #1, #7, #12)
+        # 1. TOP HEADER BAR
         # ----------------------------------------------------
         header_bar = QFrame()
         header_bar.setFixedHeight(54)
@@ -194,7 +294,6 @@ class ChatAreaWidget(QWidget):
         hb_layout.setContentsMargins(16, 8, 16, 8)
         hb_layout.setSpacing(12)
 
-        # Model Selector Dropdown (po #1)
         self.model_combo = QComboBox()
         self.model_combo.addItems([
             "LFM2.5 2.6B (Local)",
@@ -205,15 +304,12 @@ class ChatAreaWidget(QWidget):
         self.model_combo.setFixedWidth(190)
         self.model_combo.currentTextChanged.connect(lambda m: self.switchModel.emit(m))
 
-        # Status / Date Pill (Center)
         self.date_pill = QLabel("18 Tháng 8, 2026")
         self.date_pill.setStyleSheet(f"background-color: {DesignTokens.SURFACE_2}; color: {DesignTokens.TEXT_MUTED}; border-radius: 12px; padding: 4px 12px; font-size: 11px; font-weight: 500;")
 
-        # Status Badge "🟢 READY"
         self.status_badge = QLabel("🟢 READY")
         self.status_badge.setStyleSheet(f"background-color: rgba(0, 255, 170, 0.1); color: {DesignTokens.CYAN_ACCENT}; border: 1px solid rgba(0, 255, 170, 0.3); border-radius: 12px; padding: 4px 10px; font-size: 11px; font-weight: 600;")
 
-        # Header Action Buttons
         self.voice_btn = QPushButton()
         self.voice_btn.setIcon(create_vector_icon("waveform", "#00FFAA", 18))
         self.voice_btn.setFixedSize(32, 32)
@@ -235,7 +331,6 @@ class ChatAreaWidget(QWidget):
         self.settings_btn.setStyleSheet("QPushButton { border: none; background: transparent; } QPushButton:hover { background: rgba(255,255,255,0.08); border-radius: 8px; }")
         self.settings_btn.clicked.connect(lambda: self.openSettings.emit())
 
-        # Custom Window Controls (po #7)
         win_controls = QHBoxLayout()
         win_controls.setSpacing(4)
 
@@ -271,7 +366,7 @@ class ChatAreaWidget(QWidget):
         main_layout.addWidget(header_bar)
 
         # ----------------------------------------------------
-        # 2. MESSAGES SCROLL AREA (po #8, #9, #10)
+        # 2. MESSAGES SCROLL AREA
         # ----------------------------------------------------
         self.scroll = QScrollArea()
         self.scroll.setWidgetResizable(True)
@@ -286,13 +381,12 @@ class ChatAreaWidget(QWidget):
         self.scroll.setWidget(self.messages_container)
         main_layout.addWidget(self.scroll, stretch=1)
 
-        # Thinking loader widget
         self.thinking_widget = ThinkingIndicatorWidget()
         self.thinking_widget.hide()
         self.messages_layout.addWidget(self.thinking_widget)
 
         # ----------------------------------------------------
-        # 3. INPUT BAR (po #11)
+        # 3. INPUT BAR
         # ----------------------------------------------------
         self.input_bar = InputBarWidget()
         self.input_bar.sendMessage.connect(lambda text: self.sendMessage.emit(text))
@@ -302,7 +396,6 @@ class ChatAreaWidget(QWidget):
 
     def load_session(self, session: ConversationSession):
         """Render all messages from a conversation session."""
-        # Clear existing messages
         while self.messages_layout.count():
             item = self.messages_layout.takeAt(0)
             if item.widget() and item.widget() != self.thinking_widget:
@@ -319,12 +412,32 @@ class ChatAreaWidget(QWidget):
     def append_message(self, msg: ChatMessage):
         """Add a single message to the active view."""
         bw = MessageBubbleWidget(msg)
-        # Insert before thinking widget
         idx = self.messages_layout.indexOf(self.thinking_widget)
         if idx >= 0:
             self.messages_layout.insertWidget(idx, bw)
         else:
             self.messages_layout.addWidget(bw)
+        self.scroll_to_bottom()
+
+    def append_confirmation_card(self, title: str, summary: str, tool_name: str, tool_args: dict):
+        """Append Action Confirmation Card to chat view."""
+        card = ActionConfirmationCardWidget(title, summary, tool_name, tool_args)
+        card.confirmed.connect(lambda t_name, t_args: self.executeToolRequested.emit(t_name, t_args))
+        idx = self.messages_layout.indexOf(self.thinking_widget)
+        if idx >= 0:
+            self.messages_layout.insertWidget(idx, card)
+        else:
+            self.messages_layout.addWidget(card)
+        self.scroll_to_bottom()
+
+    def append_file_preview_card(self, files: list):
+        """Append File Preview Card to chat view."""
+        card = FilePreviewCardWidget(files)
+        idx = self.messages_layout.indexOf(self.thinking_widget)
+        if idx >= 0:
+            self.messages_layout.insertWidget(idx, card)
+        else:
+            self.messages_layout.addWidget(card)
         self.scroll_to_bottom()
 
     def set_thinking(self, thinking: bool):

@@ -1,5 +1,5 @@
 """
-PopView - Main Window View implementing MVC interface for POP AI Assistant matching images po1 and po.
+PopView - Main Window View implementing MVC interface for POP AI Assistant with Mini Mascot integration.
 """
 
 import sys
@@ -15,15 +15,16 @@ from view.ui.starfield_widget import StarfieldWidget
 from view.ui.sidebar_widget import SidebarWidget
 from view.ui.chat_area_widget import ChatAreaWidget
 from view.ui.right_panel_widget import RightPanelWidget
+from view.ui.mini_mascot_widget import MiniMascotWidget
 from view.ui.icons import get_pop_logo_icon
 from model.pop_chat_model import PopChatModel, ChatMessage
 from model.voice_state_model import VoiceState
+from service.agent.agent_engine import OpenClawAgentEngine
 
 
 class PopView(QMainWindow):
     """Main Application Window for POP AI Assistant adhering strictly to MVC architecture."""
 
-    # View Signals (connected to Controller slots)
     sendMessage = pyqtSignal(str)
     voiceToggled = pyqtSignal()
     stopGeneration = pyqtSignal()
@@ -49,24 +50,28 @@ class PopView(QMainWindow):
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Window)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
-        # Chat Data Model
+        # Chat Data Model & Agent Engine
         self.chat_model = PopChatModel()
+        self.agent_engine = OpenClawAgentEngine()
 
-        # Frameless window drag state
         self._drag_pos = QPoint()
 
         self._setup_ui()
         self.setStyleSheet(STYLE_SHEET)
 
+        # Desktop Mini Mascot Floating Avatar Widget
+        self.mini_mascot = MiniMascotWidget()
+        self.mini_mascot.move(100, 100)
+        self.mini_mascot.show()
+        self.mini_mascot.toggleMainWindowRequested.connect(self._toggle_main_window_visibility)
+
     def _setup_ui(self):
-        # Main Container
         self.central_widget = QWidget(self)
         self.setCentralWidget(self.central_widget)
 
         root_layout = QVBoxLayout(self.central_widget)
         root_layout.setContentsMargins(10, 10, 10, 10)
 
-        # Outer Glass Container Box
         self.container_box = QFrame()
         self.container_box.setObjectName("mainContainer")
         self.container_box.setStyleSheet(
@@ -82,16 +87,12 @@ class PopView(QMainWindow):
         box_layout.setContentsMargins(0, 0, 0, 0)
         box_layout.setSpacing(0)
 
-        # ----------------------------------------------------
-        # 1. STARFIELD BACKGROUND CANVAS
-        # ----------------------------------------------------
+        # 1. Starfield Canvas
         self.starfield = StarfieldWidget(self.container_box)
         self.starfield.setGeometry(0, 0, 1280, 800)
         self.starfield.lower()
 
-        # ----------------------------------------------------
-        # 2. LEFT SIDEBAR (po #2 to #6)
-        # ----------------------------------------------------
+        # 2. Left Sidebar
         self.sidebar = SidebarWidget(self.chat_model, self.container_box)
         self.sidebar.newChatRequested.connect(self._on_new_chat)
         self.sidebar.conversationSelected.connect(self._on_conversation_selected)
@@ -99,9 +100,7 @@ class PopView(QMainWindow):
         self.sidebar.searchChanged.connect(lambda query: self.searchConversations.emit(query))
         self.sidebar.settingsClicked.connect(lambda: self.openSettings.emit())
 
-        # ----------------------------------------------------
-        # 3. CENTRAL CHAT AREA (po #1, #7 to #11)
-        # ----------------------------------------------------
+        # 3. Central Chat Area
         self.chat_area = ChatAreaWidget(self.container_box)
         self.chat_area.sendMessage.connect(self._on_user_send_message)
         self.chat_area.voiceToggled.connect(lambda: self.voiceToggled.emit())
@@ -112,10 +111,9 @@ class PopView(QMainWindow):
         self.chat_area.windowMinimize.connect(self.showMinimized)
         self.chat_area.windowMaximize.connect(self._toggle_maximize)
         self.chat_area.windowClose.connect(self.close)
+        self.chat_area.executeToolRequested.connect(self._on_execute_tool)
 
-        # ----------------------------------------------------
-        # 4. RIGHT TELEMETRY PANEL (po #12 to #15)
-        # ----------------------------------------------------
+        # 4. Right Telemetry Panel
         self.right_panel = RightPanelWidget(self.container_box)
 
         box_layout.addWidget(self.sidebar)
@@ -124,7 +122,6 @@ class PopView(QMainWindow):
 
         root_layout.addWidget(self.container_box)
 
-        # Load initial conversation matching po1
         active_session = self.chat_model.get_active_session()
         if active_session:
             self.chat_area.load_session(active_session)
@@ -142,6 +139,15 @@ class PopView(QMainWindow):
         if event.buttons() == Qt.MouseButton.LeftButton and not self.isMaximized():
             self.move(event.globalPosition().toPoint() - self._drag_pos)
             event.accept()
+
+    def _toggle_main_window_visibility(self):
+        """Toggle Show / Hide main POP window when double clicking Mini Mascot."""
+        if self.isVisible():
+            self.hide()
+        else:
+            self.show()
+            self.raise_()
+            self.activateWindow()
 
     # ============================================================
     # CONTROLLER COMPATIBILITY API
@@ -171,6 +177,7 @@ class PopView(QMainWindow):
 
     def set_voice_state(self, state: VoiceState):
         self.right_panel.set_voice_state(state)
+        self.mini_mascot.set_voice_state(state)
         is_listening = (state == VoiceState.LISTENING)
         self.chat_area.input_bar.set_listening(is_listening)
 
@@ -186,15 +193,77 @@ class PopView(QMainWindow):
         self.chat_area.append_message(msg)
 
     # ============================================================
-    # PRIVATE INTERNAL HANDLERS
+    # PRIVATE INTERNAL HANDLERS & AGENT DISPATCHER
     # ============================================================
 
     def _on_user_send_message(self, text: str):
         msg = self.chat_model.add_user_message(text)
         self.chat_area.append_message(msg)
-        self.chat_area.set_thinking(True)
         self.right_panel.add_activity_log("User Message", "chat")
+
+        # Process through Agentic Engine
+        plan = self.agent_engine.analyze_request(text)
+
+        if plan.is_clarification_needed:
+            # Speak & show clarification question
+            bot_msg = self.chat_model.add_bot_message(plan.clarification_question)
+            self.chat_area.append_message(bot_msg)
+            if self.controller and hasattr(self.controller, 'audio'):
+                self.controller.audio.speak(plan.clarification_question)
+            return
+
+        if plan.needs_confirmation:
+            # Display Action Confirmation Card
+            self.chat_area.append_confirmation_card(
+                title=plan.confirmation_title,
+                summary=plan.summary_text,
+                tool_name=plan.tool_name,
+                tool_args=plan.tool_args
+            )
+            confirm_voice = f"Vui lòng xác nhận hành động: {plan.summary_text}"
+            if self.controller and hasattr(self.controller, 'audio'):
+                self.controller.audio.speak(confirm_voice)
+            return
+
+        if plan.tool_name == "file_search":
+            from tools.file_search_tool import FileSearchTool
+            files = FileSearchTool.search_files(plan.tool_args.get("query", ""))
+            if files:
+                self.chat_area.append_file_preview_card(files)
+            else:
+                bot_msg = self.chat_model.add_bot_message(f"Không tìm thấy tệp nào phù hợp với từ khóa '{plan.tool_args.get('query')}' trên máy tính.")
+                self.chat_area.append_message(bot_msg)
+            return
+
+        if plan.tool_name == "web_search":
+            from tools.web_tool import WebTool
+            res = WebTool.search_or_read_web(plan.tool_args.get("query", ""))
+            reply = res.get("summary") or res.get("content") or "Đã hoàn thành tra cứu web."
+            bot_msg = self.chat_model.add_bot_message(reply)
+            self.chat_area.append_message(bot_msg)
+            return
+
+        # General conversation -> Delegate to Controller
+        self.chat_area.set_thinking(True)
         self.sendMessage.emit(text)
+
+    def _on_execute_tool(self, tool_name: str, tool_args: dict):
+        """Execute tool after user approves action confirmation card."""
+        print(f"[PopView] User confirmed action -> Executing tool '{tool_name}' with args: {tool_args}")
+        status_msg = ""
+        if tool_name == "zalo_send":
+            from tools.zalo_tool import ZaloTool
+            res = ZaloTool.send_message(tool_args.get("recipient"), tool_args.get("message"))
+            status_msg = res.get("message", "Đã gửi tin nhắn Zalo.")
+        elif tool_name == "facebook_send":
+            from tools.facebook_tool import FacebookTool
+            res = FacebookTool.send_message(tool_args.get("recipient"), tool_args.get("message"))
+            status_msg = res.get("message", "Đã gửi tin nhắn Facebook.")
+
+        bot_msg = self.chat_model.add_bot_message(status_msg)
+        self.chat_area.append_message(bot_msg)
+        if self.controller and hasattr(self.controller, 'audio'):
+            self.controller.audio.speak(status_msg)
 
     def _on_new_chat(self):
         new_session = self.chat_model.create_new_session("Cuộc trò chuyện mới")
@@ -222,5 +291,7 @@ class PopView(QMainWindow):
             self.showMaximized()
 
     def closeEvent(self, event):
+        if hasattr(self, 'mini_mascot'):
+            self.mini_mascot.close()
         self.viewClosed.emit()
         super().closeEvent(event)
