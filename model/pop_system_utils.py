@@ -195,36 +195,8 @@ def get_cpu_temperature():
     
     try:
         # 4. Thử đọc từ LibreHardwareMonitor (LHM)
-        import wmi
-        try:
-            w = wmi.WMI(namespace="root\\LibreHardwareMonitor")
-            sensors = w.Sensor()
-            for sensor in sensors:
-                if "Temperature" in str(sensor.SensorType) and "CPU" in str(sensor.Name):
-                    return f"Nhiệt độ {sensor.Name}: {sensor.Value:.1f}°C (LHM)"
-        except:
-            pass
-        methods_tried.append("LibreHardwareMonitor: Not running")
-    except:
-        pass
-    
-    try:
-        # 5. Thử đọc từ OpenHardwareMonitor (OHM) - namespace khác
-        import wmi
-        try:
-            w = wmi.WMI(namespace="root\\OpenHardwareMonitor")
-            sensors = w.Sensor()
-            for sensor in sensors:
-                if "Temperature" in str(sensor.SensorType) and "CPU" in str(sensor.Name):
-                    return f"Nhiệt độ {sensor.Name}: {sensor.Value:.1f}°C (OHM)"
-        except:
-            pass
-        methods_tried.append("OpenHardwareMonitor: Not running")
-    except:
-        pass
-    
-    # Không đọc được
-    return f"Không đọc được nhiệt độ. Đã thử: {', '.join(methods_tried)}. Hãy cài LibreHardwareMonitor và chạy nó."
+    from model.temperature_monitor import get_cpu_temperature_auto
+    return get_cpu_temperature_auto()
 
 
 def get_temperature_alert():

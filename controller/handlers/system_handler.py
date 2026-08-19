@@ -172,7 +172,7 @@ class SystemHandler(BaseHandler):
                     return self.speak_and_return(f"Nhiệt độ hiện tại là {temp:.0f} độ C. Máy đang hoạt động bình thường.", wait=3)
             else:
                 # Không đọc được - thông báo rõ ràng và hướng dẫn
-                message = "Xin lỗi, tôi không đọc được nhiệt độ máy. Để đọc được nhiệt độ, bạn cần cài đặt OpenHardwareMonitor trong thư mục tools của bot."
+                message = "Xin lỗi, không thể đọc nhiệt độ hệ thống trên thiết bị này."
                 return self.speak_and_return(message, wait=6)
         except Exception as e:
             print(f"[ERROR] Temperature check failed: {e}")

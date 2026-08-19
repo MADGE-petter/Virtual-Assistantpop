@@ -30,22 +30,7 @@ def main():
         except Exception as e:
             print(f"[Login] Could not set icon: {e}")
 
-        # Import temperature_monitor để quản lý OHM lifecycle
-        _monitor_ref = None
-        try:
-            from model.temperature_monitor import _monitor
-            _monitor_ref = _monitor
-        except Exception as e:
-            print(f"[Login] Không import được temperature_monitor: {e}")
-        
-        def on_app_exit():
-            try:
-                if _monitor_ref:
-                    _monitor_ref.stop_ohm()
-            except Exception as e:
-                print(f"[Login] Lỗi dừng OHM: {e}")
-        
-        app.aboutToQuit.connect(on_app_exit)
+
 
         from service.login_service import LoginService
         from view.login.login_view import LoginView
