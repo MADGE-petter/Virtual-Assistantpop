@@ -1,0 +1,68 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Database - KHÔNG upload database lên GitHub
+conversations.db
+*.db
+database/*.db
+
+# Config files - KHÔNG upload config lên GitHub
+user_data.json
+admin_settings.json
+config.json
+secrets.json
+
+# Export files - KHÔNG upload export lên GitHub
+export_data_*.json
+export_*.json
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Large model files (LLM)
+LLM-agents/*.gguf
+
+# PyQt
+*.ui.py
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+backup_*
