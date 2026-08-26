@@ -1,0 +1,39 @@
+# ====================================================================
+# Pop Assistant - Project Dependencies
+# ====================================================================
+
+# Core GUI Framework
+PyQt6>=6.6.0
+
+# Speech Recognition (ASR), Text-to-Speech (TTS) & Wake Word
+sherpa-onnx>=1.10.0
+openwakeword>=0.6.0
+SpeechRecognition>=3.10.0
+PyAudio>=0.2.14
+sounddevice>=0.4.6
+soundfile>=0.12.1
+librosa>=0.10.1
+playsound==1.2.2
+
+# Local AI / LLM Engine
+llama-cpp-python>=0.2.90
+huggingface-hub>=0.24.0
+numpy>=1.26.0
+
+# Windows System Control & Hardware Monitoring
+psutil>=5.9.0
+wmi>=1.5.1
+pynvml>=11.5.0
+nvidia-ml-py>=12.560.0
+screen-brightness-control>=0.27.0
+pycaw>=20230407
+comtypes>=1.2.0
+pyautogui>=0.9.54
+
+# Utilities & Networking
+requests>=2.31.0
+
+# Development & Build Tools (Optional)
+black>=24.4.0
+isort>=5.13.0
+pyinstaller>=6.5.0

@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pop-assistant"
+version = "2.0.0"
+description = "Trợ lý ảo thông minh dành cho Windows tích hợp Giọng nói, LLM cục bộ, Giám sát hệ thống và Gợi ý thói quen."
+authors = [{ name = "Pop AI Team" }]
+readme = "README.md"
+requires-python = ">=3.9"
+
+dependencies = [
+    "PyQt6>=6.6.0",
+    "sherpa-onnx>=1.10.0",
+    "openwakeword>=0.6.0",
+    "SpeechRecognition>=3.10.0",
+    "PyAudio>=0.2.14",
+    "sounddevice>=0.4.6",
+    "soundfile>=0.12.1",
+    "librosa>=0.10.1",
+    "playsound>=1.2.2,<1.3.0",
+    "llama-cpp-python>=0.2.90",
+    "huggingface-hub>=0.24.0",
+    "numpy>=1.26.0",
+    "psutil>=5.9.0",
+    "wmi>=1.5.1",
+    "pynvml>=11.5.0",
+    "nvidia-ml-py>=12.560.0",
+    "screen-brightness-control>=0.27.0",
+    "pycaw>=20230407",
+    "comtypes>=1.2.0",
+    "pyautogui>=0.9.54",
+    "requests>=2.31.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black>=24.4.0",
+    "isort>=5.13.0",
+    "pyinstaller>=6.5.0",
+]
+
+[tool.black]
+line-length = 88
+
+[tool.isort]
+profile = "black"
