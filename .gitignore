@@ -56,7 +56,8 @@ logs/
 Thumbs.db
 
 # Large model files (LLM & Voice)
-LLM-agents/*.gguf
+LLM-agents/*
+!LLM-agents/.gitkeep
 voice-models/
 database/user_memory.json
 database/assets/
