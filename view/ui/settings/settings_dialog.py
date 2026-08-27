@@ -8,6 +8,7 @@ from view.ui.styles import DesignTokens
 from view.ui.settings.settings_config import load_user_settings
 from view.ui.settings.general_tab import GeneralTabWidget
 from view.ui.settings.models_tab import ModelsTabWidget
+from view.ui.settings.download_tab import DownloadTabWidget
 from view.ui.settings.database_tab import DatabaseTabWidget
 from view.ui.settings.rules_tab import RulesTabWidget
 from view.ui.settings.profile_tab import ProfileTabWidget
@@ -15,7 +16,7 @@ from view.ui.settings.about_tab import AboutTabWidget
 
 
 class SettingsDialog(QDialog):
-    """Trang Quản lý Settings Hợp nhất (Assembled from Modular Tabs)."""
+    """Trang Quản lý Settings Hợp nhất (Phân tách chuyên biệt Quản lý Models & Tìm Tải Model)."""
     
     settingsChanged = pyqtSignal()
     modelDownloaded = pyqtSignal()
@@ -26,7 +27,7 @@ class SettingsDialog(QDialog):
         self.user_settings = load_user_settings()
         
         self.setWindowTitle("POP AI - Cài Đặt & Quản Lý Hệ Thống")
-        self.setFixedSize(860, 580)
+        self.setFixedSize(880, 600)
         self.setStyleSheet(f"QDialog {{ background-color: {DesignTokens.BG_BASE}; color: {DesignTokens.TEXT_MAIN}; }}")
         self._setup_ui()
         
@@ -65,6 +66,7 @@ class SettingsDialog(QDialog):
         nav_items = [
             "⚙️  Cài đặt chung",
             "🧠  Quản lý Models",
+            "📥  Tải & Tìm kiếm Model",
             "🗄️  Dữ liệu & File",
             "📜  Quy tắc Ngữ cảnh",
             "👤  Hồ sơ Người dùng",
@@ -84,8 +86,16 @@ class SettingsDialog(QDialog):
         self.stacked_widget = QStackedWidget()
         
         self.general_tab = GeneralTabWidget(self.user_settings)
+        
+        # Tab 1: Local Model Manager
         self.models_tab = ModelsTabWidget(self.user_settings)
         self.models_tab.modelDownloaded.connect(lambda: self.modelDownloaded.emit())
+        self.models_tab.requestOpenDownloadTab.connect(lambda: self.nav_list.setCurrentRow(2))
+
+        # Tab 2: Model Downloader & Hugging Face Search Hub
+        self.download_tab = DownloadTabWidget(self.user_settings)
+        self.download_tab.modelDownloaded.connect(lambda: (self.modelDownloaded.emit(), self.models_tab.reload_local_models()))
+
         self.database_tab = DatabaseTabWidget()
         self.rules_tab = RulesTabWidget(self.user_settings)
         self.rules_tab.settingsChanged.connect(lambda: self.settingsChanged.emit())
@@ -94,6 +104,7 @@ class SettingsDialog(QDialog):
 
         self.stacked_widget.addWidget(self.general_tab)
         self.stacked_widget.addWidget(self.models_tab)
+        self.stacked_widget.addWidget(self.download_tab)
         self.stacked_widget.addWidget(self.database_tab)
         self.stacked_widget.addWidget(self.rules_tab)
         self.stacked_widget.addWidget(self.profile_tab)
@@ -105,5 +116,5 @@ class SettingsDialog(QDialog):
         self.stacked_widget.setCurrentIndex(index)
         if index == 1:
             self.models_tab.reload_local_models()
-        elif index == 5:
+        elif index == 6:
             self.about_tab.update_system_telemetry()

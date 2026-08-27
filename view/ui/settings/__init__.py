@@ -1,4 +1,12 @@
 from view.ui.settings.settings_dialog import SettingsDialog
 from view.ui.settings.settings_config import load_user_settings, save_user_settings
+from view.ui.settings.models_tab import ModelsTabWidget
+from view.ui.settings.download_tab import DownloadTabWidget
 
-__all__ = ["SettingsDialog", "load_user_settings", "save_user_settings"]
+__all__ = [
+    "SettingsDialog",
+    "load_user_settings",
+    "save_user_settings",
+    "ModelsTabWidget",
+    "DownloadTabWidget",
+]
