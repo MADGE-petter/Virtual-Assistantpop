@@ -149,7 +149,7 @@ class PopView(QMainWindow):
             self.chat_area.load_session(active_session)
 
     def _open_memory_dialog(self):
-        from view.ui.memory_dialog import MemoryDialog
+        from view.ui.widgets import MemoryDialog
         dialog = MemoryDialog(self.user_name, self)
         dialog.exec()
 
