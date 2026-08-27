@@ -370,7 +370,7 @@ class PopView(QMainWindow):
             self.loadConversation.emit(session_id)
 
     def _open_settings_dialog(self, initial_tab: int = 0):
-        from view.ui.settings_dialog import SettingsDialog
+        from view.ui.settings import SettingsDialog
         dialog = SettingsDialog(username=self.user_name, initial_tab=initial_tab, parent=self)
         dialog.modelDownloaded.connect(lambda: self.chat_area.input_bar._load_local_models())
         dialog.exec()
