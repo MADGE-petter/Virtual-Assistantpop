@@ -1,5 +1,5 @@
 """
-Temperature Monitor - Direct native temperature reader via psutil / pynvml.
+Temperature Monitor - Direct native temperature reader via psutil, pynvml, and Windows WMI.
 """
 
 from typing import Tuple
@@ -19,8 +19,8 @@ except Exception:
 
 
 def get_cpu_temperature_auto() -> str:
-    """Read CPU or GPU temperature using strictly pynvml and psutil."""
-    # 1. Check NVIDIA GPU temperature via pynvml
+    """Read CPU / System temperature natively (NVIDIA NVML -> Windows WMI ACPI -> psutil)."""
+    # 1. Check NVIDIA GPU temperature via pynvml if discrete GPU present
     if HAS_NVML:
         try:
             handle = pynvml.nvmlDeviceGetHandleByIndex(0)
@@ -29,7 +29,18 @@ def get_cpu_temperature_auto() -> str:
         except Exception:
             pass
 
-    # 2. Check psutil thermal sensors
+    # 2. Native Windows WMI ACPI ThermalZone (dành cho Card Onboard / Intel / AMD)
+    try:
+        import wmi
+        w = wmi.WMI(namespace="root\\wmi")
+        for tz in w.MSAcpi_ThermalZoneTemperature():
+            temp = (tz.CurrentTemperature / 10.0) - 273.15
+            if temp > 0:
+                return f"Nhiệt độ hệ thống (WMI): {temp:.0f}°C"
+    except Exception:
+        pass
+
+    # 3. Check psutil thermal sensors (Linux / macOS)
     if HAS_PSUTIL and hasattr(psutil, 'sensors_temperatures'):
         try:
             temps = psutil.sensors_temperatures()

@@ -44,18 +44,30 @@ def get_ram_percent():
 
 
 def get_temperature_readings():
-    """Trả về danh sách các cảm biến nhiệt độ từ psutil."""
+    """Trả về danh sách các cảm biến nhiệt độ từ psutil hoặc Windows WMI ACPI."""
     if not _psutil_available():
         return []
     try:
         temps = psutil.sensors_temperatures()
         readings = []
-        if not temps:
-            return readings
-        for name, entries in temps.items():
-            for entry in entries:
-                if entry.current is not None:
-                    readings.append({'name': name, 'current': entry.current})
+        if temps:
+            for name, entries in temps.items():
+                for entry in entries:
+                    if entry.current is not None:
+                        readings.append({'name': name, 'current': entry.current})
+
+        if not readings:
+            # Fallback natively on Windows via WMI ACPI ThermalZone (dành cho Card Onboard)
+            try:
+                import wmi
+                w = wmi.WMI(namespace="root\\wmi")
+                for tz in w.MSAcpi_ThermalZoneTemperature():
+                    val = round((tz.CurrentTemperature / 10.0) - 273.15, 1)
+                    if val > 0:
+                        readings.append({'name': 'System ACPI ThermalZone', 'current': val})
+            except Exception:
+                pass
+
         return readings
     except Exception:
         return []

@@ -159,6 +159,17 @@ def get_cpu_temperature():
     except Exception:
         pass
     
+    # 2. Native Windows WMI ACPI ThermalZone (dành cho Card Onboard / Intel / AMD)
+    try:
+        import wmi
+        w = wmi.WMI(namespace="root\\wmi")
+        for tz in w.MSAcpi_ThermalZoneTemperature():
+            temp = (tz.CurrentTemperature / 10.0) - 273.15
+            if temp > 0:
+                return f"Nhiệt độ hệ thống (WMI): {temp:.1f}°C"
+    except Exception:
+        pass
+
     try:
         from model.temperature_monitor import get_cpu_temperature_auto
         return get_cpu_temperature_auto()

@@ -31,7 +31,7 @@ class SystemMetrics:
 
 
 class SystemMonitorModel:
-    """Model fetching real-time system metrics via psutil and pynvml."""
+    """Model fetching real-time system metrics via psutil, pynvml, and Windows WMI."""
 
     def __init__(self):
         self.metrics = SystemMetrics()
@@ -64,11 +64,25 @@ class SystemMonitorModel:
             except Exception:
                 pass
 
+        # Windows WMI ACPI Fallback cho máy dùng Card Onboard (Intel/AMD)
+        if temp == 48.0:
+            try:
+                import wmi
+                w = wmi.WMI(namespace="root\\wmi")
+                for tz in w.MSAcpi_ThermalZoneTemperature():
+                    val = round((tz.CurrentTemperature / 10.0) - 273.15, 1)
+                    if val > 0:
+                        temp = val
+                        break
+            except Exception:
+                pass
+
         # If static/default values, add natural subtle wave variations for telemetry realism
         if not HAS_NVML or gpu == 0.0:
             gpu = max(10.0, min(95.0, 32.0 + 8.0 * math.sin(self._tick * 0.7) + random.uniform(-2, 2)))
             vram = max(15.0, min(90.0, 28.0 + 4.0 * math.cos(self._tick * 0.5) + random.uniform(-1, 1)))
-            temp = max(35.0, min(85.0, 48.0 + 3.0 * math.sin(self._tick * 0.3) + random.uniform(-0.5, 0.5)))
+            if temp == 48.0:
+                temp = max(35.0, min(85.0, 48.0 + 3.0 * math.sin(self._tick * 0.3) + random.uniform(-0.5, 0.5)))
 
         if cpu == 0.0 or not HAS_PSUTIL:
             cpu = max(10.0, min(95.0, 24.0 + 12.0 * math.sin(self._tick * 0.8) + random.uniform(-3, 3)))
