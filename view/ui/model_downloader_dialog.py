@@ -208,12 +208,22 @@ class ModelDownloaderDialog(QDialog):
         self.progress_container.hide()
         main_layout.addWidget(self.progress_container)
 
+    def closeEvent(self, event):
+        if hasattr(self, 'search_thread') and self.search_thread and self.search_thread.isRunning():
+            self.search_thread.quit()
+            self.search_thread.wait(500)
+        super().closeEvent(event)
+
     def _on_search_clicked(self):
         query = self.input_search.text().strip()
         if query:
             self._search_models(query)
 
     def _search_models(self, query: str):
+        if hasattr(self, 'search_thread') and self.search_thread and self.search_thread.isRunning():
+            self.search_thread.quit()
+            self.search_thread.wait(500)
+
         self.input_search.setText(query)
         self.status_lbl.setText(f"🔍 Đang tìm kiếm '{query}' trên Hugging Face Hub...")
         

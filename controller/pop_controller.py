@@ -157,11 +157,13 @@ class PopController(QObject):
         if self.view:
             self.view.show_welcome()
     
-    def _on_switch_model(self):
+    def _on_switch_model(self, model_name: str = ""):
         """Handle model switch request."""
-        # TODO: Implement model switching
+        if hasattr(self.agent, 'set_model'):
+            self.agent.set_model(model_name)
         if self.view:
-            self.view.show_toast("Model switching coming soon", "info")
+            msg = f"Đã chuyển sang mô hình: {model_name}" if model_name else "Đã cập nhật mô hình AI"
+            self.view.show_toast(msg, "info")
     
     def _on_open_settings(self):
         """Handle open settings request."""
