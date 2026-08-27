@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QCheckBox, QPushButton, QMessageBox
 from view.ui.styles import DesignTokens
-from view.settings.settings_config import save_user_settings
+from view.ui.settings.settings_config import save_user_settings
 
 
 class GeneralTabWidget(QWidget):

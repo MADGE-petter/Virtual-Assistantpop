@@ -5,13 +5,13 @@ from PyQt6.QtWidgets import (
 )
 
 from view.ui.styles import DesignTokens
-from view.settings.settings_config import load_user_settings
-from view.settings.general_tab import GeneralTabWidget
-from view.settings.models_tab import ModelsTabWidget
-from view.settings.database_tab import DatabaseTabWidget
-from view.settings.rules_tab import RulesTabWidget
-from view.settings.profile_tab import ProfileTabWidget
-from view.settings.about_tab import AboutTabWidget
+from view.ui.settings.settings_config import load_user_settings
+from view.ui.settings.general_tab import GeneralTabWidget
+from view.ui.settings.models_tab import ModelsTabWidget
+from view.ui.settings.database_tab import DatabaseTabWidget
+from view.ui.settings.rules_tab import RulesTabWidget
+from view.ui.settings.profile_tab import ProfileTabWidget
+from view.ui.settings.about_tab import AboutTabWidget
 
 
 class SettingsDialog(QDialog):

@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
 
 from view.ui.styles import DesignTokens
 from view.ui.icons import create_vector_icon
-from view.ui.model_downloader_dialog import ModelDownloaderDialog
+from view.ui.widgets.model_downloader_dialog import ModelDownloaderDialog
 
 
 class MessageTextEdit(QTextEdit):
@@ -172,7 +172,7 @@ class InputBarWidget(QWidget):
         return name if name else raw_name
 
     def _load_local_models(self):
-        from view.ui.settings_dialog import load_user_settings
+        from view.ui.settings import load_user_settings
         settings = load_user_settings()
         agent_dir = settings.get("model_dir", os.path.join(os.getcwd(), "LLM-agents"))
 
@@ -196,7 +196,7 @@ class InputBarWidget(QWidget):
             return
         if text == "[ + Custom model... ]":
             self.model_combo.setCurrentText(self._last_selected_model)
-            from view.ui.settings_dialog import SettingsDialog
+            from view.ui.settings import SettingsDialog
             dialog = SettingsDialog(username="Tài khoản", initial_tab=1, parent=self)
             dialog.modelDownloaded.connect(self._load_local_models)
             dialog.exec()

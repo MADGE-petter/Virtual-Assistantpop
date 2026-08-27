@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
 
 from view.ui.styles import DesignTokens
 from view.ui.icons import get_brand_logo_pixmap
-from view.settings.settings_config import save_user_settings, HFSearchThread
+from view.ui.settings.settings_config import save_user_settings, HFSearchThread
 
 
 class ModelsTabWidget(QWidget):

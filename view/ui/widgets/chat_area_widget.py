@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
 
 from view.ui.styles import DesignTokens
 from view.ui.icons import get_pop_logo_pixmap, create_vector_icon
-from view.ui.input_bar_widget import InputBarWidget
+from view.ui.widgets.input_bar_widget import InputBarWidget
 from model.pop_chat_model import ChatMessage, ConversationSession
 
 

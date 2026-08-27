@@ -10,11 +10,11 @@ from PyQt6.QtWidgets import (
 )
 
 from view.ui.styles import STYLE_SHEET, DesignTokens
-from view.ui.starfield_widget import StarfieldWidget
-from view.ui.sidebar_widget import SidebarWidget
-from view.ui.chat_area_widget import ChatAreaWidget
-from view.ui.right_panel_widget import RightPanelWidget
-from view.ui.mini_mascot_widget import MiniMascotWidget
+from view.ui.widgets import (
+    StarfieldWidget, SidebarWidget, ChatAreaWidget,
+    RightPanelWidget, MiniMascotWidget, MemoryDialog
+)
+from view.ui.settings import SettingsDialog
 from view.ui.icons import get_pop_logo_icon
 from model.pop_chat_model import PopChatModel
 from model.voice_state_model import VoiceState
