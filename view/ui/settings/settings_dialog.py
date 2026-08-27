@@ -131,13 +131,13 @@ class SettingsDialog(QDialog):
         )
 
         nav_items = [
-            "⚙️  Cài đặt chung",
-            "🧠  Quản lý Models",
-            "📥  Tải & Tìm kiếm Model",
-            "🗄️  Dữ liệu & File",
-            "📜  Quy tắc Ngữ cảnh",
-            "👤  Hồ sơ Người dùng",
-            "🖥️  Thông số Máy"
+            "Cài đặt chung",
+            "Quản lý Models",
+            "Tải & Tìm kiếm Model",
+            "Dữ liệu & Files",
+            "Quy tắc Ngữ cảnh",
+            "Hồ sơ người dùng",
+            "Thông số máy"
         ]
         for item in nav_items:
             self.nav_list.addItem(QListWidgetItem(item))

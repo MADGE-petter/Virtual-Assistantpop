@@ -40,7 +40,7 @@ class ModelsTabWidget(QWidget):
         title_box.addWidget(desc)
         header_layout.addLayout(title_box, stretch=1)
 
-        open_hub_btn = QPushButton("📥 Tải Thêm Model Mới")
+        open_hub_btn = QPushButton("+ Tải Thêm Model Mới")
         open_hub_btn.setStyleSheet(
             f"QPushButton {{ background: {DesignTokens.SURFACE_3}; color: {DesignTokens.CYAN_ACCENT}; font-weight: bold; "
             f"border: 1px solid {DesignTokens.BORDER}; border-radius: 8px; padding: 8px 14px; }}"
@@ -64,7 +64,7 @@ class ModelsTabWidget(QWidget):
         self.txt_model_dir.setReadOnly(True)
         self.txt_model_dir.setStyleSheet(f"QLineEdit {{ background: {DesignTokens.SURFACE_2}; border: 1px solid {DesignTokens.BORDER}; border-radius: 6px; padding: 6px; font-size: 12px; color: {DesignTokens.CYAN_ACCENT}; }}")
 
-        change_dir_btn = QPushButton("📁 Đổi thư mục...")
+        change_dir_btn = QPushButton("Đổi thư mục...")
         change_dir_btn.setStyleSheet(f"QPushButton {{ background: {DesignTokens.SURFACE_3}; color: white; border-radius: 6px; padding: 6px 12px; font-size: 12px; }}")
         change_dir_btn.clicked.connect(self._change_model_directory)
 
@@ -75,7 +75,7 @@ class ModelsTabWidget(QWidget):
         layout.addWidget(dir_frame)
 
         # Local Installed Models List
-        self.models_list_lbl = QLabel("📦 Các Model đã cài đặt cục bộ:")
+        self.models_list_lbl = QLabel("Các Model đã cài đặt cục bộ:")
         self.models_list_lbl.setStyleSheet(f"font-size: 12px; font-weight: 600; color: {DesignTokens.TEXT_MUTED};")
         layout.addWidget(self.models_list_lbl)
 
@@ -134,7 +134,7 @@ class ModelsTabWidget(QWidget):
             info_lbl.setStyleSheet("font-size: 13px;")
             cl.addWidget(info_lbl, stretch=1)
 
-            del_btn = QPushButton("🗑️ Xóa Model")
+            del_btn = QPushButton("Xóa Model")
             del_btn.setStyleSheet(f"QPushButton {{ background: rgba(255, 75, 110, 0.15); color: #FF4B6E; border: 1px solid #FF4B6E; border-radius: 6px; padding: 6px 12px; font-weight: bold; }} QPushButton:hover {{ background: rgba(255, 75, 110, 0.3); }}")
             del_btn.clicked.connect(lambda _, path=full_p: self._delete_local_model(path))
             cl.addWidget(del_btn)
