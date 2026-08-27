@@ -147,8 +147,6 @@ def get_battery():
 
 def get_cpu_temperature():
     """Lấy nhiệt độ CPU - thử nhiều phương pháp"""
-    methods_tried = []
-    
     try:
         # 1. Thử service lấy cảm biến nhiệt độ psutil
         temps = _get_temperature_readings()
@@ -158,40 +156,8 @@ def get_cpu_temperature():
                 current = entry.get('current')
                 if current is not None:
                     return f"Nhiệt độ {name}: {current:.1f}°C"
-        methods_tried.append("psutil sensors")
-    except Exception as e:
-        methods_tried.append(f"psutil: {e}")
-    
-    try:
-        # 2. Thử WMI trên Windows - phương pháp phổ biến nhất
-        import wmi
-        w = wmi.WMI(namespace="root\\wmi")
-        temperature_info = w.MSAcpi_ThermalZoneTemperature()
-        if temperature_info:
-            # Đơn vị là 1/10 Kelvin, chuyển sang Celsius
-            temp_kelvin = temperature_info[0].CurrentTemperature / 10.0
-            temp_celsius = temp_kelvin - 273.15
-            return f"Nhiệt độ hệ thống: {temp_celsius:.1f}°C (WMI)"
-        methods_tried.append("WMI: No data")
-    except Exception as e:
-        methods_tried.append(f"WMI: {e}")
-    
-    try:
-        # 3. Thử WMI qua Win32_PerfFormattedData (một số máy có)
-        import wmi
-        w = wmi.WMI()
-        # Thử đọc từ WMI khác
-        try:
-            temps = w.Win32_TemperatureProbe()
-            if temps:
-                for temp in temps:
-                    if temp.CurrentReading:
-                        return f"Nhiệt độ: {temp.CurrentReading}°C (TemperatureProbe)"
-        except:
-            pass
-        methods_tried.append("WMI TemperatureProbe: No data")
-    except:
-        methods_tried.append("WMI Win32: failed")
+    except Exception:
+        pass
     
     try:
         from model.temperature_monitor import get_cpu_temperature_auto

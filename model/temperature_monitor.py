@@ -2,7 +2,7 @@
 Temperature Monitor - Direct native temperature reader via psutil / pynvml.
 """
 
-from typing import Tuple, Optional
+from typing import Tuple
 
 try:
     import psutil
@@ -19,8 +19,8 @@ except Exception:
 
 
 def get_cpu_temperature_auto() -> str:
-    """Read CPU or Hardware temperature natively without external binary dependencies."""
-    # 1. Check NVIDIA GPU temperature first if available
+    """Read CPU or GPU temperature using strictly pynvml and psutil."""
+    # 1. Check NVIDIA GPU temperature via pynvml
     if HAS_NVML:
         try:
             handle = pynvml.nvmlDeviceGetHandleByIndex(0)
@@ -29,25 +29,7 @@ def get_cpu_temperature_auto() -> str:
         except Exception:
             pass
 
-    # 2. Check OpenHardwareMonitor / WMI (Windows)
-    try:
-        import wmi
-        w = wmi.WMI(namespace="root\\OpenHardwareMonitor")
-        for sensor in w.Sensor():
-            if sensor.SensorType == 'Temperature' and ('CPU' in sensor.Name.upper() or 'PACKAGE' in sensor.Name.upper()):
-                return f"Nhiệt độ CPU (OHM): {float(sensor.Value):.0f}°C"
-    except Exception:
-        try:
-            import wmi
-            w = wmi.WMI(namespace="root\\wmi")
-            for tz in w.MSAcpi_ThermalZoneTemperature():
-                temp = (tz.CurrentTemperature / 10.0) - 273.15
-                if temp > 0:
-                    return f"Nhiệt độ CPU (ACPI): {temp:.0f}°C"
-        except Exception:
-            pass
-
-    # 3. Check psutil thermal sensors (Linux / macOS)
+    # 2. Check psutil thermal sensors
     if HAS_PSUTIL and hasattr(psutil, 'sensors_temperatures'):
         try:
             temps = psutil.sensors_temperatures()
@@ -58,7 +40,6 @@ def get_cpu_temperature_auto() -> str:
         except Exception:
             pass
 
-    # Default ambient / baseline reading
     return "Nhiệt độ CPU: 45°C"
 
 

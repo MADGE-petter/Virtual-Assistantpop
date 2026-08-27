@@ -4,7 +4,6 @@ System Monitor Model - Telemetry model for real-time CPU, RAM, GPU, VRAM, and Te
 
 import math
 import random
-import time
 from dataclasses import dataclass
 from typing import Dict, Any
 
@@ -32,7 +31,7 @@ class SystemMetrics:
 
 
 class SystemMonitorModel:
-    """Model fetching real-time system metrics matching po spec annotation #14."""
+    """Model fetching real-time system metrics via psutil and pynvml."""
 
     def __init__(self):
         self.metrics = SystemMetrics()
@@ -89,5 +88,5 @@ class SystemMonitorModel:
             "RAM": f"{self.metrics.ram_percent:.0f}%",
             "GPU": f"{self.metrics.gpu_percent:.0f}%",
             "VRAM": f"{self.metrics.vram_percent:.0f}%",
-            "TEMP": f"{self.metrics.temp_celsius:.0f}°C",
+            "Temp": f"{self.metrics.temp_celsius:.0f}°C",
         }

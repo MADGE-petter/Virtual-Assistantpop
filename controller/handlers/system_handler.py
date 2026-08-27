@@ -157,9 +157,9 @@ class SystemHandler(BaseHandler):
         return f"{name} status"
     
     def _handle_temperature(self):
-        """Xử lý truy vấn nhiệt độ - tự động khởi động OHM nếu cần."""
+        """Xử lý truy vấn nhiệt độ hệ thống."""
         try:
-            # Dùng get_cpu_temperature_auto - tự động khởi động OHM nếu chưa chạy
+            # Dùng get_cpu_temperature_auto (pynvml / psutil)
             temp_result = get_cpu_temperature_auto()
             
             # Parse xem có đọc được không
@@ -188,7 +188,7 @@ class SystemHandler(BaseHandler):
             disk_info = [f"{d['mountpoint']} {d['percent']:.0f}%" for d in snapshot.get('disk_info', [])]
             battery = snapshot.get('battery')
             
-            # Temperature - dùng auto (tự động khởi động OHM nếu cần)
+            # Temperature
             temp_msg = ""
             max_temp = 0
             try:
