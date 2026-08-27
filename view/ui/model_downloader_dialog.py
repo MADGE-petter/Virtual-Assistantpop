@@ -63,8 +63,20 @@ class ModelCardWidget(QFrame):
         layout.setContentsMargins(12, 10, 12, 10)
         layout.setSpacing(12)
 
-        # Hugging Face Official Brand Icon
+        # Brand Logos (Qwen = Whale 🐳, Gemma = Google 🌐, Llama = Meta 🦙, LFM = Liquid 💧)
         icon_lbl = QLabel("🤗")
+        name_lower = self.model_info['name'].lower()
+        if "qwen" in name_lower:
+            icon_lbl.setText("🐳")
+        elif "gemma" in name_lower:
+            icon_lbl.setText("🌐")
+        elif "llama" in name_lower:
+            icon_lbl.setText("🦙")
+        elif "lfm" in name_lower or "liquid" in name_lower:
+            icon_lbl.setText("💧")
+        elif "mistral" in name_lower or "mixtral" in name_lower:
+            icon_lbl.setText("🌪️")
+
         icon_lbl.setStyleSheet("font-size: 26px; margin-right: 4px;")
         layout.addWidget(icon_lbl)
 
@@ -140,11 +152,11 @@ class ModelDownloaderDialog(QDialog):
         chips_layout.setSpacing(8)
 
         categories = [
-            ("Llama 3", "Llama"),
-            ("Qwen 2.5", "Qwen"),
-            ("Gemma 2", "Gemma"),
-            ("LFM 2.5", "LFM"),
-            ("Mistral", "Mistral"),
+            ("🦙 Llama 3", "Llama"),
+            ("🐳 Qwen 2.5", "Qwen"),
+            ("🌐 Gemma 2", "Gemma"),
+            ("💧 LFM 2.5", "LFM"),
+            ("🌪️ Mistral", "Mistral"),
         ]
 
         for label, tag in categories:
