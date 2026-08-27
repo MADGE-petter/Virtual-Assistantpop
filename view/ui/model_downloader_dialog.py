@@ -143,11 +143,13 @@ class ModelDownloaderDialog(QDialog):
         chips_layout.setSpacing(8)
 
         categories = [
-            ("🦙 Llama 3", "Llama"),
-            ("🐳 Qwen 2.5", "Qwen"),
-            ("🌐 Gemma 2", "Gemma"),
-            ("💧 LFM 2.5", "LFM"),
-            ("🌪️ Mistral", "Mistral"),
+            ("Llama 3", "Llama"),
+            ("Qwen 2.5", "Qwen"),
+            ("Gemma 2", "Gemma"),
+            ("Kimi", "Kimi"),
+            ("MiMo", "MiMo"),
+            ("LFM 2.5", "LFM"),
+            ("Mistral", "Mistral"),
         ]
 
         for label, tag in categories:
