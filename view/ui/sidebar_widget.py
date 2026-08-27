@@ -101,7 +101,6 @@ class SidebarWidget(QWidget):
     newChatRequested = pyqtSignal()
     conversationSelected = pyqtSignal(str)
     deleteConversationRequested = pyqtSignal(str)
-    searchChanged = pyqtSignal(str)
     settingsClicked = pyqtSignal()
     modelsClicked = pyqtSignal()
     voiceModeClicked = pyqtSignal()
@@ -173,35 +172,7 @@ class SidebarWidget(QWidget):
         self.new_chat_btn.clicked.connect(lambda: self.newChatRequested.emit())
         main_layout.addWidget(self.new_chat_btn)
 
-        # ----------------------------------------------------
-        # 3. SEARCH CONVERSATIONS FIELD (po #3)
-        # ----------------------------------------------------
-        self.search_container = QFrame()
-        self.search_container.setFixedHeight(36)
-        self.search_container.setStyleSheet(
-            f"QFrame {{ background-color: {DesignTokens.SURFACE_1}; border: none; border-radius: 10px; }}"
-            f"QFrame:focus-within {{ background-color: {DesignTokens.SURFACE_2}; }}"
-        )
-        sc_layout = QHBoxLayout(self.search_container)
-        sc_layout.setContentsMargins(8, 2, 8, 2)
-        sc_layout.setSpacing(6)
 
-        search_icon = QLabel()
-        search_icon.setPixmap(create_vector_icon("search", "#557088", 14).pixmap(14, 14))
-
-        self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("Tìm kiếm cuộc trò chuyện")
-        self.search_input.setStyleSheet("QLineEdit { border: none; background: transparent; font-size: 12px; }")
-        self.search_input.textChanged.connect(lambda t: self.searchChanged.emit(t))
-
-        self.shortcut_badge = QLabel("⌘ K")
-        self.shortcut_badge.setStyleSheet(f"background-color: {DesignTokens.SURFACE_3}; color: {DesignTokens.TEXT_MUTED}; border-radius: 4px; padding: 2px 4px; font-size: 10px; font-weight: 600;")
-
-        sc_layout.addWidget(search_icon)
-        sc_layout.addWidget(self.search_input, stretch=1)
-        sc_layout.addWidget(self.shortcut_badge)
-
-        main_layout.addWidget(self.search_container)
 
         # ----------------------------------------------------
         # 4. CATEGORIZED CONVERSATIONS SCROLL AREA (po #4)
@@ -351,7 +322,6 @@ class SidebarWidget(QWidget):
             self.setMaximumWidth(64)
 
             self.brand_text_container.hide()
-            self.search_container.hide()
             self.user_text_container.hide()
 
             self.new_chat_btn.setText("+")
@@ -372,7 +342,6 @@ class SidebarWidget(QWidget):
             self.setMaximumWidth(280)
 
             self.brand_text_container.show()
-            self.search_container.show()
             self.user_text_container.show()
 
             self.new_chat_btn.setText(" +  New Chat")

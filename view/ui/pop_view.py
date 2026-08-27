@@ -30,7 +30,6 @@ class PopView(QMainWindow):
     newConversation = pyqtSignal()
     switchModel = pyqtSignal(str)
     openSettings = pyqtSignal()
-    searchConversations = pyqtSignal(str)
     loadConversation = pyqtSignal(str)
     deleteConversation = pyqtSignal(str)
     viewClosed = pyqtSignal()
@@ -114,7 +113,6 @@ class PopView(QMainWindow):
         self.sidebar.newChatRequested.connect(self._on_new_chat)
         self.sidebar.conversationSelected.connect(self._on_conversation_selected)
         self.sidebar.deleteConversationRequested.connect(lambda sid: self.deleteConversation.emit(sid))
-        self.sidebar.searchChanged.connect(lambda query: self.searchConversations.emit(query))
         self.sidebar.settingsClicked.connect(lambda: self.openSettings.emit())
         self.sidebar.memoryClicked.connect(self._open_memory_dialog)
 

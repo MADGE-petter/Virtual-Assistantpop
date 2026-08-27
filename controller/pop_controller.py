@@ -129,7 +129,6 @@ class PopController(QObject):
             view.newConversation.connect(self._on_new_conversation)
             view.switchModel.connect(self._on_switch_model)
             view.openSettings.connect(self._on_open_settings)
-            view.searchConversations.connect(self._on_search_conversations)
             view.loadConversation.connect(self._on_load_conversation)
             view.deleteConversation.connect(self._on_delete_conversation)
             view.viewClosed.connect(self._on_view_closed)
@@ -173,11 +172,6 @@ class PopController(QObject):
         # TODO: Implement settings dialog
         if self.view:
             self.view.show_toast("Settings dialog coming soon", "info")
-    
-    def _on_search_conversations(self, query: str):
-        """Handle conversation search."""
-        # TODO: Implement conversation search
-        pass
     
     def _on_load_conversation(self, conversation_id: str):
         """Handle load conversation request."""
