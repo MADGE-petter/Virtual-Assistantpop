@@ -111,6 +111,17 @@ def create_vector_icon(icon_type: str, color_hex: str = "#96D7E9", size: int = 2
         painter.drawEllipse(QPointF(cx, cy), r, r)
         painter.drawLine(QPointF(cx + r * 0.707, cy + r * 0.707), QPointF(s * 0.8, s * 0.8))
 
+    elif icon_type in ("cpu", "command", "box"):
+        # CPU / Chip icon
+        cw = s * 0.46
+        ch = s * 0.46
+        painter.drawRoundedRect(QRectF(s * 0.27, s * 0.27, cw, ch), 4, 4)
+        for i in [-0.14, 0.0, 0.14]:
+            painter.drawLine(QPointF(s * 0.5 + s * i, pad), QPointF(s * 0.5 + s * i, s * 0.27))
+            painter.drawLine(QPointF(s * 0.5 + s * i, s * 0.73), QPointF(s * 0.5 + s * i, s - pad))
+            painter.drawLine(QPointF(pad, s * 0.5 + s * i), QPointF(s * 0.27, s * 0.5 + s * i))
+            painter.drawLine(QPointF(s * 0.73, s * 0.5 + s * i), QPointF(s - pad, s * 0.5 + s * i))
+
     elif icon_type == "plus":
         # Plus icon
         painter.drawLine(QPointF(s * 0.5, pad), QPointF(s * 0.5, s - pad))

@@ -199,7 +199,7 @@ class SidebarWidget(QWidget):
         nav_layout.setSpacing(4)
 
         self.settings_btn = self._create_nav_button("Settings", "settings", self.settingsClicked)
-        self.models_btn = self._create_nav_button("Models", "search", self.modelsClicked)
+        self.models_btn = self._create_nav_button("Models", "command", self.modelsClicked)
 
         nav_layout.addWidget(self.settings_btn)
         nav_layout.addWidget(self.models_btn)

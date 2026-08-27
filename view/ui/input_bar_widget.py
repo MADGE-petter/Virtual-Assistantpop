@@ -172,9 +172,12 @@ class InputBarWidget(QWidget):
         return name if name else raw_name
 
     def _load_local_models(self):
+        from view.ui.settings_dialog import load_user_settings
+        settings = load_user_settings()
+        agent_dir = settings.get("model_dir", os.path.join(os.getcwd(), "LLM-agents"))
+
         self.model_combo.clear()
         models = []
-        agent_dir = os.path.join(os.getcwd(), "LLM-agents")
         if os.path.exists(agent_dir):
             for item in os.listdir(agent_dir):
                 if item.startswith('.'): continue
@@ -184,16 +187,17 @@ class InputBarWidget(QWidget):
             models.append("LFM 2.5 2.6B")
         
         self.model_combo.addItems(models)
-        self.model_combo.addItem("[ + Tải thêm model... ]")
+        self.model_combo.addItem("[ + Custom model... ]")
         self._last_selected_model = self.model_combo.currentText()
 
     def _on_model_changed(self, index):
         text = self.model_combo.currentText()
         if not text:
             return
-        if text == "[ + Tải thêm model... ]":
+        if text == "[ + Custom model... ]":
             self.model_combo.setCurrentText(self._last_selected_model)
-            dialog = ModelDownloaderDialog(self)
+            from view.ui.settings_dialog import SettingsDialog
+            dialog = SettingsDialog(username="Tài khoản", initial_tab=1, parent=self)
             dialog.modelDownloaded.connect(self._load_local_models)
             dialog.exec()
         else:

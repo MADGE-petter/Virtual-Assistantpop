@@ -113,7 +113,8 @@ class PopView(QMainWindow):
         self.sidebar.newChatRequested.connect(self._on_new_chat)
         self.sidebar.conversationSelected.connect(self._on_conversation_selected)
         self.sidebar.deleteConversationRequested.connect(lambda sid: self.deleteConversation.emit(sid))
-        self.sidebar.settingsClicked.connect(lambda: self.openSettings.emit())
+        self.sidebar.settingsClicked.connect(lambda: self._open_settings_dialog(0))
+        self.sidebar.modelsClicked.connect(lambda: self._open_settings_dialog(1))
         self.sidebar.memoryClicked.connect(self._open_memory_dialog)
 
         # 3. Central Chat Area
@@ -121,7 +122,7 @@ class PopView(QMainWindow):
         self.chat_area.sendMessage.connect(self._on_user_send_message)
         self.chat_area.stopGeneration.connect(lambda: self.stopGeneration.emit())
         self.chat_area.switchModel.connect(lambda m: self.switchModel.emit(m))
-        self.chat_area.openSettings.connect(lambda: self.openSettings.emit())
+        self.chat_area.openSettings.connect(lambda: self._open_settings_dialog(0))
         self.chat_area.toggleRightPanel.connect(self._toggle_right_panel)
         self.chat_area.windowMinimize.connect(self._switch_to_mini_mascot)
         self.chat_area.windowMaximize.connect(self._toggle_maximize)
@@ -367,6 +368,12 @@ class PopView(QMainWindow):
         if session:
             self.chat_area.load_session(session)
             self.loadConversation.emit(session_id)
+
+    def _open_settings_dialog(self, initial_tab: int = 0):
+        from view.ui.settings_dialog import SettingsDialog
+        dialog = SettingsDialog(username=self.user_name, initial_tab=initial_tab, parent=self)
+        dialog.modelDownloaded.connect(lambda: self.chat_area.input_bar._load_local_models())
+        dialog.exec()
 
     def _toggle_right_panel(self):
         if self.right_panel.isVisible():
