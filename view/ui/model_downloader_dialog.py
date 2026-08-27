@@ -138,33 +138,7 @@ class ModelDownloaderDialog(QDialog):
 
         main_layout.addLayout(header_box)
 
-        # Quick Filter Chips
-        chips_layout = QHBoxLayout()
-        chips_layout.setSpacing(8)
 
-        categories = [
-            ("Llama 3", "Llama"),
-            ("Qwen 2.5", "Qwen"),
-            ("Gemma 2", "Gemma"),
-            ("Kimi", "Kimi"),
-            ("MiMo", "MiMo"),
-            ("LFM 2.5", "LFM"),
-            ("Mistral", "Mistral"),
-        ]
-
-        for label, tag in categories:
-            btn = QPushButton(label)
-            btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn.setStyleSheet(
-                f"QPushButton {{ background-color: {DesignTokens.SURFACE_1}; color: {DesignTokens.TEXT_MAIN}; "
-                f"border: 1px solid {DesignTokens.BORDER}; border-radius: 14px; padding: 4px 12px; font-size: 12px; }}"
-                f"QPushButton:hover {{ border-color: {DesignTokens.CYAN}; color: {DesignTokens.CYAN_ACCENT}; background-color: {DesignTokens.SURFACE_2}; }}"
-            )
-            btn.clicked.connect(lambda _, t=tag: self._search_models(t))
-            chips_layout.addWidget(btn)
-
-        chips_layout.addStretch()
-        main_layout.addLayout(chips_layout)
 
         # Search Bar
         search_layout = QHBoxLayout()
