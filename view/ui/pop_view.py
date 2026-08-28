@@ -6,7 +6,7 @@ from PyQt6.QtCore import Qt, pyqtSignal, QPoint
 from PyQt6.QtGui import QMouseEvent
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, QFrame,
-    QGraphicsDropShadowEffect
+    QGraphicsDropShadowEffect, QStackedWidget
 )
 
 from view.ui.styles import STYLE_SHEET, DesignTokens
