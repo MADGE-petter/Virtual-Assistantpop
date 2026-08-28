@@ -361,7 +361,8 @@ class SidebarWidget(QWidget):
                 self.list_layout.addWidget(header)
 
             for s in sessions:
-                item_w = ConversationItemWidget(s, s.is_active, self.is_collapsed)
+                is_active = (s.id == self.chat_model.active_session_id) or getattr(s, 'is_active', False)
+                item_w = ConversationItemWidget(s, is_active, self.is_collapsed)
                 item_w.clicked.connect(self._on_item_clicked)
                 self.list_layout.addWidget(item_w)
 

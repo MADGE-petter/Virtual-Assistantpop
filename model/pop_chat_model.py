@@ -29,6 +29,7 @@ class ConversationSession:
     category: str = "Hôm nay"  # "Hôm nay", "Hôm qua", "7 ngày trước"
     created_at: datetime = field(default_factory=datetime.now)
     messages: List[ChatMessage] = field(default_factory=list)
+    is_active: bool = False
 
 
 class PopChatModel:
