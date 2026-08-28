@@ -367,6 +367,7 @@ class PopView(QMainWindow):
             self.controller.audio.speak(status_msg)
 
     def _on_new_chat(self):
+        self._show_chat_view()
         new_session = self.chat_model.create_new_session("Cuộc trò chuyện mới")
         self.sidebar.reload_conversations()
         self.chat_area.load_session(new_session)
@@ -374,6 +375,7 @@ class PopView(QMainWindow):
         self.newConversation.emit()
 
     def _on_conversation_selected(self, session_id: str):
+        self._show_chat_view()
         session = self.chat_model.get_active_session()
         if session:
             self.chat_area.load_session(session)
