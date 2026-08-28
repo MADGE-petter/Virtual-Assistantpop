@@ -111,6 +111,7 @@ class PopView(QMainWindow):
         # 2. Left Sidebar
         self.sidebar = SidebarWidget(self.chat_model, self.user_name, self.container_box)
         self.sidebar.newChatRequested.connect(self._on_new_chat)
+        self.sidebar.backToChatRequested.connect(self._show_chat_view)
         self.sidebar.conversationSelected.connect(self._on_conversation_selected)
         self.sidebar.deleteConversationRequested.connect(lambda sid: self.deleteConversation.emit(sid))
         self.sidebar.settingsClicked.connect(lambda: self._open_settings_page(0))

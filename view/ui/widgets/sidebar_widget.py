@@ -95,6 +95,7 @@ class SidebarWidget(QWidget):
     """Single Unified Left Sidebar Container Widget."""
 
     newChatRequested = pyqtSignal()
+    backToChatRequested = pyqtSignal()
     conversationSelected = pyqtSignal(str)
     deleteConversationRequested = pyqtSignal(str)
     settingsClicked = pyqtSignal()
@@ -109,6 +110,7 @@ class SidebarWidget(QWidget):
         self.chat_model = chat_model
         self.user_name = user_name
         self.is_collapsed = False
+        self.current_mode = 0  # 0: Chat Mode, 1: Settings Mode
 
         self.setMinimumWidth(280)
         self.setMaximumWidth(280)
@@ -157,7 +159,7 @@ class SidebarWidget(QWidget):
         main_layout.addLayout(brand_layout)
 
         # ----------------------------------------------------
-        # 2. NEW CHAT BUTTON (po #2)
+        # 2. TOP ACTION BUTTON (+ New Chat / ← Quay lại Chat)
         # ----------------------------------------------------
         self.new_chat_btn = QPushButton(" +  New Chat")
         self.new_chat_btn.setFixedHeight(36)
@@ -166,7 +168,7 @@ class SidebarWidget(QWidget):
             f"QPushButton {{ background-color: {DesignTokens.BG_BASE}; color: #00FFAA; border: 1px solid #00CCFF; border-radius: 10px; font-weight: 600; text-align: left; padding-left: 12px; }}"
             f"QPushButton:hover {{ background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 rgba(0, 255, 170, 0.1), stop:1 rgba(0, 204, 255, 0.1)); border-color: #00FFAA; }}"
         )
-        self.new_chat_btn.clicked.connect(self._on_new_chat_clicked)
+        self.new_chat_btn.clicked.connect(self._on_top_btn_clicked)
         main_layout.addWidget(self.new_chat_btn)
 
         # ----------------------------------------------------
@@ -287,13 +289,39 @@ class SidebarWidget(QWidget):
 
     def set_mode(self, mode: int, selected_tab: int = 0):
         """Mode 0: Chat Mode (Conversation List), Mode 1: Settings Mode (Settings Tabs)."""
+        self.current_mode = mode
         self.body_stack.setCurrentIndex(mode)
+        
         if mode == 1:
             self.settings_nav_list.setCurrentRow(selected_tab)
+            if self.is_collapsed:
+                self.new_chat_btn.setText(" ←")
+                self.new_chat_btn.setToolTip("Quay lại màn hình chính")
+            else:
+                self.new_chat_btn.setText(" ←  Quay lại Chat")
+                self.new_chat_btn.setToolTip("Thoát cài đặt về giao diện trò chuyện")
+            self.new_chat_btn.setStyleSheet(
+                f"QPushButton {{ background-color: {DesignTokens.SURFACE_2}; color: {DesignTokens.CYAN_ACCENT}; border: 1px solid {DesignTokens.CYAN}; border-radius: 10px; font-weight: 600; text-align: left; padding-left: 12px; }}"
+                f"QPushButton:hover {{ background-color: {DesignTokens.SURFACE_3}; border-color: #00FFAA; color: #FFFFFF; }}"
+            )
+        else:
+            if self.is_collapsed:
+                self.new_chat_btn.setText(" +")
+                self.new_chat_btn.setToolTip("Tạo cuộc trò chuyện mới")
+            else:
+                self.new_chat_btn.setText(" +  New Chat")
+                self.new_chat_btn.setToolTip("Tạo cuộc trò chuyện mới")
+            self.new_chat_btn.setStyleSheet(
+                f"QPushButton {{ background-color: {DesignTokens.BG_BASE}; color: #00FFAA; border: 1px solid #00CCFF; border-radius: 10px; font-weight: 600; text-align: left; padding-left: 12px; }}"
+                f"QPushButton:hover {{ background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 rgba(0, 255, 170, 0.1), stop:1 rgba(0, 204, 255, 0.1)); border-color: #00FFAA; }}"
+            )
 
-    def _on_new_chat_clicked(self):
-        self.set_mode(0)
-        self.newChatRequested.emit()
+    def _on_top_btn_clicked(self):
+        if self.current_mode == 1:
+            self.set_mode(0)
+            self.backToChatRequested.emit()
+        else:
+            self.newChatRequested.emit()
 
     def _on_settings_clicked(self):
         self.set_mode(1, 0)
@@ -329,13 +357,16 @@ class SidebarWidget(QWidget):
 
         if self.is_collapsed:
             self.brand_text_container.hide()
-            self.new_chat_btn.setText(" +")
+            self.new_chat_btn.setText(" ←" if self.current_mode == 1 else " +")
             self.settings_btn.setText("")
             self.models_btn.setText("")
             self.user_text_container.hide()
         else:
             self.brand_text_container.show()
-            self.new_chat_btn.setText(" +  New Chat")
+            self.new_chat_btn.setText(" ←  Quay lại Chat" if self.current_mode == 1 else " +  New Chat")
+            self.settings_btn.setText("   Settings")
+            self.models_btn.setText("   Models")
+            self.user_text_container.show()
             self.settings_btn.setText("   Settings")
             self.models_btn.setText("   Models")
             self.user_text_container.show()
