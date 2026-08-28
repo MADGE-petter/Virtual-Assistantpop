@@ -16,6 +16,7 @@ from view.ui.settings.about_tab import AboutTabWidget
 class SettingsWidget(QWidget):
     """Nội dung Trang Cài đặt & Quản lý nhúng trực tiếp ở khung trung tâm PopView (Không chứa Sidebar kép)."""
     
+    backToChatRequested = pyqtSignal()
     settingsChanged = pyqtSignal()
     modelDownloaded = pyqtSignal()
     requestOpenDownloadTab = pyqtSignal()

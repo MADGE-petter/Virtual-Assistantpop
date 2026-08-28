@@ -134,7 +134,10 @@ class PopView(QMainWindow):
 
         from view.ui.settings import SettingsWidget
         self.settings_page = SettingsWidget(self.user_name, initial_tab=0, parent=self.container_box)
-        self.settings_page.backToChatRequested.connect(self._show_chat_view)
+        if hasattr(self.settings_page, 'backToChatRequested'):
+            self.settings_page.backToChatRequested.connect(self._show_chat_view)
+        if hasattr(self.settings_page, 'requestOpenDownloadTab'):
+            self.settings_page.requestOpenDownloadTab.connect(lambda: self._open_settings_page(2))
         self.settings_page.modelDownloaded.connect(lambda: self.chat_area.input_bar._load_local_models())
 
         self.center_stack.addWidget(self.chat_area)
