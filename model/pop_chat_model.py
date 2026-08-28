@@ -70,6 +70,15 @@ class PopChatModel:
                 return s
         return None
 
+    def get_categorized_sessions(self) -> dict:
+        categorized = {}
+        for s in self.sessions:
+            cat = getattr(s, 'category', "Hôm nay") or "Hôm nay"
+            if cat not in categorized:
+                categorized[cat] = []
+            categorized[cat].append(s)
+        return categorized
+
     def create_new_session(self, title: str = "Cuộc trò chuyện mới") -> ConversationSession:
         new_session = ConversationSession(
             title=title,
@@ -79,6 +88,14 @@ class PopChatModel:
         self.sessions.insert(0, new_session)
         self.active_session_id = new_session.id
         return new_session
+
+    def set_active_session(self, session_id: str):
+        for s in self.sessions:
+            if s.id == session_id:
+                s.is_active = True
+                self.active_session_id = session_id
+            else:
+                s.is_active = False
 
     def delete_session(self, session_id: str):
         self.sessions = [s for s in self.sessions if s.id != session_id]
