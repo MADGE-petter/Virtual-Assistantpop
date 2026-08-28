@@ -196,10 +196,14 @@ class InputBarWidget(QWidget):
             return
         if text == "[ + Custom model... ]":
             self.model_combo.setCurrentText(self._last_selected_model)
-            from view.ui.settings import SettingsDialog
-            dialog = SettingsDialog(username="Tài khoản", initial_tab=2, parent=self)
-            dialog.modelDownloaded.connect(self._load_local_models)
-            dialog.exec()
+            win = self.window()
+            if hasattr(win, '_open_settings_page'):
+                win._open_settings_page(2)
+            else:
+                from view.ui.settings import SettingsDialog
+                dialog = SettingsDialog(username="Tài khoản", initial_tab=2, parent=self)
+                dialog.modelDownloaded.connect(self._load_local_models)
+                dialog.exec()
         else:
             self._last_selected_model = text
             self.switchModel.emit(text)

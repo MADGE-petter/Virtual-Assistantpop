@@ -113,33 +113,43 @@ class PopView(QMainWindow):
         self.sidebar.newChatRequested.connect(self._on_new_chat)
         self.sidebar.conversationSelected.connect(self._on_conversation_selected)
         self.sidebar.deleteConversationRequested.connect(lambda sid: self.deleteConversation.emit(sid))
-        self.sidebar.settingsClicked.connect(lambda: self._open_settings_dialog(0))
-        self.sidebar.modelsClicked.connect(lambda: self._open_settings_dialog(1))
+        self.sidebar.settingsClicked.connect(lambda: self._open_settings_page(0))
+        self.sidebar.modelsClicked.connect(lambda: self._open_settings_page(1))
         self.sidebar.memoryClicked.connect(self._open_memory_dialog)
+        # 3. Central Stack (Switching between Chat View and Settings Page)
+        self.center_stack = QStackedWidget(self.container_box)
+        self.center_stack.setStyleSheet("QStackedWidget { background: transparent; }")
 
-        # 3. Central Chat Area
         self.chat_area = ChatAreaWidget(self.container_box)
         self.chat_area.sendMessage.connect(self._on_user_send_message)
         self.chat_area.stopGeneration.connect(lambda: self.stopGeneration.emit())
         self.chat_area.switchModel.connect(lambda m: self.switchModel.emit(m))
-        self.chat_area.openSettings.connect(lambda: self._open_settings_dialog(0))
+        self.chat_area.openSettings.connect(lambda: self._open_settings_page(0))
         self.chat_area.toggleRightPanel.connect(self._toggle_right_panel)
         self.chat_area.windowMinimize.connect(self._switch_to_mini_mascot)
         self.chat_area.windowMaximize.connect(self._toggle_maximize)
         self.chat_area.windowClose.connect(self.close)
         self.chat_area.executeToolRequested.connect(self._on_execute_tool)
 
+        from view.ui.settings import SettingsWidget
+        self.settings_page = SettingsWidget(self.user_name, initial_tab=0, parent=self.container_box)
+        self.settings_page.backToChatRequested.connect(self._show_chat_view)
+        self.settings_page.modelDownloaded.connect(lambda: self.chat_area.input_bar._load_local_models())
+
+        self.center_stack.addWidget(self.chat_area)
+        self.center_stack.addWidget(self.settings_page)
+
         # 4. Right Telemetry Panel
         self.right_panel = RightPanelWidget(self.container_box)
 
-        # Vertical Separator Line between Sidebar & Chat Area
+        # Vertical Separator Line between Sidebar & Center Area
         self.sidebar_line = QFrame()
         self.sidebar_line.setFixedWidth(1)
         self.sidebar_line.setStyleSheet("background-color: rgba(255, 255, 255, 0.25);")
 
         box_layout.addWidget(self.sidebar)
         box_layout.addWidget(self.sidebar_line)
-        box_layout.addWidget(self.chat_area, stretch=1)
+        box_layout.addWidget(self.center_stack, stretch=1)
         box_layout.addWidget(self.right_panel)
 
         root_layout.addWidget(self.container_box)
@@ -369,11 +379,12 @@ class PopView(QMainWindow):
             self.chat_area.load_session(session)
             self.loadConversation.emit(session_id)
 
-    def _open_settings_dialog(self, initial_tab: int = 0):
-        from view.ui.settings import SettingsDialog
-        dialog = SettingsDialog(username=self.user_name, initial_tab=initial_tab, parent=self)
-        dialog.modelDownloaded.connect(lambda: self.chat_area.input_bar._load_local_models())
-        dialog.exec()
+    def _open_settings_page(self, initial_tab: int = 0):
+        self.settings_page.open_tab(initial_tab)
+        self.center_stack.setCurrentIndex(1)
+
+    def _show_chat_view(self):
+        self.center_stack.setCurrentIndex(0)
 
     def _toggle_right_panel(self):
         if self.right_panel.isVisible():
