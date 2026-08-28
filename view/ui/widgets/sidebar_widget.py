@@ -307,7 +307,7 @@ class SidebarWidget(QWidget):
         if row >= 0:
             self.settingsTabSelected.emit(row)
 
-    def _create_nav_button(self, text: str, icon_type: str, signal: pyqtSignal) -> QPushButton:
+    def _create_nav_button(self, text: str, icon_type: str, handler) -> QPushButton:
         btn = QPushButton(f"   {text}")
         btn.setFixedHeight(34)
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -317,6 +317,8 @@ class SidebarWidget(QWidget):
             f"QPushButton {{ background-color: transparent; color: {DesignTokens.TEXT_MAIN}; border: none; text-align: left; padding-left: 8px; font-size: 13px; font-weight: 500; }}"
             f"QPushButton:hover {{ background-color: {DesignTokens.SURFACE_1}; border-radius: 8px; }}"
         )
+        if handler:
+            btn.clicked.connect(handler)
         return btn
 
     def _toggle_collapse(self):
