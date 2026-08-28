@@ -1,12 +1,12 @@
 """
-POP Sidebar Widget - Collapsible Left Sidebar matching po specifications with clean layout form handling.
+POP SidebarWidget - Single Unified Left Sidebar handling both Chat Mode and Settings Navigation.
 """
 
 from PyQt6.QtCore import Qt, pyqtSignal, QSize
 from PyQt6.QtGui import QFont, QColor
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QLineEdit,
-    QScrollArea, QFrame, QSizePolicy
+    QScrollArea, QFrame, QSizePolicy, QStackedWidget, QListWidget, QListWidgetItem
 )
 
 from view.ui.styles import DesignTokens
@@ -34,12 +34,10 @@ class ConversationItemWidget(QFrame):
         layout.setContentsMargins(6, 4, 6, 4)
         layout.setSpacing(6)
 
-        # Chat Icon / Bullet Indicator
         self.icon_lbl = QLabel()
         self.icon_lbl.setPixmap(create_vector_icon("search" if self.is_active else "dots", "#00FFAA" if self.is_active else "#557088", 16).pixmap(16, 16))
         self.icon_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # Title Label
         self.title_lbl = QLabel(self.session.title)
         self.title_lbl.setStyleSheet(
             f"color: {DesignTokens.TEXT_MAIN if self.is_active else DesignTokens.TEXT_SECONDARY}; "
@@ -47,11 +45,9 @@ class ConversationItemWidget(QFrame):
         )
         self.title_lbl.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
 
-        # Timestamp Label
         self.time_lbl = QLabel(self.session.timestamp)
         self.time_lbl.setStyleSheet(f"color: {DesignTokens.TEXT_MUTED}; font-size: 10px;")
 
-        # Options Button (3 dots)
         self.dots_btn = QPushButton()
         self.dots_btn.setIcon(create_vector_icon("dots", "#96D7E9", 12))
         self.dots_btn.setFixedSize(20, 20)
@@ -96,13 +92,14 @@ class ConversationItemWidget(QFrame):
 
 
 class SidebarWidget(QWidget):
-    """Left Sidebar Container Widget with Smooth Form Collapse Handling."""
+    """Single Unified Left Sidebar Container Widget."""
 
     newChatRequested = pyqtSignal()
     conversationSelected = pyqtSignal(str)
     deleteConversationRequested = pyqtSignal(str)
     settingsClicked = pyqtSignal()
     modelsClicked = pyqtSignal()
+    settingsTabSelected = pyqtSignal(int)
     voiceModeClicked = pyqtSignal()
     toggleCollapsed = pyqtSignal()
     memoryClicked = pyqtSignal()
@@ -117,6 +114,7 @@ class SidebarWidget(QWidget):
         self.setMaximumWidth(280)
         self.setObjectName("sidebar")
         self._setup_ui()
+        self.reload_conversations()
 
     def _setup_ui(self):
         main_layout = QVBoxLayout(self)
@@ -130,7 +128,6 @@ class SidebarWidget(QWidget):
         brand_layout.setContentsMargins(4, 0, 4, 0)
         brand_layout.setSpacing(8)
 
-        # Clickable Logo
         self.logo_btn = QPushButton()
         self.logo_btn.setIcon(get_pop_logo_icon(34))
         self.logo_btn.setIconSize(QSize(34, 34))
@@ -169,14 +166,16 @@ class SidebarWidget(QWidget):
             f"QPushButton {{ background-color: {DesignTokens.BG_BASE}; color: #00FFAA; border: 1px solid #00CCFF; border-radius: 10px; font-weight: 600; text-align: left; padding-left: 12px; }}"
             f"QPushButton:hover {{ background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 rgba(0, 255, 170, 0.1), stop:1 rgba(0, 204, 255, 0.1)); border-color: #00FFAA; }}"
         )
-        self.new_chat_btn.clicked.connect(lambda: self.newChatRequested.emit())
+        self.new_chat_btn.clicked.connect(self._on_new_chat_clicked)
         main_layout.addWidget(self.new_chat_btn)
 
-
-
         # ----------------------------------------------------
-        # 4. CATEGORIZED CONVERSATIONS SCROLL AREA (po #4)
+        # 3. CENTRAL BODY STACK (Chat Mode vs Settings Mode)
         # ----------------------------------------------------
+        self.body_stack = QStackedWidget()
+        self.body_stack.setStyleSheet("QStackedWidget { background: transparent; }")
+
+        # Page 0: Conversation Scroll Area
         self.scroll = QScrollArea()
         self.scroll.setWidgetResizable(True)
         self.scroll.setFrameShape(QFrame.Shape.NoFrame)
@@ -188,18 +187,45 @@ class SidebarWidget(QWidget):
         self.list_layout.setSpacing(8)
 
         self.scroll.setWidget(self.list_container)
-        main_layout.addWidget(self.scroll, stretch=1)
+        self.body_stack.addWidget(self.scroll)
+
+        # Page 1: Settings Navigation List
+        self.settings_nav_list = QListWidget()
+        self.settings_nav_list.setStyleSheet(
+            f"QListWidget {{ background: transparent; border: none; font-size: 13px; outline: none; }}"
+            f"QListWidget::item {{ padding: 11px 14px; border-radius: 10px; margin-bottom: 4px; color: {DesignTokens.TEXT_MAIN}; }}"
+            f"QListWidget::item:hover {{ background: rgba(0, 255, 170, 0.08); color: {DesignTokens.CYAN}; }}"
+            f"QListWidget::item:selected {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 rgba(0, 255, 170, 0.2), stop:1 rgba(0, 142, 255, 0.2)); "
+            f"color: {DesignTokens.CYAN_ACCENT}; font-weight: bold; border-left: 3px solid {DesignTokens.CYAN_ACCENT}; }}"
+        )
+
+        nav_items = [
+            "Cài đặt chung",
+            "Quản lý Models",
+            "Tải & Tìm kiếm Model",
+            "Dữ liệu & Files",
+            "Quy tắc Ngữ cảnh",
+            "Hồ sơ người dùng",
+            "Thông số máy"
+        ]
+        for item in nav_items:
+            self.settings_nav_list.addItem(QListWidgetItem(item))
+
+        self.settings_nav_list.currentRowChanged.connect(self._on_settings_tab_clicked)
+        self.body_stack.addWidget(self.settings_nav_list)
+
+        main_layout.addWidget(self.body_stack, stretch=1)
 
         # ----------------------------------------------------
-        # 5. NAVIGATION / OPTIONS MENU (po #5)
+        # 4. NAVIGATION / OPTIONS MENU (Settings & Models Buttons)
         # ----------------------------------------------------
         self.nav_container = QWidget()
         nav_layout = QVBoxLayout(self.nav_container)
         nav_layout.setContentsMargins(0, 0, 0, 0)
         nav_layout.setSpacing(4)
 
-        self.settings_btn = self._create_nav_button("Settings", "settings", self.settingsClicked)
-        self.models_btn = self._create_nav_button("Models", "command", self.modelsClicked)
+        self.settings_btn = self._create_nav_button("Settings", "settings", self._on_settings_clicked)
+        self.models_btn = self._create_nav_button("Models", "command", self._on_models_clicked)
 
         nav_layout.addWidget(self.settings_btn)
         nav_layout.addWidget(self.models_btn)
@@ -213,7 +239,7 @@ class SidebarWidget(QWidget):
         main_layout.addWidget(self.sep_line)
 
         # ----------------------------------------------------
-        # 6. USER PROFILE CARD (po #6)
+        # 5. USER PROFILE CARD
         # ----------------------------------------------------
         class ClickableWidget(QWidget):
             clicked = pyqtSignal()
@@ -248,114 +274,101 @@ class SidebarWidget(QWidget):
         self.user_name_lbl = QLabel(self.user_name)
         self.user_name_lbl.setStyleSheet(f"color: {DesignTokens.TEXT_MAIN}; font-weight: 600; font-size: 13px;")
 
-        self.user_email_lbl = QLabel("Tài khoản người dùng")
-        self.user_email_lbl.setStyleSheet(f"color: {DesignTokens.TEXT_MUTED}; font-size: 11px;")
+        self.user_sub_lbl = QLabel("Tài khoản người dùng")
+        self.user_sub_lbl.setStyleSheet(f"color: {DesignTokens.TEXT_MUTED}; font-size: 11px;")
 
         utc_layout.addWidget(self.user_name_lbl)
-        utc_layout.addWidget(self.user_email_lbl)
+        utc_layout.addWidget(self.user_sub_lbl)
 
         profile_layout.addWidget(self.avatar_lbl)
         profile_layout.addWidget(self.user_text_container, stretch=1)
 
         main_layout.addWidget(self.profile_container)
 
-        # Initial render of conversation items
-        self.reload_conversations()
+    def set_mode(self, mode: int, selected_tab: int = 0):
+        """Mode 0: Chat Mode (Conversation List), Mode 1: Settings Mode (Settings Tabs)."""
+        self.body_stack.setCurrentIndex(mode)
+        if mode == 1:
+            self.settings_nav_list.setCurrentRow(selected_tab)
 
-    def _create_nav_button(self, text: str, icon_type: str, signal) -> QPushButton:
+    def _on_new_chat_clicked(self):
+        self.set_mode(0)
+        self.newChatRequested.emit()
+
+    def _on_settings_clicked(self):
+        self.set_mode(1, 0)
+        self.settingsClicked.emit()
+
+    def _on_models_clicked(self):
+        self.set_mode(1, 1)
+        self.modelsClicked.emit()
+
+    def _on_settings_tab_clicked(self, row: int):
+        if row >= 0:
+            self.settingsTabSelected.emit(row)
+
+    def _create_nav_button(self, text: str, icon_type: str, signal: pyqtSignal) -> QPushButton:
         btn = QPushButton(f"   {text}")
         btn.setFixedHeight(34)
-        btn.setIcon(create_vector_icon(icon_type, "#96D7E9", 16))
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn.setIcon(create_vector_icon(icon_type, "#96D7E9", 16))
+        btn.setIconSize(QSize(16, 16))
         btn.setStyleSheet(
-            f"QPushButton {{ background: transparent; color: {DesignTokens.TEXT_SECONDARY}; border: none; border-radius: 8px; text-align: left; padding-left: 10px; font-size: 13px; font-weight: 500; }}"
-            f"QPushButton:hover {{ background: {DesignTokens.SURFACE_2}; color: {DesignTokens.TEXT_MAIN}; }}"
+            f"QPushButton {{ background-color: transparent; color: {DesignTokens.TEXT_MAIN}; border: none; text-align: left; padding-left: 8px; font-size: 13px; font-weight: 500; }}"
+            f"QPushButton:hover {{ background-color: {DesignTokens.SURFACE_1}; border-radius: 8px; }}"
         )
-        btn.clicked.connect(lambda: signal.emit())
         return btn
 
-    def reload_conversations(self, filter_text: str = ""):
-        """Render session list grouped by Today, Yesterday, 7 Days Ago."""
+    def _toggle_collapse(self):
+        self.is_collapsed = not self.is_collapsed
+        w = 64 if self.is_collapsed else 280
+        self.setMinimumWidth(w)
+        self.setMaximumWidth(w)
+
+        if self.is_collapsed:
+            self.brand_text_container.hide()
+            self.new_chat_btn.setText(" +")
+            self.settings_btn.setText("")
+            self.models_btn.setText("")
+            self.user_text_container.hide()
+        else:
+            self.brand_text_container.show()
+            self.new_chat_btn.setText(" +  New Chat")
+            self.settings_btn.setText("   Settings")
+            self.models_btn.setText("   Models")
+            self.user_text_container.show()
+
+        self.reload_conversations()
+        self.toggleCollapsed.emit()
+
+    def reload_conversations(self):
         while self.list_layout.count():
-            child = self.list_layout.takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
+            item = self.list_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
 
-        sessions = self.chat_model.sessions
-        if filter_text:
-            sessions = [s for s in sessions if filter_text.lower() in s.title.lower()]
-
-        categories = ["Hôm nay", "Hôm qua", "7 ngày trước"]
-        for cat in categories:
-            cat_sessions = [s for s in sessions if s.category == cat]
-            if not cat_sessions:
+        categorized = self.chat_model.get_categorized_sessions()
+        for cat_name, sessions in categorized.items():
+            if not sessions:
                 continue
 
             if not self.is_collapsed:
-                header_lbl = QLabel(cat)
-                header_lbl.setStyleSheet(f"color: {DesignTokens.TEXT_MUTED}; font-size: 10px; font-weight: 700; text-transform: uppercase; margin-top: 4px;")
-                self.list_layout.addWidget(header_lbl)
+                header = QLabel(cat_name.upper())
+                header.setStyleSheet(
+                    f"color: {DesignTokens.TEXT_MUTED}; font-size: 10px; font-weight: 700; "
+                    f"letter-spacing: 1px; padding: 4px 2px 2px 2px;"
+                )
+                self.list_layout.addWidget(header)
 
-            for session in cat_sessions:
-                is_active = (session.id == self.chat_model.active_session_id)
-                item_widget = ConversationItemWidget(session, is_active=is_active, is_collapsed=self.is_collapsed)
-                item_widget.clicked.connect(self._on_item_clicked)
-                item_widget.deleteRequested.connect(self._on_item_deleted)
-                self.list_layout.addWidget(item_widget)
+            for s in sessions:
+                item_w = ConversationItemWidget(s, s.is_active, self.is_collapsed)
+                item_w.clicked.connect(self._on_item_clicked)
+                self.list_layout.addWidget(item_w)
 
         self.list_layout.addStretch()
 
     def _on_item_clicked(self, session_id: str):
-        self.chat_model.active_session_id = session_id
+        self.set_mode(0)
+        self.chat_model.set_active_session(session_id)
         self.reload_conversations()
         self.conversationSelected.emit(session_id)
-
-    def _on_item_deleted(self, session_id: str):
-        self.chat_model.delete_session(session_id)
-        self.reload_conversations()
-        self.deleteConversationRequested.emit(session_id)
-
-    def _toggle_collapse(self):
-        self.is_collapsed = not self.is_collapsed
-        if self.is_collapsed:
-            self.setMinimumWidth(64)
-            self.setMaximumWidth(64)
-
-            self.brand_text_container.hide()
-            self.user_text_container.hide()
-
-            self.new_chat_btn.setText("+")
-            self.new_chat_btn.setToolTip("Cuộc trò chuyện mới")
-            self.new_chat_btn.setStyleSheet(
-                f"QPushButton {{ background-color: {DesignTokens.BG_BASE}; color: #00FFAA; border: 1px solid #00CCFF; border-radius: 10px; font-size: 18px; font-weight: 700; text-align: center; padding: 0px; }}"
-                f"QPushButton:hover {{ background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 rgba(0, 255, 170, 0.1), stop:1 rgba(0, 204, 255, 0.1)); border-color: #00FFAA; }}"
-            )
-
-            self.settings_btn.setText("")
-            self.settings_btn.setToolTip("Settings")
-
-            self.models_btn.setText("")
-            self.models_btn.setToolTip("Models")
-
-        else:
-            self.setMinimumWidth(280)
-            self.setMaximumWidth(280)
-
-            self.brand_text_container.show()
-            self.user_text_container.show()
-
-            self.new_chat_btn.setText(" +  New Chat")
-            self.new_chat_btn.setToolTip("")
-            self.new_chat_btn.setStyleSheet(
-                f"QPushButton {{ background-color: {DesignTokens.BG_BASE}; color: #00FFAA; border: 1px solid #00CCFF; border-radius: 10px; font-weight: 600; text-align: left; padding-left: 12px; }}"
-                f"QPushButton:hover {{ background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 rgba(0, 255, 170, 0.1), stop:1 rgba(0, 204, 255, 0.1)); border-color: #00FFAA; }}"
-            )
-
-            self.settings_btn.setText("   Settings")
-            self.settings_btn.setToolTip("")
-
-            self.models_btn.setText("   Models")
-            self.models_btn.setToolTip("")
-
-        self.reload_conversations()
-        self.toggleCollapsed.emit()

@@ -115,6 +115,7 @@ class PopView(QMainWindow):
         self.sidebar.deleteConversationRequested.connect(lambda sid: self.deleteConversation.emit(sid))
         self.sidebar.settingsClicked.connect(lambda: self._open_settings_page(0))
         self.sidebar.modelsClicked.connect(lambda: self._open_settings_page(1))
+        self.sidebar.settingsTabSelected.connect(lambda tab_idx: self._open_settings_page(tab_idx))
         self.sidebar.memoryClicked.connect(self._open_memory_dialog)
         # 3. Central Stack (Switching between Chat View and Settings Page)
         self.center_stack = QStackedWidget(self.container_box)
@@ -382,10 +383,12 @@ class PopView(QMainWindow):
             self.loadConversation.emit(session_id)
 
     def _open_settings_page(self, initial_tab: int = 0):
+        self.sidebar.set_mode(1, initial_tab)
         self.settings_page.open_tab(initial_tab)
         self.center_stack.setCurrentIndex(1)
 
     def _show_chat_view(self):
+        self.sidebar.set_mode(0)
         self.center_stack.setCurrentIndex(0)
 
     def _toggle_right_panel(self):
