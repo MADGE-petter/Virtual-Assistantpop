@@ -249,5 +249,12 @@ def create_vector_icon(icon_type: str, color_hex: str = "#96D7E9", size: int = 2
         painter.drawEllipse(QPointF(cx, cy), r, r)
         painter.drawArc(QRectF(s * 0.2, s * 0.5, s * 0.6, s * 0.4), 0, 180 * 16)
 
+    elif icon_type == "exit":
+        # Exit door/arrow icon
+        painter.drawRoundedRect(QRectF(s * 0.25, s * 0.2, s * 0.35, s * 0.6), 2, 2)
+        painter.drawLine(QPointF(s * 0.5, s * 0.5), QPointF(s * 0.8, s * 0.5))
+        painter.drawLine(QPointF(s * 0.65, s * 0.35), QPointF(s * 0.8, s * 0.5))
+        painter.drawLine(QPointF(s * 0.65, s * 0.65), QPointF(s * 0.8, s * 0.5))
+
     painter.end()
     return QIcon(pix)

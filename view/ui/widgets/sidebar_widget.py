@@ -138,14 +138,17 @@ class AvatarPopupMenu(QWidget):
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(2)
 
-        def _create_btn(text: str, handler):
-            btn = QPushButton(text)
+        def _create_btn(text: str, handler, icon_type: str = None, color: str = "#FFFFFF"):
+            btn = QPushButton("  " + text)
+            if icon_type:
+                btn.setIcon(create_vector_icon(icon_type, color, 16))
+                btn.setIconSize(QSize(16, 16))
             btn.setFixedHeight(34)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             btn.setStyleSheet(
                 f"QPushButton {{"
                 f"  background: transparent;"
-                f"  color: #FFFFFF;"
+                f"  color: {color};"
                 f"  font-size: 13px;"
                 f"  font-weight: 600;"
                 f"  text-align: left;"
@@ -155,25 +158,24 @@ class AvatarPopupMenu(QWidget):
                 f"}}"
                 f"QPushButton:hover {{"
                 f"  background: rgba(255, 255, 255, 0.12);"
-                f"  color: #FFFFFF;"
                 f"}}"
             )
             btn.clicked.connect(lambda: [self.close(), handler()])
             return btn
 
-        btn_prof = _create_btn("Hồ sơ & Bộ nhớ", self.profileClicked.emit)
-        btn_set = _create_btn("Cài đặt chung", self.settingsClicked.emit)
-        btn_mod = _create_btn("Quản lý Models", self.modelsClicked.emit)
+        btn_prof = _create_btn("Hồ sơ & Bộ nhớ", self.profileClicked.emit, "user")
+        btn_set = _create_btn("Cài đặt chung", self.settingsClicked.emit, "settings")
+        btn_mod = _create_btn("Quản lý Models", self.modelsClicked.emit, "box")
 
         btn_sep = QFrame()
         btn_sep.setFrameShape(QFrame.Shape.HLine)
         btn_sep.setStyleSheet("background-color: rgba(255, 255, 255, 0.12); max-height: 1px; margin: 2px 4px; border: none;")
 
-        btn_out = _create_btn("Đăng xuất", self.logoutClicked.emit)
+        btn_out = _create_btn("Đăng xuất", self.logoutClicked.emit, "exit", "#FF4B6E")
         btn_out.setStyleSheet(
             f"QPushButton {{"
             f"  background: transparent;"
-            f"  color: #FFFFFF;"
+            f"  color: #FF4B6E;"
             f"  font-size: 13px;"
             f"  font-weight: 600;"
             f"  text-align: left;"
@@ -183,7 +185,6 @@ class AvatarPopupMenu(QWidget):
             f"}}"
             f"QPushButton:hover {{"
             f"  background: rgba(255, 75, 110, 0.25);"
-            f"  color: #FF4B6E;"
             f"}}"
         )
 
