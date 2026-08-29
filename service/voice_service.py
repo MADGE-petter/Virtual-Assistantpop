@@ -129,7 +129,7 @@ class VoiceService:
         self._stop_wake_event.set()
         self.is_listening_wake = False
         if self._wake_thread and self._wake_thread != threading.current_thread():
-            self._wake_thread.join(timeout=2.0)
+            self._wake_thread.join(timeout=0.1)
         
         # Close audio stream
         if self._audio_stream:

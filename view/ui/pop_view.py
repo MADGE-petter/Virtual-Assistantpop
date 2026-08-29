@@ -414,8 +414,15 @@ class PopView(QMainWindow):
             self.showMaximized()
 
     def closeEvent(self, event):
+        self.hide()
         if hasattr(self, 'mini_mascot') and self.mini_mascot:
+            self.mini_mascot.hide()
             self.mini_mascot.close()
+        if self.controller and hasattr(self.controller, 'shutdown'):
+            try:
+                self.controller.shutdown.stop()
+            except Exception:
+                pass
         self.viewClosed.emit()
         super().closeEvent(event)
         from PyQt6.QtWidgets import QApplication

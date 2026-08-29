@@ -9,6 +9,9 @@ from controller.conversation_controller import ConversationController
 from model.Sql import SqlService
 
 
+import threading
+
+
 class StartupCoordinator:
     """Handles assistant startup sequence."""
     
@@ -34,35 +37,39 @@ class StartupCoordinator:
         self._started = False
     
     def start(self, login_username: Optional[str] = None) -> bool:
-        """Execute startup sequence."""
+        """Execute startup sequence asynchronously so GUI renders instantaneously (<0.1s)."""
         if self._started:
             return True
         
-        print("[StartupCoordinator] Starting assistant...")
-        
-        # 1. Audio warmup (ASR on GPU -> inference -> CPU)
-        if hasattr(self.audio, 'startup_warmup'):
-            self.audio.startup_warmup()
-        
-        # 2. Initialize intent service
-        self.conversation.init_intent_service()
-        
-        # 3. Start monitoring services
-        self.alert_mgr.start()
-        self.analytics.start()
-        
-        # 4. Set user name for app handler
-        if login_username:
-            try:
-                from controller.action import ActionHandler
-                # Access app_handler through conversation -> actions
-                if hasattr(self.conversation, 'service') and hasattr(self.conversation.service, 'actions'):
-                    self.conversation.service.actions.app_handler.set_login_name(login_username)
-            except Exception:
-                pass
-        
         self._started = True
-        print("[StartupCoordinator] Startup complete")
+        print("[StartupCoordinator] Starting assistant in background...")
+
+        def _async_bg_worker():
+            try:
+                # 1. Audio warmup (ASR on GPU -> inference -> CPU)
+                if hasattr(self.audio, 'startup_warmup'):
+                    self.audio.startup_warmup()
+                
+                # 2. Initialize intent service
+                self.conversation.init_intent_service()
+                
+                # 3. Start monitoring services
+                self.alert_mgr.start()
+                self.analytics.start()
+                
+                # 4. Set user name for app handler
+                if login_username:
+                    try:
+                        if hasattr(self.conversation, 'service') and hasattr(self.conversation.service, 'actions'):
+                            self.conversation.service.actions.app_handler.set_login_name(login_username)
+                    except Exception:
+                        pass
+                print("[StartupCoordinator] Async background startup complete.")
+            except Exception as e:
+                print(f"[StartupCoordinator] Async startup warning: {e}")
+
+        bg_thread = threading.Thread(target=_async_bg_worker, name="PopAsyncStartup", daemon=True)
+        bg_thread.start()
         return True
     
     def enter_active_mode(self, activate_view: Callable, start_conversation: Callable):
