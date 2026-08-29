@@ -55,16 +55,20 @@ def get_brand_logo_pixmap(brand: str, size: int = 32) -> QPixmap:
     b = brand.lower()
     logo_filename = "huggingface.png"
 
-    if "gemma" in b or "google" in b:
-        logo_filename = "google.png"
-    elif "qwen" in b:
-        logo_filename = "qwen.png"
-    elif "kimi" in b or "moonshot" in b:
-        logo_filename = "kimi.png"
+    if "deepseek" in b:
+        logo_filename = "deepseek.png"
+    elif "glm" in b or "zhipu" in b or "chatglm" in b:
+        logo_filename = "glm.png"
     elif "mimo" in b or "xiaomi" in b:
         logo_filename = "mimo.png"
     elif "lfm" in b or "liquid" in b:
         logo_filename = "lfm.png"
+    elif "qwen" in b or "tongyi" in b:
+        logo_filename = "qwen.png"
+    elif "gemma" in b or "google" in b:
+        logo_filename = "google.png"
+    elif "kimi" in b or "moonshot" in b:
+        logo_filename = "kimi.png"
     elif "llama" in b or "meta" in b:
         logo_filename = "meta.png"
     elif "mistral" in b or "mixtral" in b:
