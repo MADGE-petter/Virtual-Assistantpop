@@ -55,7 +55,17 @@ def get_brand_logo_pixmap(brand: str, size: int = 32) -> QPixmap:
     b = brand.lower()
     logo_filename = "huggingface.png"
 
-    if "deepseek" in b:
+    if "minimax" in b or "abab" in b:
+        logo_filename = "minimax.png"
+    elif "grok" in b or "xai" in b:
+        logo_filename = "grok.png"
+    elif "kimi" in b or "moonshot" in b:
+        logo_filename = "kimi.png"
+    elif "mistral" in b or "mixtral" in b or "codestral" in b or "ministral" in b:
+        logo_filename = "mistral.png"
+    elif "gpt" in b or "chatgpt" in b or "openai" in b:
+        logo_filename = "chatgpt.png"
+    elif "deepseek" in b:
         logo_filename = "deepseek.png"
     elif "glm" in b or "zhipu" in b or "chatglm" in b:
         logo_filename = "glm.png"
@@ -67,12 +77,8 @@ def get_brand_logo_pixmap(brand: str, size: int = 32) -> QPixmap:
         logo_filename = "qwen.png"
     elif "gemma" in b or "google" in b:
         logo_filename = "google.png"
-    elif "kimi" in b or "moonshot" in b:
-        logo_filename = "kimi.png"
     elif "llama" in b or "meta" in b:
         logo_filename = "meta.png"
-    elif "mistral" in b or "mixtral" in b:
-        logo_filename = "mistral.png"
 
     logos_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "assets", "logos")
     logo_path = os.path.join(logos_dir, logo_filename)
