@@ -423,9 +423,10 @@ class SidebarWidget(QWidget):
             self._avatar_menu.logoutClicked.connect(lambda: self.logoutRequested.emit())
             self._avatar_menu.menuClosed.connect(self._on_avatar_menu_closed)
 
-        global_pt = self.profile_container.mapToGlobal(QPoint(0, 0))
-        target_x = global_pt.x() + 8
-        target_y = global_pt.y() - self._avatar_menu.height() - 6
+        # Định vị menu nổi cao hơn hẳn, nằm hoàn toàn phía trên vạch trắng phân cách
+        sep_pt = self.sep_line.mapToGlobal(QPoint(0, 0))
+        target_x = sep_pt.x() + 8
+        target_y = sep_pt.y() - self._avatar_menu.height() - 14
         self._avatar_menu.show_animated(QPoint(target_x, target_y))
 
     def _on_avatar_menu_closed(self):
