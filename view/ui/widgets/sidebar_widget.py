@@ -2,11 +2,12 @@
 POP SidebarWidget - Single Unified Left Sidebar handling both Chat Mode and Settings Navigation.
 """
 
-from PyQt6.QtCore import Qt, pyqtSignal, QSize, QPoint, QPropertyAnimation, QEasingCurve
+from PyQt6.QtCore import Qt, pyqtSignal, QSize, QPoint, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup
 from PyQt6.QtGui import QFont, QColor
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QLineEdit,
-    QScrollArea, QFrame, QSizePolicy, QStackedWidget, QListWidget, QListWidgetItem
+    QScrollArea, QFrame, QSizePolicy, QStackedWidget, QListWidget, QListWidgetItem,
+    QGraphicsOpacityEffect, QGraphicsDropShadowEffect
 )
 
 from view.ui.styles import DesignTokens
@@ -219,81 +220,6 @@ class SidebarWidget(QWidget):
 
         main_layout.addWidget(self.body_stack, stretch=1)
 
-        # ----------------------------------------------------
-        # 4. ANIMATED AVATAR MENU PANEL (Seamless Glassmorphism Drawer)
-        # ----------------------------------------------------
-        self.avatar_popup_panel = QFrame()
-        self.avatar_popup_panel.setStyleSheet(
-            f"QFrame {{"
-            f"  background: rgba(10, 14, 26, 0.85);"
-            f"  border: 1px solid rgba(255, 255, 255, 0.12);"
-            f"  border-radius: 12px;"
-            f"}}"
-        )
-        self.avatar_popup_panel.setMaximumHeight(0)
-        self.avatar_popup_panel.hide()
-
-        app_layout = QVBoxLayout(self.avatar_popup_panel)
-        app_layout.setContentsMargins(6, 6, 6, 6)
-        app_layout.setSpacing(2)
-
-        def _create_menu_btn(text: str, handler):
-            btn = QPushButton(text)
-            btn.setFixedHeight(34)
-            btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn.setStyleSheet(
-                f"QPushButton {{"
-                f"  background: transparent;"
-                f"  color: #FFFFFF;"
-                f"  font-size: 13px;"
-                f"  font-weight: 600;"
-                f"  text-align: left;"
-                f"  padding-left: 14px;"
-                f"  border: none;"
-                f"  border-radius: 8px;"
-                f"}}"
-                f"QPushButton:hover {{"
-                f"  background: rgba(0, 255, 170, 0.12);"
-                f"  color: {DesignTokens.CYAN_ACCENT};"
-                f"}}"
-            )
-            btn.clicked.connect(lambda: [self._toggle_avatar_menu(), handler()])
-            return btn
-
-        btn_prof = _create_menu_btn("Hồ sơ & Bộ nhớ", lambda: self.settingsTabSelected.emit(5))
-        btn_set = _create_menu_btn("Cài đặt chung", lambda: self.settingsTabSelected.emit(0))
-        btn_mod = _create_menu_btn("Quản lý Models", lambda: self.settingsTabSelected.emit(1))
-        
-        btn_sep = QFrame()
-        btn_sep.setFrameShape(QFrame.Shape.HLine)
-        btn_sep.setStyleSheet("background-color: rgba(255, 255, 255, 0.08); max-height: 1px; margin: 2px 4px;")
-        
-        btn_out = _create_menu_btn("Đăng xuất", lambda: self.logoutRequested.emit())
-        btn_out.setStyleSheet(
-            f"QPushButton {{"
-            f"  background: transparent;"
-            f"  color: #FFFFFF;"
-            f"  font-size: 13px;"
-            f"  font-weight: 600;"
-            f"  text-align: left;"
-            f"  padding-left: 14px;"
-            f"  border: none;"
-            f"  border-radius: 8px;"
-            f"}}"
-            f"QPushButton:hover {{"
-            f"  background: rgba(255, 75, 110, 0.2);"
-            f"  color: #FF4B6E;"
-            f"}}"
-        )
-
-        app_layout.addWidget(btn_prof)
-        app_layout.addWidget(btn_set)
-        app_layout.addWidget(btn_mod)
-        app_layout.addWidget(btn_sep)
-        app_layout.addWidget(btn_out)
-
-        main_layout.addWidget(self.avatar_popup_panel)
-
         # Separator line
         self.sep_line = QFrame()
         self.sep_line.setFrameShape(QFrame.Shape.HLine)
@@ -301,7 +227,7 @@ class SidebarWidget(QWidget):
         main_layout.addWidget(self.sep_line)
 
         # ----------------------------------------------------
-        # 5. USER PROFILE CARD (Clickable to toggle Menu Drawer)
+        # 4. USER PROFILE CARD (Clickable to toggle Menu)
         # ----------------------------------------------------
         class ClickableWidget(QWidget):
             clicked = pyqtSignal()
@@ -347,27 +273,163 @@ class SidebarWidget(QWidget):
 
         main_layout.addWidget(self.profile_container)
 
-        self._menu_expanded = False
-        self._anim = QPropertyAnimation(self.avatar_popup_panel, b"maximumHeight")
-        self._anim.setDuration(220)
-        self._anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        # ----------------------------------------------------
+        # 5. FLOATING GLASSMORPHIC AVATAR MENU (Smooth Slide & Fade)
+        # ----------------------------------------------------
+        self.avatar_popup_panel = QFrame(self.parentWidget() if self.parentWidget() else self)
+        self.avatar_popup_panel.setFixedSize(256, 170)
+        self.avatar_popup_panel.setStyleSheet(
+            f"QFrame {{"
+            f"  background: rgba(14, 20, 36, 0.96);"
+            f"  border: 1px solid rgba(0, 255, 170, 0.25);"
+            f"  border-radius: 14px;"
+            f"}}"
+        )
+        shadow = QGraphicsDropShadowEffect(self.avatar_popup_panel)
+        shadow.setBlurRadius(24)
+        shadow.setColor(QColor(0, 255, 170, 40))
+        shadow.setOffset(0, 4)
+        self.avatar_popup_panel.setGraphicsEffect(shadow)
+
+        app_layout = QVBoxLayout(self.avatar_popup_panel)
+        app_layout.setContentsMargins(8, 8, 8, 8)
+        app_layout.setSpacing(3)
+
+        def _create_menu_btn(text: str, handler):
+            btn = QPushButton(text)
+            btn.setFixedHeight(34)
+            btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn.setStyleSheet(
+                f"QPushButton {{"
+                f"  background: transparent;"
+                f"  color: #FFFFFF;"
+                f"  font-size: 13px;"
+                f"  font-weight: 600;"
+                f"  text-align: left;"
+                f"  padding-left: 14px;"
+                f"  border: none;"
+                f"  border-radius: 8px;"
+                f"}}"
+                f"QPushButton:hover {{"
+                f"  background: rgba(0, 255, 170, 0.14);"
+                f"  color: {DesignTokens.CYAN_ACCENT};"
+                f"}}"
+            )
+            btn.clicked.connect(lambda: [self._hide_avatar_menu(), handler()])
+            return btn
+
+        btn_prof = _create_menu_btn("Hồ sơ & Bộ nhớ", lambda: self.settingsTabSelected.emit(5))
+        btn_set = _create_menu_btn("Cài đặt chung", lambda: self.settingsTabSelected.emit(0))
+        btn_mod = _create_menu_btn("Quản lý Models", lambda: self.settingsTabSelected.emit(1))
+        
+        btn_sep = QFrame()
+        btn_sep.setFrameShape(QFrame.Shape.HLine)
+        btn_sep.setStyleSheet("background-color: rgba(255, 255, 255, 0.08); max-height: 1px; margin: 2px 4px;")
+        
+        btn_out = _create_menu_btn("Đăng xuất", lambda: self.logoutRequested.emit())
+        btn_out.setStyleSheet(
+            f"QPushButton {{"
+            f"  background: transparent;"
+            f"  color: #FFFFFF;"
+            f"  font-size: 13px;"
+            f"  font-weight: 600;"
+            f"  text-align: left;"
+            f"  padding-left: 14px;"
+            f"  border: none;"
+            f"  border-radius: 8px;"
+            f"}}"
+            f"QPushButton:hover {{"
+            f"  background: rgba(255, 75, 110, 0.2);"
+            f"  color: #FF4B6E;"
+            f"}}"
+        )
+
+        app_layout.addWidget(btn_prof)
+        app_layout.addWidget(btn_set)
+        app_layout.addWidget(btn_mod)
+        app_layout.addWidget(btn_sep)
+        app_layout.addWidget(btn_out)
+
+        # Opacity Effect for 60fps Butter-Smooth Fade
+        self._opacity_fx = QGraphicsOpacityEffect(self.avatar_popup_panel)
+        self.avatar_popup_panel.setGraphicsEffect(self._opacity_fx)
+        self.avatar_popup_panel.hide()
+
+        self._menu_visible = False
 
     def _toggle_avatar_menu(self):
-        """Bật / Tắt menu với hiệu ứng cuộn trượt chuyển động mượt mà."""
-        self._anim.stop()
-        if self._menu_expanded:
-            self._anim.setStartValue(self.avatar_popup_panel.maximumHeight())
-            self._anim.setEndValue(0)
-            self._anim.finished.connect(lambda: self.avatar_popup_panel.hide() if not self._menu_expanded else None)
-            self._menu_expanded = False
-            self.user_sub_lbl.setText("Tùy chọn tài khoản ▼")
+        """Bật / Tắt menu với hiệu ứng chuyển động trượt nhẹ + làm mờ Fade-in 60fps cực mượt."""
+        if self._menu_visible:
+            self._hide_avatar_menu()
         else:
-            self.avatar_popup_panel.show()
-            self._anim.setStartValue(self.avatar_popup_panel.maximumHeight())
-            self._anim.setEndValue(168)
-            self._menu_expanded = True
-            self.user_sub_lbl.setText("Đóng tùy chọn ▲")
-        self._anim.start()
+            self._show_avatar_menu()
+
+    def _show_avatar_menu(self):
+        # Đặt panel lên widget cha (container_box) để hiển thị nổi mượt mà
+        parent_w = self.parentWidget() if self.parentWidget() else self
+        if self.avatar_popup_panel.parent() != parent_w:
+            self.avatar_popup_panel.setParent(parent_w)
+
+        # Tính toán tọa độ hiển thị nổi ngay trên profile card
+        p_pt = self.mapTo(parent_w, self.profile_container.pos())
+        target_x = p_pt.x() + 10
+        target_y = p_pt.y() - self.avatar_popup_panel.height() - 8
+        start_y = target_y + 12
+
+        self.avatar_popup_panel.move(target_x, start_y)
+        self.avatar_popup_panel.show()
+        self.avatar_popup_panel.raise_()
+
+        # Animation Group: Kết hợp Trượt vị trí mượt + Fade in
+        self._anim_group = QParallelAnimationGroup(self)
+
+        pos_anim = QPropertyAnimation(self.avatar_popup_panel, b"pos")
+        pos_anim.setDuration(180)
+        pos_anim.setStartValue(QPoint(target_x, start_y))
+        pos_anim.setEndValue(QPoint(target_x, target_y))
+        pos_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+
+        op_anim = QPropertyAnimation(self._opacity_fx, b"opacity")
+        op_anim.setDuration(180)
+        op_anim.setStartValue(0.0)
+        op_anim.setEndValue(1.0)
+        op_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+
+        self._anim_group.addAnimation(pos_anim)
+        self._anim_group.addAnimation(op_anim)
+        self._anim_group.start()
+
+        self._menu_visible = True
+        self.user_sub_lbl.setText("Đóng tùy chọn ▲")
+
+    def _hide_avatar_menu(self):
+        if not self._menu_visible:
+            return
+
+        cur_pos = self.avatar_popup_panel.pos()
+        target_y = cur_pos.y() + 8
+
+        self._anim_group = QParallelAnimationGroup(self)
+
+        pos_anim = QPropertyAnimation(self.avatar_popup_panel, b"pos")
+        pos_anim.setDuration(140)
+        pos_anim.setStartValue(cur_pos)
+        pos_anim.setEndValue(QPoint(cur_pos.x(), target_y))
+        pos_anim.setEasingCurve(QEasingCurve.Type.InCubic)
+
+        op_anim = QPropertyAnimation(self._opacity_fx, b"opacity")
+        op_anim.setDuration(140)
+        op_anim.setStartValue(1.0)
+        op_anim.setEndValue(0.0)
+        op_anim.setEasingCurve(QEasingCurve.Type.InCubic)
+
+        self._anim_group.addAnimation(pos_anim)
+        self._anim_group.addAnimation(op_anim)
+        self._anim_group.finished.connect(lambda: self.avatar_popup_panel.hide() if not self._menu_visible else None)
+        self._anim_group.start()
+
+        self._menu_visible = False
+        self.user_sub_lbl.setText("Tùy chọn tài khoản ▼")
 
     def set_mode(self, mode: int, selected_tab: int = 0):
         """Mode 0: Chat Mode (Conversation List), Mode 1: Settings Mode (Settings Tabs)."""
