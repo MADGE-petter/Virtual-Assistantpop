@@ -2,7 +2,7 @@
 POP SidebarWidget - Single Unified Left Sidebar handling both Chat Mode and Settings Navigation.
 """
 
-from PyQt6.QtCore import Qt, pyqtSignal, QSize, QPoint, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup
+from PyQt6.QtCore import Qt, pyqtSignal, QSize, QPoint, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QEvent
 from PyQt6.QtGui import QFont, QColor
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QLineEdit,
@@ -101,10 +101,15 @@ class AvatarPopupMenu(QWidget):
     logoutClicked = pyqtSignal()
 
     def __init__(self, parent=None):
-        super().__init__(parent, Qt.WindowType.Popup | Qt.WindowType.FramelessWindowHint)
+        super().__init__(parent, Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setFixedSize(260, 185)
         self._setup_ui()
+
+    def changeEvent(self, event):
+        if event.type() == QEvent.Type.ActivationChange and not self.isActiveWindow():
+            self.close()
+        super().changeEvent(event)
 
     def _setup_ui(self):
         root_layout = QVBoxLayout(self)
@@ -350,10 +355,10 @@ class SidebarWidget(QWidget):
         # ----------------------------------------------------
         class ClickableWidget(QWidget):
             clicked = pyqtSignal()
-            def mousePressEvent(self, event):
-                if event.button() == Qt.MouseButton.LeftButton:
+            def mouseReleaseEvent(self, event):
+                if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event.position().toPoint()):
                     self.clicked.emit()
-                super().mousePressEvent(event)
+                super().mouseReleaseEvent(event)
                 
         self.profile_container = ClickableWidget()
         self.profile_container.setCursor(Qt.CursorShape.PointingHandCursor)
