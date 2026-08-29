@@ -33,6 +33,7 @@ class PopView(QMainWindow):
     loadConversation = pyqtSignal(str)
     deleteConversation = pyqtSignal(str)
     viewClosed = pyqtSignal()
+    logoutRequested = pyqtSignal()
 
     # Thread-safe cross-thread UI dispatch signals
     _botTextSignal = pyqtSignal(str)
@@ -118,7 +119,7 @@ class PopView(QMainWindow):
         self.sidebar.modelsClicked.connect(lambda: self._open_settings_page(1))
         self.sidebar.settingsTabSelected.connect(lambda tab_idx: self._open_settings_page(tab_idx))
         self.sidebar.memoryClicked.connect(lambda: self._open_settings_page(5))
-        self.sidebar.logoutRequested.connect(self.close)
+        self.sidebar.logoutRequested.connect(self._handle_logout_requested)
         # 3. Central Stack (Switching between Chat View and Settings Page)
         self.center_stack = QStackedWidget(self.container_box)
         self.center_stack.setStyleSheet("QStackedWidget { background: transparent; }")
@@ -163,6 +164,15 @@ class PopView(QMainWindow):
         active_session = self.chat_model.get_active_session()
         if active_session:
             self.chat_area.load_session(active_session)
+
+    def _handle_logout_requested(self):
+        """Xử lý đăng xuất: ẩn Mini Mascot, đóng Main Window và phát tín hiệu logoutRequested."""
+        if hasattr(self, 'mini_mascot') and self.mini_mascot:
+            self.mini_mascot.hide()
+            self.mini_mascot.close()
+        self.hide()
+        self.close()
+        self.logoutRequested.emit()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)

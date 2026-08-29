@@ -28,7 +28,7 @@ def main():
         app = QApplication(sys.argv)
         app.setApplicationName("Pop Assistant Login")
         app.setOrganizationName("Pop AI")
-        app.setQuitOnLastWindowClosed(True)
+        app.setQuitOnLastWindowClosed(False)
         
         # Set application icon
         try:
@@ -42,8 +42,6 @@ def main():
         except Exception as e:
             print(f"[Login] Could not set icon: {e}")
 
-
-
         from service.login_service import LoginService
         from view.login.login_view import LoginView
 
@@ -55,13 +53,31 @@ def main():
         login_window = LoginView(login_service)
         main_window = None  # Khai báo để nonlocal hoạt động
         
+        def on_logout():
+            nonlocal main_window, login_window
+            print("[Login] Đăng xuất thành công - Đang mở lại cửa sổ đăng nhập...")
+            if main_window:
+                if hasattr(main_window, 'mini_mascot') and main_window.mini_mascot:
+                    main_window.mini_mascot.hide()
+                    main_window.mini_mascot.close()
+                main_window.hide()
+                main_window.close()
+                main_window = None
+
+            login_window = LoginView(login_service)
+            login_window.login_success.connect(on_login_success)
+            login_window.show()
+            login_window.raise_()
+            login_window.activateWindow()
+
         def on_login_success(username):
-            nonlocal main_window
+            nonlocal main_window, login_window
             print(f"Login successful: {username}")
 
             # Đóng login window NGAY LẬP TỨC
-            login_window.hide()
-            login_window.close()
+            if login_window:
+                login_window.hide()
+                login_window.close()
             app.processEvents()
 
             # Gọi Pop View (Main Window) khi đăng nhập thành công
@@ -73,6 +89,8 @@ def main():
 
                     if main_window is None:
                         return
+
+                    main_window.logoutRequested.connect(on_logout)
 
                     # Không hiển thị cửa sổ chat chính ngay, chỉ mở giao diện Mini Mascot lơ lửng.
                     # Muốn chat thì đúp chuột vào Mini Mascot để bật cửa sổ chat.
