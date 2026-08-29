@@ -43,8 +43,8 @@ class ProfileTabWidget(QWidget):
         avatar_lbl.setFixedSize(72, 72)
         avatar_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         avatar_lbl.setStyleSheet(
-            f"background-color: rgba(255, 255, 255, 0.05); color: {DesignTokens.TEXT_MAIN}; "
-            f"font-size: 28px; font-weight: 600; border-radius: 36px; border: 1px solid rgba(255, 255, 255, 0.15);"
+            f"background-color: rgba(0, 142, 255, 0.08); color: {DesignTokens.TEXT_PRIMARY}; "
+            f"font-size: 28px; font-weight: 600; border-radius: 36px; border: 1px solid {DesignTokens.BORDER_GLOW};"
         )
         avatar_box.addStretch()
         avatar_box.addWidget(avatar_lbl)
@@ -62,8 +62,8 @@ class ProfileTabWidget(QWidget):
         role_row = QHBoxLayout()
         role_badge = QLabel("ADMINISTRATOR")
         role_badge.setStyleSheet(
-            f"background: rgba(255, 255, 255, 0.08); color: {DesignTokens.TEXT_MUTED}; "
-            f"font-size: 11px; font-weight: 600; border-radius: 4px; padding: 3px 10px; letter-spacing: 0.5px;"
+            f"background: rgba(0, 255, 170, 0.12); color: {DesignTokens.CYAN_ACCENT}; "
+            f"font-size: 11px; font-weight: 600; border-radius: 4px; padding: 3px 10px; letter-spacing: 0.5px; border: 1px solid rgba(0, 255, 170, 0.2);"
         )
         role_row.addStretch()
         role_row.addWidget(role_badge)
@@ -77,7 +77,7 @@ class ProfileTabWidget(QWidget):
 
         # Core Memory Section
         mem_title = QLabel("Bộ Nhớ Cốt Lõi (Core Memory)")
-        mem_title.setStyleSheet(f"font-size: 14px; font-weight: 600; color: {DesignTokens.TEXT_MAIN};")
+        mem_title.setStyleSheet(f"font-size: 14px; font-weight: 600; color: {DesignTokens.TEXT_SECONDARY};")
         
         mem_desc = QLabel("Ghi lại thông tin về nghề nghiệp, thói quen, phong cách làm việc của bạn. POP sẽ luôn ghi nhớ các thông tin này trong mọi cuộc trò chuyện.")
         mem_desc.setStyleSheet(f"font-size: 12px; color: {DesignTokens.TEXT_MUTED};")
@@ -92,7 +92,7 @@ class ProfileTabWidget(QWidget):
         self.txt_core_memory.setStyleSheet(
             f"QTextEdit {{ background-color: rgba(14, 20, 36, 0.65); border: 1px solid rgba(255, 255, 255, 0.08); "
             f"border-radius: 10px; padding: 14px; color: {DesignTokens.TEXT_MAIN}; font-size: 13px; line-height: 1.5; }}"
-            f"QTextEdit:focus {{ border-color: rgba(255, 255, 255, 0.25); }}"
+            f"QTextEdit:focus {{ border-color: {DesignTokens.CYAN}; }}"
         )
         layout.addWidget(self.txt_core_memory, stretch=1)
 
@@ -105,10 +105,10 @@ class ProfileTabWidget(QWidget):
         save_btn.setFixedWidth(140)
         save_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         save_btn.setStyleSheet(
-            f"QPushButton {{ background-color: {DesignTokens.TEXT_MAIN}; color: #000000; "
+            f"QPushButton {{ background-color: {DesignTokens.BLUE_ACCENT}; color: #FFFFFF; "
             f"font-weight: 600; font-size: 13px; border: none; border-radius: 8px; }}"
-            f"QPushButton:hover {{ background-color: #E2E8F0; }}"
-            f"QPushButton:pressed {{ background-color: #CBD5E1; }}"
+            f"QPushButton:hover {{ background-color: #33A6FF; }}"
+            f"QPushButton:pressed {{ background-color: #0077D6; }}"
         )
         save_btn.clicked.connect(self._save_core_memory)
         bottom_bar.addWidget(save_btn)
