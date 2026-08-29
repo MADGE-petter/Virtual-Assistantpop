@@ -24,135 +24,121 @@ class AboutTabWidget(QWidget):
         # Header
         title_box = QVBoxLayout()
         title_box.setSpacing(4)
-        title = QLabel("Thông Số Hệ Thống & Máy Tính")
+        title = QLabel("Thông Số Máy Tính (DxDiag Style)")
         title.setStyleSheet(f"font-size: 18px; font-weight: 700; color: {DesignTokens.TEXT_MAIN}; letter-spacing: 0.5px;")
-        desc = QLabel("Thông tin cấu hình phần cứng và tình trạng tài nguyên hệ điều hành thời gian thực")
+        desc = QLabel("Thông tin chi tiết về cấu hình phần cứng và hệ điều hành của máy")
         desc.setStyleSheet(f"color: {DesignTokens.TEXT_MUTED}; font-size: 13px;")
         title_box.addWidget(title)
         title_box.addWidget(desc)
         layout.addLayout(title_box)
 
-        # Grid of Modern Hardware Cards
-        grid = QGridLayout()
-        grid.setSpacing(14)
+        # List Container
+        list_container = QFrame()
+        list_container.setStyleSheet(
+            f"QFrame {{ background: rgba(14, 20, 36, 0.65); border: 1px solid rgba(255, 255, 255, 0.08); "
+            f"border-radius: 12px; padding: 4px; }}"
+        )
+        list_layout = QVBoxLayout(list_container)
+        list_layout.setContentsMargins(20, 20, 20, 20)
+        list_layout.setSpacing(14)
 
-        # Card 1: OS
-        self.card_os = self._create_card("Hệ Điều Hành", f"{platform.system()} {platform.release()}", f"Kiến trúc: {platform.architecture()[0]}")
-        grid.addWidget(self.card_os, 0, 0)
-
-        # Card 2: Screen Resolution
+        # Retrieve Hardware Info
+        import psutil
+        import platform
+        
+        # OS
+        os_info = f"{platform.system()} {platform.release()} ({platform.architecture()[0]})"
+        
+        # CPU
+        cpu_info = f"{platform.processor() or 'Unknown CPU'} ({psutil.cpu_count(logical=True)} CPUs)"
+        
+        # RAM
+        ram_bytes = psutil.virtual_memory().total
+        ram_gb = round(ram_bytes / (1024**3))
+        ram_info = f"{ram_gb} GB RAM"
+        
+        # Disk (C: Drive)
+        try:
+            disk = psutil.disk_usage('C:\\') if platform.system() == "Windows" else psutil.disk_usage('/')
+            disk_total = round(disk.total / (1024**3))
+            disk_free = round(disk.free / (1024**3))
+            disk_info = f"{disk_free} GB trống / Tổng {disk_total} GB (Ổ đĩa chính)"
+        except Exception:
+            disk_info = "Không thể đọc dữ liệu ổ đĩa"
+            
+        # GPU
+        gpu_info = "Intel / AMD Integrated Graphics"
+        try:
+            import pynvml
+            pynvml.nvmlInit()
+            handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+            gpu_name = pynvml.nvmlDeviceGetName(handle)
+            if isinstance(gpu_name, bytes):
+                gpu_name = gpu_name.decode('utf-8')
+            mem = pynvml.nvmlDeviceGetMemoryInfo(handle)
+            vram_gb = round(mem.total / (1024**3), 1)
+            gpu_info = f"{gpu_name} ({vram_gb} GB VRAM)"
+        except Exception:
+            pass
+            
+        # Display
         screen = QApplication.primaryScreen()
-        res_str = f"{screen.geometry().width()} × {screen.geometry().height()} px" if screen else "1920 × 1080 px"
-        self.card_screen = self._create_card("Màn Hình Chính", res_str, "Tỷ lệ chuẩn 60Hz")
-        grid.addWidget(self.card_screen, 0, 1)
+        res_str = f"{screen.geometry().width()} x {screen.geometry().height()} px (32 bit) (60Hz)" if screen else "1920 x 1080 px"
 
-        # Card 3: CPU with Progress Bar
-        self.card_cpu, self.cpu_val_lbl, self.cpu_bar = self._create_meter_card("Bộ Vi Xử Lý (CPU)", f"{psutil.cpu_count(logical=True)} Luồng xử lý")
-        grid.addWidget(self.card_cpu, 1, 0)
+        # Create rows
+        self._add_list_row(list_layout, "Hệ Điều Hành (OS):", os_info)
+        self._add_list_row(list_layout, "Bộ Vi Xử Lý (CPU):", cpu_info)
+        self._add_list_row(list_layout, "Bộ Nhớ Trong (RAM):", ram_info)
+        self._add_list_row(list_layout, "Ổ Cứng (Disk):", disk_info)
+        self._add_list_row(list_layout, "Card Đồ Họa (GPU):", gpu_info)
+        self._add_list_row(list_layout, "Màn Hình (Display):", res_str, is_last=True)
 
-        # Card 4: RAM with Progress Bar
-        self.card_ram, self.ram_val_lbl, self.ram_bar = self._create_meter_card("Bộ Nhớ RAM", "Đang tải...")
-        grid.addWidget(self.card_ram, 1, 1)
-
-        # Card 5: App Version Card (Span 2 columns)
+        layout.addWidget(list_container)
+        
+        # App Version Card
         app_card = QFrame()
         app_card.setStyleSheet(
-            f"QFrame {{ background: rgba(14, 20, 36, 0.65); border: 1px solid rgba(255, 255, 255, 0.08); "
-            f"border-radius: 12px; padding: 14px 18px; }}"
+            f"QFrame {{ background: rgba(14, 20, 36, 0.4); border: 1px dashed rgba(255, 255, 255, 0.1); "
+            f"border-radius: 8px; padding: 12px; margin-top: 12px; }}"
         )
         ac_layout = QHBoxLayout(app_card)
-        ac_layout.setContentsMargins(4, 2, 4, 2)
+        ac_layout.setContentsMargins(8, 0, 8, 0)
         
         app_info = QVBoxLayout()
-        app_info.setSpacing(3)
-        app_title = QLabel("POP AI Assistant Pro")
-        app_title.setStyleSheet(f"font-size: 14px; font-weight: 700; color: {DesignTokens.CYAN_ACCENT};")
-        app_sub = QLabel("Phiên bản v2.5 Enterprise • Tối ưu hóa cho Windows x64 • Hỗ trợ GGUF Cục bộ & Cloud")
+        app_title = QLabel("POP AI Assistant Pro - System Diagnostics")
+        app_title.setStyleSheet(f"font-size: 13px; font-weight: 600; color: {DesignTokens.TEXT_MAIN};")
+        app_sub = QLabel("Phiên bản v2.5 Enterprise • Tối ưu hóa cho Windows x64")
         app_sub.setStyleSheet(f"font-size: 12px; color: {DesignTokens.TEXT_MUTED};")
         app_info.addWidget(app_title)
         app_info.addWidget(app_sub)
         
         ac_layout.addLayout(app_info, stretch=1)
-
-        grid.addWidget(app_card, 2, 0, 1, 2)
-
-        layout.addLayout(grid)
+        layout.addWidget(app_card)
+        
         layout.addStretch()
 
-        self.update_system_telemetry()
-
-    def _create_card(self, title: str, main_val: str, sub_val: str) -> QFrame:
-        card = QFrame()
-        card.setStyleSheet(
-            f"QFrame {{ background: rgba(14, 20, 36, 0.65); border: 1px solid rgba(255, 255, 255, 0.08); "
-            f"border-radius: 12px; padding: 14px 18px; }}"
-        )
-        c_layout = QVBoxLayout(card)
-        c_layout.setContentsMargins(0, 0, 0, 0)
-        c_layout.setSpacing(4)
-
-        t_lbl = QLabel(title)
-        t_lbl.setStyleSheet(f"font-size: 11px; font-weight: 600; color: {DesignTokens.TEXT_MUTED}; text-transform: uppercase; letter-spacing: 0.5px;")
-
-        v_lbl = QLabel(main_val)
-        v_lbl.setStyleSheet(f"font-size: 15px; font-weight: 700; color: {DesignTokens.TEXT_MAIN};")
-
-        s_lbl = QLabel(sub_val)
-        s_lbl.setStyleSheet(f"font-size: 11px; color: {DesignTokens.TEXT_MUTED};")
-
-        c_layout.addWidget(t_lbl)
-        c_layout.addWidget(v_lbl)
-        c_layout.addWidget(s_lbl)
-        return card
-
-    def _create_meter_card(self, title: str, sub_val: str):
-        card = QFrame()
-        card.setStyleSheet(
-            f"QFrame {{ background: rgba(14, 20, 36, 0.65); border: 1px solid rgba(255, 255, 255, 0.08); "
-            f"border-radius: 12px; padding: 14px 18px; }}"
-        )
-        c_layout = QVBoxLayout(card)
-        c_layout.setContentsMargins(0, 0, 0, 0)
-        c_layout.setSpacing(6)
-
-        header = QHBoxLayout()
-        t_lbl = QLabel(title)
-        t_lbl.setStyleSheet(f"font-size: 11px; font-weight: 600; color: {DesignTokens.TEXT_MUTED}; text-transform: uppercase; letter-spacing: 0.5px;")
+    def _add_list_row(self, parent_layout, label_text: str, value_text: str, is_last: bool = False):
+        row = QHBoxLayout()
+        row.setSpacing(16)
         
-        val_lbl = QLabel("0%")
-        val_lbl.setStyleSheet(f"font-size: 13px; font-weight: 700; color: {DesignTokens.CYAN_ACCENT};")
-        header.addWidget(t_lbl)
-        header.addStretch()
-        header.addWidget(val_lbl)
-
-        p_bar = QProgressBar()
-        p_bar.setFixedHeight(8)
-        p_bar.setStyleSheet(
-            f"QProgressBar {{ background: {DesignTokens.SURFACE_2}; border: none; border-radius: 4px; text-align: right; }}"
-            f"QProgressBar::chunk {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #008EFF, stop:1 #00FFAA); border-radius: 4px; }}"
-        )
-        p_bar.setValue(0)
-        p_bar.setTextVisible(False)
-
-        s_lbl = QLabel(sub_val)
-        s_lbl.setStyleSheet(f"font-size: 11px; color: {DesignTokens.TEXT_MUTED};")
-
-        c_layout.addLayout(header)
-        c_layout.addWidget(p_bar)
-        c_layout.addWidget(s_lbl)
-        return card, val_lbl, p_bar
+        lbl = QLabel(label_text)
+        lbl.setFixedWidth(140)
+        lbl.setStyleSheet(f"font-size: 13px; font-weight: 600; color: {DesignTokens.TEXT_MUTED};")
+        
+        val = QLabel(value_text)
+        val.setWordWrap(True)
+        val.setStyleSheet(f"font-size: 14px; font-weight: 500; color: {DesignTokens.TEXT_MAIN};")
+        
+        row.addWidget(lbl)
+        row.addWidget(val, stretch=1)
+        parent_layout.addLayout(row)
+        
+        if not is_last:
+            line = QFrame()
+            line.setFixedHeight(1)
+            line.setStyleSheet("background-color: rgba(255, 255, 255, 0.05);")
+            parent_layout.addWidget(line)
 
     def update_system_telemetry(self):
-        try:
-            cpu_usage = psutil.cpu_percent(interval=None)
-            mem = psutil.virtual_memory()
-
-            self.cpu_val_lbl.setText(f"{cpu_usage:.0f}%")
-            self.cpu_bar.setValue(int(cpu_usage))
-
-            used_gb = mem.used / (1024**3)
-            total_gb = mem.total / (1024**3)
-            self.ram_val_lbl.setText(f"{used_gb:.1f} / {total_gb:.1f} GB ({mem.percent:.0f}%)")
-            self.ram_bar.setValue(int(mem.percent))
-        except Exception:
-            pass
+        # Không cần telemetry real-time cho DxDiag style list view
+        pass
