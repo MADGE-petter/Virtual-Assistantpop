@@ -11,7 +11,7 @@ from view.ui.settings.settings_config import save_user_settings
 
 
 class ModelsTabWidget(QWidget):
-    """Tab 2: Quản lý Models Cục Bộ phong cách hiện đại, tinh tế."""
+    """Tab 2: Quản lý Models Cục Bộ phong cách tối giản đen trắng (Minimalist)."""
     
     modelDownloaded = pyqtSignal()
     requestOpenDownloadTab = pyqtSignal()
@@ -32,9 +32,9 @@ class ModelsTabWidget(QWidget):
         title_box.setSpacing(4)
 
         title = QLabel("Quản Lý Models Cục Bộ")
-        title.setStyleSheet(f"font-size: 18px; font-weight: 700; color: {DesignTokens.TEXT_MAIN}; letter-spacing: 0.5px;")
+        title.setStyleSheet(f"font-size: 18px; font-weight: 700; color: #FFFFFF; letter-spacing: 0.5px;")
         desc = QLabel("Các mô hình AI định dạng GGUF đã được tải và sẵn sàng sử dụng trên máy tính")
-        desc.setStyleSheet(f"color: {DesignTokens.TEXT_MUTED}; font-size: 13px;")
+        desc.setStyleSheet(f"color: rgba(255, 255, 255, 0.6); font-size: 13px;")
 
         title_box.addWidget(title)
         title_box.addWidget(desc)
@@ -44,9 +44,9 @@ class ModelsTabWidget(QWidget):
         open_hub_btn.setFixedHeight(36)
         open_hub_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         open_hub_btn.setStyleSheet(
-            f"QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #008EFF, stop:1 #00FFAA); "
-            f"color: #03050B; font-weight: bold; font-size: 12px; border: none; border-radius: 8px; padding: 0 16px; }}"
-            f"QPushButton:hover {{ background: #00FFAA; }}"
+            f"QPushButton {{ background-color: #FFFFFF; color: #000000; font-weight: 700; "
+            f"font-size: 12px; border: none; border-radius: 6px; padding: 0 16px; }}"
+            f"QPushButton:hover {{ background-color: #E0E0E0; }}"
         )
         open_hub_btn.clicked.connect(lambda: self.requestOpenDownloadTab.emit())
         header_layout.addWidget(open_hub_btn)
@@ -56,30 +56,30 @@ class ModelsTabWidget(QWidget):
         # Storage Directory Card
         dir_card = QFrame()
         dir_card.setStyleSheet(
-            f"QFrame {{ background: rgba(14, 20, 36, 0.65); border: 1px solid rgba(255, 255, 255, 0.08); "
-            f"border-radius: 10px; }}"
+            f"QFrame {{ background: #000000; border: 1px solid rgba(255, 255, 255, 0.15); "
+            f"border-radius: 8px; }}"
         )
         df_layout = QHBoxLayout(dir_card)
         df_layout.setContentsMargins(14, 10, 14, 10)
         df_layout.setSpacing(12)
 
         dir_title = QLabel("Thư mục lưu trữ:")
-        dir_title.setStyleSheet(f"font-size: 12px; font-weight: 600; color: {DesignTokens.TEXT_MUTED};")
+        dir_title.setStyleSheet(f"font-size: 12px; font-weight: 600; color: rgba(255, 255, 255, 0.8);")
 
         self.txt_model_dir = QLineEdit(self.user_settings.get("model_dir", os.path.join(os.getcwd(), "LLM-agents")))
         self.txt_model_dir.setReadOnly(True)
         self.txt_model_dir.setStyleSheet(
-            f"QLineEdit {{ background: {DesignTokens.SURFACE_2}; border: 1px solid {DesignTokens.BORDER}; "
-            f"border-radius: 6px; padding: 6px 10px; font-size: 12px; color: {DesignTokens.CYAN_ACCENT}; }}"
+            f"QLineEdit {{ background: #050505; border: 1px solid rgba(255, 255, 255, 0.1); "
+            f"border-radius: 4px; padding: 6px 10px; font-size: 12px; color: #FFFFFF; }}"
         )
 
         change_dir_btn = QPushButton("Đổi thư mục...")
         change_dir_btn.setFixedHeight(30)
         change_dir_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         change_dir_btn.setStyleSheet(
-            f"QPushButton {{ background: {DesignTokens.SURFACE_3}; color: {DesignTokens.TEXT_MAIN}; "
-            f"border: 1px solid {DesignTokens.BORDER}; border-radius: 6px; padding: 0 12px; font-size: 12px; }}"
-            f"QPushButton:hover {{ background: {DesignTokens.SURFACE_2}; border-color: {DesignTokens.CYAN}; }}"
+            f"QPushButton {{ background: transparent; color: #FFFFFF; "
+            f"border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 4px; padding: 0 12px; font-size: 12px; }}"
+            f"QPushButton:hover {{ background: rgba(255, 255, 255, 0.1); }}"
         )
         change_dir_btn.clicked.connect(self._change_model_directory)
 
@@ -91,7 +91,7 @@ class ModelsTabWidget(QWidget):
 
         # Section Label with Count Badge
         self.models_list_lbl = QLabel("Danh sách mô hình đã cài đặt:")
-        self.models_list_lbl.setStyleSheet(f"font-size: 12px; font-weight: 600; color: {DesignTokens.TEXT_MUTED}; margin-top: 4px;")
+        self.models_list_lbl.setStyleSheet(f"font-size: 12px; font-weight: 600; color: rgba(255, 255, 255, 0.6); margin-top: 4px;")
         layout.addWidget(self.models_list_lbl)
 
         # Scroll Area for Model Cards
@@ -127,11 +127,11 @@ class ModelsTabWidget(QWidget):
         target_dir = self.user_settings.get("model_dir", os.path.join(os.getcwd(), "LLM-agents"))
         if not os.path.exists(target_dir) or not os.listdir(target_dir):
             empty_card = QFrame()
-            empty_card.setStyleSheet("QFrame { background: rgba(14, 20, 36, 0.4); border: 1px dashed rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 24px; }")
+            empty_card.setStyleSheet("QFrame { background: #000000; border: 1px dashed rgba(255, 255, 255, 0.2); border-radius: 8px; padding: 24px; }")
             ec_layout = QVBoxLayout(empty_card)
             ec_lbl = QLabel("Chưa có mô hình nào trong thư mục máy tính.\nNhấp vào nút '+ Tải Model Mới' ở trên để khám phá & tải mô hình về.")
             ec_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            ec_lbl.setStyleSheet(f"color: {DesignTokens.TEXT_MUTED}; font-size: 13px; line-height: 1.6;")
+            ec_lbl.setStyleSheet(f"color: rgba(255, 255, 255, 0.5); font-size: 13px; line-height: 1.6;")
             ec_layout.addWidget(ec_lbl)
             self.cards_layout.addWidget(empty_card)
             self.models_list_lbl.setText("Danh sách mô hình đã cài đặt (0):")
@@ -148,9 +148,9 @@ class ModelsTabWidget(QWidget):
 
             card = QFrame()
             card.setStyleSheet(
-                f"QFrame {{ background: rgba(14, 20, 36, 0.65); border: 1px solid rgba(255, 255, 255, 0.08); "
-                f"border-radius: 10px; padding: 12px 16px; }}"
-                f"QFrame:hover {{ border-color: rgba(0, 255, 170, 0.25); background: rgba(18, 26, 46, 0.8); }}"
+                f"QFrame {{ background: #000000; border: 1px solid rgba(255, 255, 255, 0.15); "
+                f"border-radius: 8px; padding: 12px 16px; }}"
+                f"QFrame:hover {{ border-color: #FFFFFF; }}"
             )
             cl = QHBoxLayout(card)
             cl.setContentsMargins(4, 2, 4, 2)
@@ -164,10 +164,10 @@ class ModelsTabWidget(QWidget):
             info_box.setSpacing(3)
             
             name_lbl = QLabel(item)
-            name_lbl.setStyleSheet(f"font-size: 13px; font-weight: 600; color: {DesignTokens.TEXT_MAIN};")
+            name_lbl.setStyleSheet(f"font-size: 13px; font-weight: 600; color: #FFFFFF;")
 
             size_str = f"{size_mb / 1024:.2f} GB" if size_mb >= 1024 else f"{size_mb:.1f} MB"
-            sub_lbl = QLabel(f"<font color='#00FFAA'>● Sẵn sàng</font> &nbsp;•&nbsp; <font color='#8A9EB5'>Dung lượng: {size_str}</font> &nbsp;•&nbsp; <font color='#8A9EB5'>Định dạng GGUF</font>")
+            sub_lbl = QLabel(f"<font color='#FFFFFF'>● Sẵn sàng</font> &nbsp;•&nbsp; <font color='rgba(255, 255, 255, 0.6)'>Dung lượng: {size_str}</font> &nbsp;•&nbsp; <font color='rgba(255, 255, 255, 0.6)'>Định dạng GGUF</font>")
             sub_lbl.setStyleSheet("font-size: 11px;")
 
             info_box.addWidget(name_lbl)
@@ -178,9 +178,9 @@ class ModelsTabWidget(QWidget):
             del_btn.setFixedHeight(28)
             del_btn.setCursor(Qt.CursorShape.PointingHandCursor)
             del_btn.setStyleSheet(
-                f"QPushButton {{ background: rgba(255, 75, 110, 0.12); color: #FF4B6E; border: 1px solid rgba(255, 75, 110, 0.3); "
-                f"border-radius: 6px; padding: 0 14px; font-size: 11px; font-weight: 600; }}"
-                f"QPushButton:hover {{ background: rgba(255, 75, 110, 0.28); border-color: #FF4B6E; }}"
+                f"QPushButton {{ background: transparent; color: rgba(255, 255, 255, 0.7); border: 1px solid rgba(255, 255, 255, 0.2); "
+                f"border-radius: 4px; padding: 0 14px; font-size: 11px; font-weight: 600; }}"
+                f"QPushButton:hover {{ background: rgba(255, 0, 0, 0.1); color: #FF0000; border-color: #FF0000; }}"
             )
             del_btn.clicked.connect(lambda _, path=full_p: self._delete_local_model(path))
             cl.addWidget(del_btn)
@@ -201,3 +201,4 @@ class ModelsTabWidget(QWidget):
                 self.modelDownloaded.emit()
             except Exception as e:
                 QMessageBox.critical(self, "Lỗi", f"Không thể xóa model: {e}")
+
