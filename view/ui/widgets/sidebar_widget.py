@@ -185,11 +185,9 @@ class AvatarPopupMenu(QWidget):
 
         root_layout.addWidget(container)
 
-        self._opacity_fx = QGraphicsOpacityEffect(self)
-        self.setGraphicsEffect(self._opacity_fx)
-
     def show_animated(self, target_pos: QPoint):
-        start_pos = QPoint(target_pos.x(), target_pos.y() + 10)
+        start_pos = QPoint(target_pos.x(), target_pos.y() + 8)
+        self.setWindowOpacity(0.0)
         self.move(start_pos)
         self.show()
         self.raise_()
@@ -202,7 +200,7 @@ class AvatarPopupMenu(QWidget):
         pos_anim.setEndValue(target_pos)
         pos_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
 
-        op_anim = QPropertyAnimation(self._opacity_fx, b"opacity")
+        op_anim = QPropertyAnimation(self, b"windowOpacity")
         op_anim.setDuration(160)
         op_anim.setStartValue(0.0)
         op_anim.setEndValue(1.0)
