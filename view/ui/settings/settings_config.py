@@ -58,6 +58,8 @@ class HFSearchThread(QThread):
                         "id": item.get('id', ''),
                         "author": item.get('author', item.get('id', '').split('/')[0] if '/' in item.get('id', '') else 'Community'),
                         "name": item.get('id', '').split('/')[-1] if '/' in item.get('id', '') else item.get('id', ''),
+                        "downloads": item.get('downloads', 0),
+                        "tags": item.get('pipeline_tag', 'Language Model')
                     }
                     for item in data if item.get('id')
                 ]
