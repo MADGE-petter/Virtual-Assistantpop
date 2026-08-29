@@ -93,18 +93,23 @@ class ConversationItemWidget(QFrame):
 
 
 class AvatarPopupMenu(QWidget):
-    """Menu Popup người dùng với hiệu ứng nổi trượt và làm mờ mượt mà, tự đóng khi click ra ngoài."""
+    """Menu Popup người dùng màu đen tuyền không viền chữ trắng, tự đóng khi click ra ngoài."""
 
     profileClicked = pyqtSignal()
     settingsClicked = pyqtSignal()
     modelsClicked = pyqtSignal()
     logoutClicked = pyqtSignal()
+    menuClosed = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent, Qt.WindowType.Tool | Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setFixedSize(260, 185)
         self._setup_ui()
+
+    def closeEvent(self, event):
+        self.menuClosed.emit()
+        super().closeEvent(event)
 
     def changeEvent(self, event):
         if event.type() == QEvent.Type.ActivationChange and not self.isActiveWindow():
@@ -118,14 +123,14 @@ class AvatarPopupMenu(QWidget):
         container = QFrame()
         container.setStyleSheet(
             f"QFrame {{"
-            f"  background-color: rgba(14, 20, 36, 0.96);"
-            f"  border: 1px solid rgba(0, 255, 170, 0.3);"
+            f"  background-color: #000000;"
+            f"  border: none;"
             f"  border-radius: 12px;"
             f"}}"
         )
         shadow = QGraphicsDropShadowEffect(container)
-        shadow.setBlurRadius(24)
-        shadow.setColor(QColor(0, 255, 170, 40))
+        shadow.setBlurRadius(20)
+        shadow.setColor(QColor(0, 0, 0, 180))
         shadow.setOffset(0, 4)
         container.setGraphicsEffect(shadow)
 
@@ -149,8 +154,8 @@ class AvatarPopupMenu(QWidget):
                 f"  border-radius: 8px;"
                 f"}}"
                 f"QPushButton:hover {{"
-                f"  background: rgba(0, 255, 170, 0.14);"
-                f"  color: {DesignTokens.CYAN_ACCENT};"
+                f"  background: rgba(255, 255, 255, 0.12);"
+                f"  color: #FFFFFF;"
                 f"}}"
             )
             btn.clicked.connect(lambda: [self.close(), handler()])
@@ -162,7 +167,7 @@ class AvatarPopupMenu(QWidget):
 
         btn_sep = QFrame()
         btn_sep.setFrameShape(QFrame.Shape.HLine)
-        btn_sep.setStyleSheet("background-color: rgba(255, 255, 255, 0.08); max-height: 1px; margin: 2px 4px;")
+        btn_sep.setStyleSheet("background-color: rgba(255, 255, 255, 0.12); max-height: 1px; margin: 2px 4px; border: none;")
 
         btn_out = _create_btn("Đăng xuất", self.logoutClicked.emit)
         btn_out.setStyleSheet(
@@ -177,7 +182,7 @@ class AvatarPopupMenu(QWidget):
             f"  border-radius: 8px;"
             f"}}"
             f"QPushButton:hover {{"
-            f"  background: rgba(255, 75, 110, 0.2);"
+            f"  background: rgba(255, 75, 110, 0.25);"
             f"  color: #FF4B6E;"
             f"}}"
         )
@@ -362,7 +367,7 @@ class SidebarWidget(QWidget):
                 
         self.profile_container = ClickableWidget()
         self.profile_container.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.profile_container.clicked.connect(self._show_avatar_menu)
+        self.profile_container.clicked.connect(self._toggle_avatar_menu)
         
         profile_layout = QHBoxLayout(self.profile_container)
         profile_layout.setContentsMargins(6, 6, 6, 6)
@@ -398,20 +403,34 @@ class SidebarWidget(QWidget):
         main_layout.addWidget(self.profile_container)
 
         self._avatar_menu = None
+        self._last_menu_closed_time = 0.0
 
-    def _show_avatar_menu(self):
-        """Hiển thị AvatarPopupMenu lơ lửng ngay trên profile container với hiệu ứng mượt mà."""
+    def _toggle_avatar_menu(self):
+        """Bật / Tắt menu khi bấm vào avatar: nếu đang mở thì đóng, nếu đang đóng thì mở."""
+        import time
+        now = time.time()
+        if self._avatar_menu and self._avatar_menu.isVisible():
+            self._avatar_menu.close()
+            return
+        if (now - self._last_menu_closed_time) < 0.28:
+            return
+
         if self._avatar_menu is None:
             self._avatar_menu = AvatarPopupMenu(self.window())
             self._avatar_menu.profileClicked.connect(lambda: self.settingsTabSelected.emit(5))
             self._avatar_menu.settingsClicked.connect(lambda: self.settingsTabSelected.emit(0))
             self._avatar_menu.modelsClicked.connect(lambda: self.settingsTabSelected.emit(1))
             self._avatar_menu.logoutClicked.connect(lambda: self.logoutRequested.emit())
+            self._avatar_menu.menuClosed.connect(self._on_avatar_menu_closed)
 
         global_pt = self.profile_container.mapToGlobal(QPoint(0, 0))
         target_x = global_pt.x() + 8
         target_y = global_pt.y() - self._avatar_menu.height() - 6
         self._avatar_menu.show_animated(QPoint(target_x, target_y))
+
+    def _on_avatar_menu_closed(self):
+        import time
+        self._last_menu_closed_time = time.time()
 
 
     def set_mode(self, mode: int, selected_tab: int = 0):
