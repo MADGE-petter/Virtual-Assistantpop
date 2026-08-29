@@ -64,7 +64,7 @@ def get_brand_logo_pixmap(brand: str, size: int = 32) -> QPixmap:
     elif "mistral" in b or "mixtral" in b or "codestral" in b or "ministral" in b:
         logo_filename = "mistral.png"
     elif "gpt" in b or "chatgpt" in b or "openai" in b:
-        logo_filename = "chatgpt.png"
+        logo_filename = "openai.png"
     elif "deepseek" in b:
         logo_filename = "deepseek.png"
     elif "glm" in b or "zhipu" in b or "chatglm" in b:
