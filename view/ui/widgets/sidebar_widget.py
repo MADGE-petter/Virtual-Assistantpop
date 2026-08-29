@@ -388,15 +388,12 @@ class SidebarWidget(QWidget):
         utc_layout = QVBoxLayout(self.user_text_container)
         utc_layout.setContentsMargins(0, 0, 0, 0)
         utc_layout.setSpacing(2)
+        utc_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
         self.user_name_lbl = QLabel(self.user_name)
-        self.user_name_lbl.setStyleSheet(f"color: #FFFFFF; font-weight: 700; font-size: 13px;")
-
-        self.user_sub_lbl = QLabel("Tùy chọn tài khoản ▲")
-        self.user_sub_lbl.setStyleSheet(f"color: {DesignTokens.TEXT_MUTED}; font-size: 11px;")
+        self.user_name_lbl.setStyleSheet(f"color: #FFFFFF; font-weight: 700; font-size: 14px;")
 
         utc_layout.addWidget(self.user_name_lbl)
-        utc_layout.addWidget(self.user_sub_lbl)
 
         profile_layout.addWidget(self.avatar_lbl)
         profile_layout.addWidget(self.user_text_container, stretch=1)
