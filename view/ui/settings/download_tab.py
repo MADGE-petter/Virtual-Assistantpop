@@ -2,22 +2,24 @@ import os
 from PyQt6.QtCore import Qt, pyqtSignal, QStringListModel
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
-    QPushButton, QScrollArea, QFrame, QMessageBox, QCompleter
+    QPushButton, QScrollArea, QFrame, QMessageBox, QCompleter,
+    QProgressBar
 )
 
 from view.ui.styles import DesignTokens
 from view.ui.icons import get_brand_logo_pixmap
-from view.ui.settings.settings_config import save_user_settings, HFSearchThread
+from view.ui.settings.settings_config import HFSearchThread, HFModelDownloadThread
 
 
 class DownloadTabWidget(QWidget):
-    """Tab Tải & Tìm kiếm Model chuyên biệt từ Hugging Face."""
+    """Tab Tải & Tìm kiếm Model chuyên biệt từ Hugging Face với cơ chế tải file GGUF thực tế."""
     
     modelDownloaded = pyqtSignal()
 
     def __init__(self, user_settings: dict, parent=None):
         super().__init__(parent)
         self.user_settings = user_settings
+        self.download_thread = None
         self._setup_ui()
 
     def _setup_ui(self):
@@ -29,7 +31,7 @@ class DownloadTabWidget(QWidget):
         title.setStyleSheet(f"font-size: 18px; font-weight: bold; color: {DesignTokens.CYAN_ACCENT};")
         layout.addWidget(title)
 
-        desc = QLabel("Gõ từ khóa tên mô hình (VD: LF, Llama, Qwen, Gemma, Mistral...) để xem gợi ý tự động & tải phiên bản GGUF:")
+        desc = QLabel("Tìm kiếm và tải trực tiếp các mô hình AI (.GGUF) từ Hugging Face Hub về máy tính:")
         desc.setStyleSheet(f"color: {DesignTokens.TEXT_MUTED}; font-size: 12px;")
         desc.setWordWrap(True)
         layout.addWidget(desc)
@@ -37,7 +39,7 @@ class DownloadTabWidget(QWidget):
         # Search Bar with Auto-Complete Dropdown
         sb_layout = QHBoxLayout()
         self.input_search = QLineEdit()
-        self.input_search.setPlaceholderText("Nhập tên model cần tìm trên Hugging Face...")
+        self.input_search.setPlaceholderText("Nhập tên model (VD: Llama-3.2-1B, Qwen2.5, Gemma-2, Mistral...)...")
         self.input_search.setStyleSheet(
             f"QLineEdit {{ background-color: {DesignTokens.SURFACE_1}; border: 1px solid {DesignTokens.BORDER}; "
             f"border-radius: 8px; padding: 10px 14px; color: {DesignTokens.TEXT_MAIN}; font-size: 13px; }}"
@@ -65,7 +67,48 @@ class DownloadTabWidget(QWidget):
         sb_layout.addWidget(self.btn_search)
         layout.addLayout(sb_layout)
 
-        # Search Results Label
+        # Download Progress Card (Hidden by default, shown during download)
+        self.progress_frame = QFrame()
+        self.progress_frame.setStyleSheet(
+            f"QFrame {{ background: rgba(0, 255, 170, 0.05); border: 1px solid {DesignTokens.CYAN}; border-radius: 10px; padding: 12px; }}"
+        )
+        self.progress_frame.hide()
+        pf_layout = QVBoxLayout(self.progress_frame)
+        pf_layout.setContentsMargins(10, 8, 10, 8)
+        pf_layout.setSpacing(6)
+
+        self.dl_title_lbl = QLabel("Đang tải model...")
+        self.dl_title_lbl.setStyleSheet(f"font-weight: bold; font-size: 13px; color: {DesignTokens.CYAN_ACCENT};")
+
+        self.dl_progress_bar = QProgressBar()
+        self.dl_progress_bar.setFixedHeight(12)
+        self.dl_progress_bar.setStyleSheet(
+            f"QProgressBar {{ background: {DesignTokens.SURFACE_2}; border: 1px solid {DesignTokens.BORDER}; border-radius: 6px; text-align: center; }}"
+            f"QProgressBar::chunk {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #008EFF, stop:1 #00FFAA); border-radius: 5px; }}"
+        )
+        self.dl_progress_bar.setValue(0)
+
+        pf_bottom = QHBoxLayout()
+        self.dl_info_lbl = QLabel("Chuẩn bị kết nối...")
+        self.dl_info_lbl.setStyleSheet(f"font-size: 11px; color: {DesignTokens.TEXT_MUTED};")
+
+        self.dl_cancel_btn = QPushButton("Hủy tải")
+        self.dl_cancel_btn.setStyleSheet(
+            f"QPushButton {{ background: rgba(255, 75, 110, 0.2); color: #FF4B6E; border: 1px solid #FF4B6E; border-radius: 6px; padding: 4px 12px; font-size: 11px; font-weight: bold; }}"
+            f"QPushButton:hover {{ background: rgba(255, 75, 110, 0.35); }}"
+        )
+        self.dl_cancel_btn.clicked.connect(self._cancel_download)
+
+        pf_bottom.addWidget(self.dl_info_lbl, stretch=1)
+        pf_bottom.addWidget(self.dl_cancel_btn)
+
+        pf_layout.addWidget(self.dl_title_lbl)
+        pf_layout.addWidget(self.dl_progress_bar)
+        pf_layout.addLayout(pf_bottom)
+
+        layout.addWidget(self.progress_frame)
+
+        # Search Results Status Label
         self.status_lbl = QLabel("Nhập từ khóa phía trên để bắt đầu tìm kiếm...")
         self.status_lbl.setStyleSheet(f"font-size: 12px; font-weight: 600; color: {DesignTokens.TEXT_MUTED}; font-style: italic;")
         layout.addWidget(self.status_lbl)
@@ -110,6 +153,7 @@ class DownloadTabWidget(QWidget):
 
         self.search_thread = HFSearchThread(query, is_suggest=False, parent=self)
         self.search_thread.resultsFound.connect(self._on_search_results_found)
+        self.search_thread.searchError.connect(lambda err: self.status_lbl.setText(f"Lỗi tìm kiếm: {err}"))
         self.search_thread.start()
 
     def _on_search_results_found(self, models: list):
@@ -140,24 +184,59 @@ class DownloadTabWidget(QWidget):
             dl_btn.setStyleSheet(
                 f"QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #008EFF, stop:1 #00FFAA); "
                 f"color: #03050B; font-weight: bold; border-radius: 6px; padding: 6px 14px; }}"
+                f"QPushButton:hover {{ background-color: #00FFAA; }}"
             )
-            dl_btn.clicked.connect(lambda _, repo=m['id'], name=m['name']: self._download_gguf_model(repo, name))
+            dl_btn.clicked.connect(lambda _, repo=m['id'], name=m['name']: self._start_real_download(repo, name))
             cl.addWidget(dl_btn)
 
             self.cards_layout.addWidget(card)
 
         self.cards_layout.addStretch()
 
-    def _download_gguf_model(self, repo_id: str, name: str):
-        target_dir = self.user_settings.get("model_dir", os.path.join(os.getcwd(), "LLM-agents"))
-        os.makedirs(target_dir, exist_ok=True)
-        filename = name if name.endswith(".gguf") else name + ".gguf"
-        target_path = os.path.join(target_dir, filename)
+    def _start_real_download(self, repo_id: str, model_name: str):
+        if self.download_thread and self.download_thread.isRunning():
+            QMessageBox.warning(self, "Đang tải", "Một mô hình khác đang được tải về. Vui lòng chờ hoàn tất hoặc bấm Hủy tải.")
+            return
 
-        try:
-            with open(target_path, "w", encoding="utf-8") as f:
-                f.write(f"GGUF Model: {repo_id}")
-            QMessageBox.information(self, "Thành công", f"Đã tải thành công model vào:\n{target_path}")
-            self.modelDownloaded.emit()
-        except Exception as e:
-            QMessageBox.critical(self, "Lỗi", f"Không thể lưu model: {e}")
+        target_dir = self.user_settings.get("model_dir", os.path.join(os.getcwd(), "LLM-agents"))
+        self.progress_frame.show()
+        self.dl_title_lbl.setText(f"Đang kết nối tải: {model_name}...")
+        self.dl_progress_bar.setValue(0)
+        self.dl_info_lbl.setText("Đang phân tích cấu trúc file GGUF...")
+        self.btn_search.setEnabled(False)
+
+        self.download_thread = HFModelDownloadThread(repo_id, target_dir, parent=self)
+        self.download_thread.statusUpdated.connect(lambda status: self.dl_info_lbl.setText(status))
+        self.download_thread.progressChanged.connect(self._on_download_progress)
+        self.download_thread.downloadFinished.connect(self._on_download_finished)
+        self.download_thread.downloadError.connect(self._on_download_error)
+        self.download_thread.start()
+
+    def _on_download_progress(self, percent: int, downloaded_mb: float, total_mb: float, speed_mb_s: float):
+        self.dl_progress_bar.setValue(percent)
+        if total_mb > 0:
+            self.dl_info_lbl.setText(
+                f"{downloaded_mb:.1f} MB / {total_mb:.1f} MB ({percent}%) • Tốc độ: {speed_mb_s:.2f} MB/s"
+            )
+        else:
+            self.dl_info_lbl.setText(f"Đã tải {downloaded_mb:.1f} MB • Tốc độ: {speed_mb_s:.2f} MB/s")
+
+    def _on_download_finished(self, saved_path: str):
+        self.btn_search.setEnabled(True)
+        self.progress_frame.hide()
+        QMessageBox.information(
+            self,
+            "Tải Thành Công",
+            f"Đã tải thành công mô hình GGUF thực tế về máy:\n{saved_path}\n\nBạn có thể vào tab 'Quản lý Models' để kiểm tra dung lượng và sử dụng ngay!"
+        )
+        self.modelDownloaded.emit()
+
+    def _on_download_error(self, err_msg: str):
+        self.btn_search.setEnabled(True)
+        self.progress_frame.hide()
+        QMessageBox.warning(self, "Thông Báo", err_msg)
+
+    def _cancel_download(self):
+        if self.download_thread and self.download_thread.isRunning():
+            self.download_thread.cancel()
+            self.dl_info_lbl.setText("Đang dừng tải...")
