@@ -26,79 +26,65 @@ class ProfileTabWidget(QWidget):
                 json.dump({"core_memory": ""}, f, ensure_ascii=False)
 
     def _setup_ui(self):
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(28, 24, 28, 24)
-        layout.setSpacing(18)
+        main_layout = QHBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Header
-        title_box = QVBoxLayout()
-        title_box.setSpacing(4)
-        title = QLabel("Hồ Sơ & Bộ Nhớ Cá Nhân")
-        title.setStyleSheet(f"font-size: 18px; font-weight: 700; color: {DesignTokens.TEXT_MAIN}; letter-spacing: 0.5px;")
-        desc = QLabel("Thông tin người dùng và bộ nhớ cốt lõi (Core Memory) để POP Assistant cá nhân hóa câu trả lời")
-        desc.setStyleSheet(f"color: {DesignTokens.TEXT_MUTED}; font-size: 13px;")
-        title_box.addWidget(title)
-        title_box.addWidget(desc)
-        layout.addLayout(title_box)
+        # Center container
+        center_container = QFrame()
+        center_container.setFixedWidth(560)
+        
+        layout = QVBoxLayout(center_container)
+        layout.setContentsMargins(20, 40, 20, 40)
+        layout.setSpacing(16)
 
-        # 1. User Card
-        prof_card = QFrame()
-        prof_card.setStyleSheet(
-            f"QFrame {{ background: rgba(14, 20, 36, 0.65); border: 1px solid rgba(255, 255, 255, 0.08); "
-            f"border-radius: 12px; padding: 18px; }}"
-        )
-        pc_layout = QHBoxLayout(prof_card)
-        pc_layout.setSpacing(18)
-
-        # Avatar
+        # Avatar - Centered
+        avatar_box = QHBoxLayout()
         avatar_lbl = QLabel(self.username[0].upper() if self.username else "U")
-        avatar_lbl.setFixedSize(56, 56)
+        avatar_lbl.setFixedSize(72, 72)
         avatar_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         avatar_lbl.setStyleSheet(
             f"background-color: rgba(255, 255, 255, 0.05); color: {DesignTokens.TEXT_MAIN}; "
-            f"font-size: 22px; font-weight: 600; border-radius: 28px; border: 1px solid rgba(255, 255, 255, 0.15);"
+            f"font-size: 28px; font-weight: 600; border-radius: 36px; border: 1px solid rgba(255, 255, 255, 0.15);"
         )
-        pc_layout.addWidget(avatar_lbl)
+        avatar_box.addStretch()
+        avatar_box.addWidget(avatar_lbl)
+        avatar_box.addStretch()
+        layout.addLayout(avatar_box)
 
+        # User Info - Centered
         info_box = QVBoxLayout()
-        info_box.setSpacing(4)
+        info_box.setSpacing(6)
         
-        name_row = QHBoxLayout()
         u_name = QLabel(self.username)
-        u_name.setStyleSheet(f"font-size: 16px; font-weight: 700; color: {DesignTokens.TEXT_MAIN};")
+        u_name.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        u_name.setStyleSheet(f"font-size: 20px; font-weight: 700; color: {DesignTokens.TEXT_MAIN};")
         
+        role_row = QHBoxLayout()
         role_badge = QLabel("ADMINISTRATOR")
         role_badge.setStyleSheet(
             f"background: rgba(255, 255, 255, 0.08); color: {DesignTokens.TEXT_MUTED}; "
-            f"font-size: 10px; font-weight: 600; border-radius: 4px; padding: 2px 8px; letter-spacing: 0.5px;"
+            f"font-size: 11px; font-weight: 600; border-radius: 4px; padding: 3px 10px; letter-spacing: 0.5px;"
         )
-        name_row.addWidget(u_name)
-        name_row.addWidget(role_badge)
-        name_row.addStretch()
+        role_row.addStretch()
+        role_row.addWidget(role_badge)
+        role_row.addStretch()
+
+        info_box.addWidget(u_name)
+        info_box.addLayout(role_row)
         
-        u_role = QLabel("Tài khoản cục bộ • Toàn quyền quản trị hệ thống & AI models")
-        u_role.setStyleSheet(f"color: {DesignTokens.TEXT_MUTED}; font-size: 12px;")
+        layout.addLayout(info_box)
+        layout.addSpacing(16)
 
-        info_box.addLayout(name_row)
-        info_box.addWidget(u_role)
-
-        pc_layout.addLayout(info_box, stretch=1)
-        layout.addWidget(prof_card)
-
-        # 2. Core Memory Section
-        mem_box = QVBoxLayout()
-        mem_box.setSpacing(6)
-        
-        mem_title = QLabel("Bộ Nhớ Cốt Lõi (Core Memory):")
+        # Core Memory Section
+        mem_title = QLabel("Bộ Nhớ Cốt Lõi (Core Memory)")
         mem_title.setStyleSheet(f"font-size: 14px; font-weight: 600; color: {DesignTokens.TEXT_MAIN};")
         
-        mem_desc = QLabel("Ghi lại thông tin về nghề nghiệp, thói quen, phong cách làm việc của bạn. POP sẽ luôn ghi nhớ các thông tin này trong mọi cuộc trò chuyện:")
+        mem_desc = QLabel("Ghi lại thông tin về nghề nghiệp, thói quen, phong cách làm việc của bạn. POP sẽ luôn ghi nhớ các thông tin này trong mọi cuộc trò chuyện.")
         mem_desc.setStyleSheet(f"font-size: 12px; color: {DesignTokens.TEXT_MUTED};")
         mem_desc.setWordWrap(True)
 
-        mem_box.addWidget(mem_title)
-        mem_box.addWidget(mem_desc)
-        layout.addLayout(mem_box)
+        layout.addWidget(mem_title)
+        layout.addWidget(mem_desc)
 
         # Text Area for Core Memory
         self.txt_core_memory = QTextEdit()
@@ -114,20 +100,24 @@ class ProfileTabWidget(QWidget):
         bottom_bar = QHBoxLayout()
         bottom_bar.addStretch()
 
-        save_btn = QPushButton("Lưu Bộ Nhớ Cốt Lõi")
-        save_btn.setFixedHeight(38)
-        save_btn.setFixedWidth(170)
+        save_btn = QPushButton("Lưu Thay Đổi")
+        save_btn.setFixedHeight(40)
+        save_btn.setFixedWidth(140)
         save_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         save_btn.setStyleSheet(
-            f"QPushButton {{ background-color: rgba(255, 255, 255, 0.05); color: {DesignTokens.TEXT_MAIN}; "
-            f"font-weight: 500; font-size: 13px; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; }}"
-            f"QPushButton:hover {{ background-color: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); }}"
-            f"QPushButton:pressed {{ background-color: rgba(255, 255, 255, 0.02); }}"
+            f"QPushButton {{ background-color: {DesignTokens.TEXT_MAIN}; color: #000000; "
+            f"font-weight: 600; font-size: 13px; border: none; border-radius: 8px; }}"
+            f"QPushButton:hover {{ background-color: #E2E8F0; }}"
+            f"QPushButton:pressed {{ background-color: #CBD5E1; }}"
         )
         save_btn.clicked.connect(self._save_core_memory)
         bottom_bar.addWidget(save_btn)
 
         layout.addLayout(bottom_bar)
+        
+        main_layout.addStretch()
+        main_layout.addWidget(center_container)
+        main_layout.addStretch()
 
     def _load_core_memory(self):
         try:
