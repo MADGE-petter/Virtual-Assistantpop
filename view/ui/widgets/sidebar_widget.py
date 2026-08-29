@@ -2,11 +2,11 @@
 POP SidebarWidget - Single Unified Left Sidebar handling both Chat Mode and Settings Navigation.
 """
 
-from PyQt6.QtCore import Qt, pyqtSignal, QSize
+from PyQt6.QtCore import Qt, pyqtSignal, QSize, QPoint
 from PyQt6.QtGui import QFont, QColor
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QLineEdit,
-    QScrollArea, QFrame, QSizePolicy, QStackedWidget, QListWidget, QListWidgetItem
+    QScrollArea, QFrame, QSizePolicy, QStackedWidget, QListWidget, QListWidgetItem, QMenu
 )
 
 from view.ui.styles import DesignTokens
@@ -104,6 +104,7 @@ class SidebarWidget(QWidget):
     voiceModeClicked = pyqtSignal()
     toggleCollapsed = pyqtSignal()
     memoryClicked = pyqtSignal()
+    logoutRequested = pyqtSignal()
 
     def __init__(self, chat_model: PopChatModel, user_name: str, parent=None):
         super().__init__(parent)
@@ -218,30 +219,14 @@ class SidebarWidget(QWidget):
 
         main_layout.addWidget(self.body_stack, stretch=1)
 
-        # ----------------------------------------------------
-        # 4. NAVIGATION / OPTIONS MENU (Settings & Models Buttons)
-        # ----------------------------------------------------
-        self.nav_container = QWidget()
-        nav_layout = QVBoxLayout(self.nav_container)
-        nav_layout.setContentsMargins(0, 0, 0, 0)
-        nav_layout.setSpacing(4)
-
-        self.settings_btn = self._create_nav_button("Settings", "settings", self._on_settings_clicked)
-        self.models_btn = self._create_nav_button("Models", "command", self._on_models_clicked)
-
-        nav_layout.addWidget(self.settings_btn)
-        nav_layout.addWidget(self.models_btn)
-
-        main_layout.addWidget(self.nav_container)
-
         # Separator line
         self.sep_line = QFrame()
         self.sep_line.setFrameShape(QFrame.Shape.HLine)
-        self.sep_line.setStyleSheet(f"background-color: {DesignTokens.BORDER}; max-height: 1px;")
+        self.sep_line.setStyleSheet(f"background-color: rgba(255, 255, 255, 0.08); max-height: 1px;")
         main_layout.addWidget(self.sep_line)
 
         # ----------------------------------------------------
-        # 5. USER PROFILE CARD
+        # 4. USER PROFILE CARD (Clickable to open Navigation Menu)
         # ----------------------------------------------------
         class ClickableWidget(QWidget):
             clicked = pyqtSignal()
@@ -252,31 +237,31 @@ class SidebarWidget(QWidget):
                 
         self.profile_container = ClickableWidget()
         self.profile_container.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.profile_container.clicked.connect(lambda: self.memoryClicked.emit())
+        self.profile_container.clicked.connect(self._show_avatar_menu)
         
         profile_layout = QHBoxLayout(self.profile_container)
-        profile_layout.setContentsMargins(4, 2, 4, 2)
-        profile_layout.setSpacing(8)
+        profile_layout.setContentsMargins(6, 6, 6, 6)
+        profile_layout.setSpacing(10)
 
         # Avatar circle
-        first_char = self.user_name[0].upper() if self.user_name else "T"
+        first_char = self.user_name[0].upper() if self.user_name else "U"
         self.avatar_lbl = QLabel(first_char)
-        self.avatar_lbl.setFixedSize(32, 32)
+        self.avatar_lbl.setFixedSize(34, 34)
         self.avatar_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.avatar_lbl.setStyleSheet(
             f"background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #00FFAA, stop:1 #008EFF); "
-            f"color: #03050B; font-weight: 700; font-size: 13px; border-radius: 16px;"
+            f"color: #03050B; font-weight: 800; font-size: 14px; border-radius: 17px; border: 1.5px solid rgba(0, 255, 170, 0.4);"
         )
 
         self.user_text_container = QWidget()
         utc_layout = QVBoxLayout(self.user_text_container)
         utc_layout.setContentsMargins(0, 0, 0, 0)
-        utc_layout.setSpacing(0)
+        utc_layout.setSpacing(2)
 
         self.user_name_lbl = QLabel(self.user_name)
-        self.user_name_lbl.setStyleSheet(f"color: {DesignTokens.TEXT_MAIN}; font-weight: 600; font-size: 13px;")
+        self.user_name_lbl.setStyleSheet(f"color: {DesignTokens.TEXT_MAIN}; font-weight: 700; font-size: 13px;")
 
-        self.user_sub_lbl = QLabel("Tài khoản người dùng")
+        self.user_sub_lbl = QLabel("Tùy chọn tài khoản ▼")
         self.user_sub_lbl.setStyleSheet(f"color: {DesignTokens.TEXT_MUTED}; font-size: 11px;")
 
         utc_layout.addWidget(self.user_name_lbl)
@@ -286,6 +271,54 @@ class SidebarWidget(QWidget):
         profile_layout.addWidget(self.user_text_container, stretch=1)
 
         main_layout.addWidget(self.profile_container)
+
+    def _show_avatar_menu(self):
+        """Hiển thị menu popup khi bấm vào Avatar người dùng."""
+        menu = QMenu(self)
+        menu.setStyleSheet(
+            f"QMenu {{"
+            f"  background-color: rgba(14, 20, 36, 0.96);"
+            f"  border: 1px solid rgba(0, 255, 170, 0.25);"
+            f"  border-radius: 12px;"
+            f"  padding: 6px;"
+            f"}}"
+            f"QMenu::item {{"
+            f"  padding: 8px 18px;"
+            f"  border-radius: 8px;"
+            f"  color: {DesignTokens.TEXT_MAIN};"
+            f"  font-size: 12px;"
+            f"  font-weight: 600;"
+            f"}}"
+            f"QMenu::item:selected {{"
+            f"  background-color: rgba(0, 255, 170, 0.15);"
+            f"  color: {DesignTokens.CYAN_ACCENT};"
+            f"}}"
+            f"QMenu::separator {{"
+            f"  height: 1px;"
+            f"  background-color: rgba(255, 255, 255, 0.08);"
+            f"  margin: 4px 6px;"
+            f"}}"
+        )
+
+        act_profile = menu.addAction("👤  Hồ sơ & Bộ nhớ (Profile)")
+        act_settings = menu.addAction("⚙️  Cài đặt chung (Settings)")
+        act_models = menu.addAction("📦  Quản lý Models")
+        menu.addSeparator()
+        act_logout = menu.addAction("🚪  Đăng xuất (Logout)")
+
+        # Tính toán vị trí hiển thị popup ngay phía trên profile container
+        menu_height = menu.sizeHint().height()
+        pos = self.profile_container.mapToGlobal(QPoint(0, -menu_height - 6))
+        action = menu.exec(pos)
+
+        if action == act_profile:
+            self.settingsTabSelected.emit(5)
+        elif action == act_settings:
+            self.settingsTabSelected.emit(0)
+        elif action == act_models:
+            self.settingsTabSelected.emit(1)
+        elif action == act_logout:
+            self.logoutRequested.emit()
 
     def set_mode(self, mode: int, selected_tab: int = 0):
         """Mode 0: Chat Mode (Conversation List), Mode 1: Settings Mode (Settings Tabs)."""
