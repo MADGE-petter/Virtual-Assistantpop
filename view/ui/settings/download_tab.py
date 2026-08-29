@@ -9,10 +9,11 @@ from PyQt6.QtWidgets import (
 from view.ui.styles import DesignTokens
 from view.ui.icons import get_brand_logo_pixmap
 from view.ui.settings.settings_config import HFSearchThread, HFModelDownloadThread
+from view.ui.settings.quantization_dialog import QuantizationDialog
 
 
 class DownloadTabWidget(QWidget):
-    """Tab Tải & Tìm kiếm Model chuyên biệt từ Hugging Face với cơ chế tải file GGUF thực tế."""
+    """Tab Tải & Tìm kiếm Model chuyên biệt từ Hugging Face với tính năng chọn phiên bản Quantization."""
     
     modelDownloaded = pyqtSignal()
 
@@ -24,26 +25,34 @@ class DownloadTabWidget(QWidget):
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(24, 20, 24, 20)
-        layout.setSpacing(14)
+        layout.setContentsMargins(28, 24, 28, 24)
+        layout.setSpacing(16)
 
+        # Header
+        title_box = QVBoxLayout()
+        title_box.setSpacing(4)
         title = QLabel("Tìm Kiếm & Tải Model từ Hugging Face")
-        title.setStyleSheet(f"font-size: 18px; font-weight: bold; color: {DesignTokens.CYAN_ACCENT};")
-        layout.addWidget(title)
+        title.setStyleSheet(f"font-size: 18px; font-weight: 700; color: {DesignTokens.TEXT_MAIN}; letter-spacing: 0.5px;")
+        desc = QLabel("Khám phá hàng ngàn mô hình AI GGUF trên Hugging Face Hub và tự do lựa chọn phiên bản Quantization (Q4, Q5, Q8...)")
+        desc.setStyleSheet(f"color: {DesignTokens.TEXT_MUTED}; font-size: 13px;")
+        title_box.addWidget(title)
+        title_box.addWidget(desc)
+        layout.addLayout(title_box)
 
-        desc = QLabel("Tìm kiếm và tải trực tiếp các mô hình AI (.GGUF) từ Hugging Face Hub về máy tính:")
-        desc.setStyleSheet(f"color: {DesignTokens.TEXT_MUTED}; font-size: 12px;")
-        desc.setWordWrap(True)
-        layout.addWidget(desc)
+        # Search Bar Box
+        search_card = QFrame()
+        search_card.setStyleSheet(
+            f"QFrame {{ background: rgba(14, 20, 36, 0.65); border: 1px solid rgba(255, 255, 255, 0.08); "
+            f"border-radius: 12px; padding: 6px 10px; }}"
+        )
+        sb_layout = QHBoxLayout(search_card)
+        sb_layout.setContentsMargins(4, 2, 4, 2)
+        sb_layout.setSpacing(10)
 
-        # Search Bar with Auto-Complete Dropdown
-        sb_layout = QHBoxLayout()
         self.input_search = QLineEdit()
-        self.input_search.setPlaceholderText("Nhập tên model (VD: Llama-3.2-1B, Qwen2.5, Gemma-2, Mistral...)...")
+        self.input_search.setPlaceholderText("Nhập tên model (VD: Llama-3.2, Qwen2.5, Gemma-2, DeepSeek, Mistral...)...")
         self.input_search.setStyleSheet(
-            f"QLineEdit {{ background-color: {DesignTokens.SURFACE_1}; border: 1px solid {DesignTokens.BORDER}; "
-            f"border-radius: 8px; padding: 10px 14px; color: {DesignTokens.TEXT_MAIN}; font-size: 13px; }}"
-            f"QLineEdit:focus {{ border-color: {DesignTokens.CYAN}; background-color: {DesignTokens.SURFACE_2}; }}"
+            f"QLineEdit {{ background: transparent; border: none; color: {DesignTokens.TEXT_MAIN}; font-size: 13px; padding: 6px 4px; }}"
         )
         self.input_search.textChanged.connect(self._on_search_text_changed)
         self.input_search.returnPressed.connect(self._on_search_models_clicked)
@@ -55,47 +64,54 @@ class DownloadTabWidget(QWidget):
         self.completer.activated.connect(self._on_completer_activated)
         self.input_search.setCompleter(self.completer)
 
-        self.btn_search = QPushButton("Tìm kiếm")
+        self.btn_search = QPushButton("Tìm Kiếm")
+        self.btn_search.setFixedHeight(34)
+        self.btn_search.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_search.setStyleSheet(
-            f"QPushButton {{ background: {DesignTokens.SURFACE_3}; color: {DesignTokens.CYAN_ACCENT}; font-weight: bold; "
-            f"border: 1px solid {DesignTokens.BORDER}; border-radius: 8px; padding: 10px 18px; }}"
-            f"QPushButton:hover {{ background-color: {DesignTokens.SURFACE_2}; border-color: {DesignTokens.CYAN}; }}"
+            f"QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #008EFF, stop:1 #00FFAA); "
+            f"color: #03050B; font-weight: bold; font-size: 12px; border: none; border-radius: 8px; padding: 0 18px; }}"
+            f"QPushButton:hover {{ background: #00FFAA; }}"
         )
         self.btn_search.clicked.connect(self._on_search_models_clicked)
 
         sb_layout.addWidget(self.input_search, stretch=1)
         sb_layout.addWidget(self.btn_search)
-        layout.addLayout(sb_layout)
+        layout.addWidget(search_card)
 
         # Download Progress Card (Hidden by default, shown during download)
         self.progress_frame = QFrame()
         self.progress_frame.setStyleSheet(
-            f"QFrame {{ background: rgba(0, 255, 170, 0.05); border: 1px solid {DesignTokens.CYAN}; border-radius: 10px; padding: 12px; }}"
+            f"QFrame {{ background: rgba(0, 255, 170, 0.06); border: 1px solid {DesignTokens.CYAN_ACCENT}; "
+            f"border-radius: 12px; padding: 14px 18px; }}"
         )
         self.progress_frame.hide()
         pf_layout = QVBoxLayout(self.progress_frame)
-        pf_layout.setContentsMargins(10, 8, 10, 8)
-        pf_layout.setSpacing(6)
+        pf_layout.setContentsMargins(0, 0, 0, 0)
+        pf_layout.setSpacing(8)
 
-        self.dl_title_lbl = QLabel("Đang tải model...")
-        self.dl_title_lbl.setStyleSheet(f"font-weight: bold; font-size: 13px; color: {DesignTokens.CYAN_ACCENT};")
+        self.dl_title_lbl = QLabel("Đang chuẩn bị tải...")
+        self.dl_title_lbl.setStyleSheet(f"font-weight: 700; font-size: 13px; color: {DesignTokens.CYAN_ACCENT};")
 
         self.dl_progress_bar = QProgressBar()
-        self.dl_progress_bar.setFixedHeight(12)
+        self.dl_progress_bar.setFixedHeight(10)
         self.dl_progress_bar.setStyleSheet(
-            f"QProgressBar {{ background: {DesignTokens.SURFACE_2}; border: 1px solid {DesignTokens.BORDER}; border-radius: 6px; text-align: center; }}"
+            f"QProgressBar {{ background: {DesignTokens.SURFACE_2}; border: none; border-radius: 5px; text-align: center; }}"
             f"QProgressBar::chunk {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #008EFF, stop:1 #00FFAA); border-radius: 5px; }}"
         )
         self.dl_progress_bar.setValue(0)
+        self.dl_progress_bar.setTextVisible(False)
 
         pf_bottom = QHBoxLayout()
-        self.dl_info_lbl = QLabel("Chuẩn bị kết nối...")
-        self.dl_info_lbl.setStyleSheet(f"font-size: 11px; color: {DesignTokens.TEXT_MUTED};")
+        self.dl_info_lbl = QLabel("Đang kết nối đến Hugging Face Resolve...")
+        self.dl_info_lbl.setStyleSheet(f"font-size: 12px; color: {DesignTokens.TEXT_MUTED};")
 
-        self.dl_cancel_btn = QPushButton("Hủy tải")
+        self.dl_cancel_btn = QPushButton("Hủy Tải")
+        self.dl_cancel_btn.setFixedHeight(26)
+        self.dl_cancel_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.dl_cancel_btn.setStyleSheet(
-            f"QPushButton {{ background: rgba(255, 75, 110, 0.2); color: #FF4B6E; border: 1px solid #FF4B6E; border-radius: 6px; padding: 4px 12px; font-size: 11px; font-weight: bold; }}"
-            f"QPushButton:hover {{ background: rgba(255, 75, 110, 0.35); }}"
+            f"QPushButton {{ background: rgba(255, 75, 110, 0.15); color: #FF4B6E; border: 1px solid rgba(255, 75, 110, 0.4); "
+            f"border-radius: 6px; padding: 0 12px; font-size: 11px; font-weight: 600; }}"
+            f"QPushButton:hover {{ background: rgba(255, 75, 110, 0.3); border-color: #FF4B6E; }}"
         )
         self.dl_cancel_btn.clicked.connect(self._cancel_download)
 
@@ -109,8 +125,8 @@ class DownloadTabWidget(QWidget):
         layout.addWidget(self.progress_frame)
 
         # Search Results Status Label
-        self.status_lbl = QLabel("Nhập từ khóa phía trên để bắt đầu tìm kiếm...")
-        self.status_lbl.setStyleSheet(f"font-size: 12px; font-weight: 600; color: {DesignTokens.TEXT_MUTED}; font-style: italic;")
+        self.status_lbl = QLabel("Nhập từ khóa phía trên để bắt đầu tìm kiếm mô hình...")
+        self.status_lbl.setStyleSheet(f"font-size: 12px; font-weight: 600; color: {DesignTokens.TEXT_MUTED}; margin-top: 4px;")
         layout.addWidget(self.status_lbl)
 
         # Scroll Area for Search Results
@@ -121,7 +137,7 @@ class DownloadTabWidget(QWidget):
         self.cards_container = QWidget()
         self.cards_layout = QVBoxLayout(self.cards_container)
         self.cards_layout.setContentsMargins(0, 0, 0, 0)
-        self.cards_layout.setSpacing(8)
+        self.cards_layout.setSpacing(10)
 
         self.scroll_models.setWidget(self.cards_container)
         layout.addWidget(self.scroll_models, stretch=1)
@@ -145,7 +161,7 @@ class DownloadTabWidget(QWidget):
             self._search_models(query)
 
     def _search_models(self, query: str):
-        self.status_lbl.setText(f"🔍 Đang tìm kiếm '{query}' từ Hugging Face API...")
+        self.status_lbl.setText(f"🔍 Đang tìm kiếm '{query}' trên Hugging Face Hub...")
         while self.cards_layout.count():
             item = self.cards_layout.takeAt(0)
             if item.widget():
@@ -166,46 +182,69 @@ class DownloadTabWidget(QWidget):
             self.status_lbl.setText("Không tìm thấy model GGUF nào phù hợp.")
             return
 
-        self.status_lbl.setText(f"✨ Tìm thấy {len(models)} mô hình GGUF khả dụng trên Hugging Face:")
+        self.status_lbl.setText(f"Tìm thấy {len(models)} mô hình GGUF khả dụng trên Hugging Face:")
         for m in models:
             card = QFrame()
-            card.setStyleSheet(f"QFrame {{ background: {DesignTokens.SURFACE_1}; border: 1px solid {DesignTokens.BORDER}; border-radius: 8px; padding: 10px; }}")
+            card.setStyleSheet(
+                f"QFrame {{ background: rgba(14, 20, 36, 0.65); border: 1px solid rgba(255, 255, 255, 0.08); "
+                f"border-radius: 10px; padding: 12px 16px; }}"
+                f"QFrame:hover {{ border-color: rgba(0, 255, 170, 0.25); background: rgba(18, 26, 46, 0.8); }}"
+            )
             cl = QHBoxLayout(card)
+            cl.setContentsMargins(4, 2, 4, 2)
+            cl.setSpacing(14)
             
             icon_lbl = QLabel()
-            icon_lbl.setPixmap(get_brand_logo_pixmap(m["name"], 32))
+            icon_lbl.setPixmap(get_brand_logo_pixmap(m["name"], 34))
             cl.addWidget(icon_lbl)
 
-            name_lbl = QLabel(f"<b>{m['name']}</b><br><font color='#557088'>by {m['author']} • GGUF Format</font>")
-            name_lbl.setStyleSheet("font-size: 13px;")
-            cl.addWidget(name_lbl, stretch=1)
+            info_box = QVBoxLayout()
+            info_box.setSpacing(3)
 
-            dl_btn = QPushButton("⬇ Tải về")
+            name_lbl = QLabel(m["name"])
+            name_lbl.setStyleSheet(f"font-size: 13px; font-weight: 700; color: {DesignTokens.TEXT_MAIN};")
+
+            sub_lbl = QLabel(f"<font color='#00FFAA'>● Tác giả: {m['author']}</font> &nbsp;•&nbsp; <font color='#8A9EB5'>Định dạng GGUF Đa Quantization</font>")
+            sub_lbl.setStyleSheet("font-size: 11px;")
+
+            info_box.addWidget(name_lbl)
+            info_box.addWidget(sub_lbl)
+            cl.addLayout(info_box, stretch=1)
+
+            dl_btn = QPushButton("⬇ Chọn Quant & Tải")
+            dl_btn.setFixedHeight(30)
+            dl_btn.setCursor(Qt.CursorShape.PointingHandCursor)
             dl_btn.setStyleSheet(
                 f"QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #008EFF, stop:1 #00FFAA); "
-                f"color: #03050B; font-weight: bold; border-radius: 6px; padding: 6px 14px; }}"
-                f"QPushButton:hover {{ background-color: #00FFAA; }}"
+                f"color: #03050B; font-weight: bold; border: none; border-radius: 6px; padding: 0 14px; font-size: 11px; }}"
+                f"QPushButton:hover {{ background: #00FFAA; }}"
             )
-            dl_btn.clicked.connect(lambda _, repo=m['id'], name=m['name']: self._start_real_download(repo, name))
+            dl_btn.clicked.connect(lambda _, repo=m['id'], name=m['name']: self._open_quantization_selector(repo, name))
             cl.addWidget(dl_btn)
 
             self.cards_layout.addWidget(card)
 
         self.cards_layout.addStretch()
 
-    def _start_real_download(self, repo_id: str, model_name: str):
+    def _open_quantization_selector(self, repo_id: str, model_name: str):
+        dialog = QuantizationDialog(repo_id, model_name, parent=self)
+        dialog.fileSelected.connect(lambda chosen_file: self._start_real_download(repo_id, model_name, chosen_file))
+        dialog.exec()
+
+    def _start_real_download(self, repo_id: str, model_name: str, chosen_file: str = None):
         if self.download_thread and self.download_thread.isRunning():
             QMessageBox.warning(self, "Đang tải", "Một mô hình khác đang được tải về. Vui lòng chờ hoàn tất hoặc bấm Hủy tải.")
             return
 
         target_dir = self.user_settings.get("model_dir", os.path.join(os.getcwd(), "LLM-agents"))
         self.progress_frame.show()
-        self.dl_title_lbl.setText(f"Đang kết nối tải: {model_name}...")
+        display_name = chosen_file if chosen_file else model_name
+        self.dl_title_lbl.setText(f"Đang tải: {display_name}...")
         self.dl_progress_bar.setValue(0)
-        self.dl_info_lbl.setText("Đang phân tích cấu trúc file GGUF...")
+        self.dl_info_lbl.setText("Đang kết nối đến Hugging Face Resolve CDN...")
         self.btn_search.setEnabled(False)
 
-        self.download_thread = HFModelDownloadThread(repo_id, target_dir, parent=self)
+        self.download_thread = HFModelDownloadThread(repo_id, target_dir, preferred_file=chosen_file, parent=self)
         self.download_thread.statusUpdated.connect(lambda status: self.dl_info_lbl.setText(status))
         self.download_thread.progressChanged.connect(self._on_download_progress)
         self.download_thread.downloadFinished.connect(self._on_download_finished)
@@ -227,7 +266,7 @@ class DownloadTabWidget(QWidget):
         QMessageBox.information(
             self,
             "Tải Thành Công",
-            f"Đã tải thành công mô hình GGUF thực tế về máy:\n{saved_path}\n\nBạn có thể vào tab 'Quản lý Models' để kiểm tra dung lượng và sử dụng ngay!"
+            f"Đã tải thành công phiên bản mô hình GGUF về máy:\n{saved_path}\n\nBạn có thể vào tab 'Quản lý Models' để kiểm tra dung lượng và sử dụng ngay!"
         )
         self.modelDownloaded.emit()
 
