@@ -63,7 +63,7 @@ def evaluate_compatibility(size_mb: float, hw: dict) -> dict:
     if has_gpu and (size_mb / 1024.0) <= (vram_gb * 0.85):
         return {
             "status": "smooth_gpu",
-            "badge": "🟢 CỰC MƯỢT (GPU VRAM)",
+            "badge": "✓ CỰC MƯỢT (GPU VRAM)",
             "desc": f"Tối ưu hoàn hảo cho card rời {hw['gpu']['gpu_name']} • Tốc độ phản hồi tức thì",
             "color": "#00FFAA",
             "bg": "rgba(0, 255, 170, 0.12)",
@@ -74,7 +74,7 @@ def evaluate_compatibility(size_mb: float, hw: dict) -> dict:
     elif req_ram_gb <= (avail_ram * 0.6):
         return {
             "status": "smooth_ram",
-            "badge": "🟢 RẤT MƯỢT (Khuyên Dùng)",
+            "badge": "✓ RẤT MƯỢT (Khuyên Dùng)",
             "desc": f"RAM trống dư dả ({avail_ram:.1f} GB trống) • Chạy ổn định & phản hồi nhanh",
             "color": "#00FFAA",
             "bg": "rgba(0, 255, 170, 0.10)",
@@ -85,7 +85,7 @@ def evaluate_compatibility(size_mb: float, hw: dict) -> dict:
     elif req_ram_gb <= (avail_ram * 0.85):
         return {
             "status": "fit",
-            "badge": "🟡 VỪA ĐỦ (Khả Dụng)",
+            "badge": "⚠️ VỪA ĐỦ (Cân Nhắc RAM)",
             "desc": f"Vừa vặn dung lượng RAM trống ({avail_ram:.1f} GB) • Nên đóng bớt các ứng dụng nặng",
             "color": "#FFCC00",
             "bg": "rgba(255, 204, 0, 0.10)",
@@ -96,7 +96,7 @@ def evaluate_compatibility(size_mb: float, hw: dict) -> dict:
     else:
         return {
             "status": "heavy",
-            "badge": "🔴 CẢNH BÁO QUÁ TẢI (Dễ Lỗi RAM / OOM)",
+            "badge": "✕ QUÁ TẢI (Dễ Tràn RAM / OOM)",
             "desc": f"Cần ~{req_ram_gb:.1f} GB RAM (Máy chỉ còn {avail_ram:.1f} GB trống) • Dễ giật lag hoặc tràn bộ nhớ",
             "color": "#FF4B6E",
             "bg": "rgba(255, 75, 110, 0.12)",
