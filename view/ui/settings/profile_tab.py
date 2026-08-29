@@ -105,10 +105,10 @@ class ProfileTabWidget(QWidget):
         save_btn.setFixedWidth(140)
         save_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         save_btn.setStyleSheet(
-            f"QPushButton {{ background-color: {DesignTokens.BLUE_ACCENT}; color: #FFFFFF; "
-            f"font-weight: 600; font-size: 13px; border: none; border-radius: 8px; }}"
-            f"QPushButton:hover {{ background-color: #33A6FF; }}"
-            f"QPushButton:pressed {{ background-color: #0077D6; }}"
+            f"QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #008EFF, stop:1 #00FFAA); "
+            f"color: #03050B; font-weight: 700; font-size: 13px; border: none; border-radius: 8px; }}"
+            f"QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #00A6FF, stop:1 #33FFBC); }}"
+            f"QPushButton:pressed {{ background: #008EFF; }}"
         )
         save_btn.clicked.connect(self._save_core_memory)
         bottom_bar.addWidget(save_btn)
