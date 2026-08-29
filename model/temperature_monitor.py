@@ -10,6 +10,9 @@ try:
 except ImportError:
     HAS_PSUTIL = False
 
+import warnings
+warnings.filterwarnings('ignore', message=r'.*pynvml.*')
+
 try:
     import pynvml
     pynvml.nvmlInit()

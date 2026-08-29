@@ -27,6 +27,8 @@ def get_system_hardware_info() -> dict:
     
     # 1. Kiểm tra card NVIDIA qua pynvml
     try:
+        import warnings
+        warnings.filterwarnings('ignore', message=r'.*pynvml.*')
         import pynvml
         pynvml.nvmlInit()
         handle = pynvml.nvmlDeviceGetHandleByIndex(0)

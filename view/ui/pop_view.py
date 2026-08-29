@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import (
 from view.ui.styles import STYLE_SHEET, DesignTokens
 from view.ui.widgets import (
     StarfieldWidget, SidebarWidget, ChatAreaWidget,
-    RightPanelWidget, MiniMascotWidget, MemoryDialog
+    RightPanelWidget, MiniMascotWidget
 )
 from view.ui.settings import SettingsDialog
 from view.ui.icons import get_pop_logo_icon
@@ -163,11 +163,6 @@ class PopView(QMainWindow):
         active_session = self.chat_model.get_active_session()
         if active_session:
             self.chat_area.load_session(active_session)
-
-    def _open_memory_dialog(self):
-        from view.ui.widgets import MemoryDialog
-        dialog = MemoryDialog(self.user_name, self)
-        dialog.exec()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)

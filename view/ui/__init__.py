@@ -4,7 +4,7 @@ from view.ui.icons import get_pop_logo_icon, get_pop_logo_pixmap, create_vector_
 from view.ui.widgets import (
     SidebarWidget, ChatAreaWidget, InputBarWidget,
     RightPanelWidget, MiniMascotWidget, StarfieldWidget,
-    MemoryDialog, ModelDownloaderDialog
+    ModelDownloaderDialog
 )
 from view.ui.settings import SettingsDialog, load_user_settings, save_user_settings
 
@@ -23,7 +23,6 @@ __all__ = [
     "RightPanelWidget",
     "MiniMascotWidget",
     "StarfieldWidget",
-    "MemoryDialog",
     "ModelDownloaderDialog",
     "SettingsDialog",
     "load_user_settings",

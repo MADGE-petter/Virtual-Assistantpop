@@ -1,0 +1,7 @@
+{
+  "model_dir": "C:\\Users\\cuongdd-pc\\Desktop\\Virtual-Assistantpop-main\\LLM-agents",
+  "system_rule": "Bạn là POP AI - Trợ lý thông minh. Hãy trả lời ngắn gọn, chính xác và lịch sự bằng tiếng Việt.",
+  "autostart": false,
+  "mascot_top": true,
+  "tts_enabled": true
+}

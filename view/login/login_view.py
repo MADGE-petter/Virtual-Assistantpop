@@ -21,7 +21,7 @@ from PyQt6.QtWidgets import (
 
 from view.login.login_styles import MAIN_WINDOW_STYLE, TITLE_STYLE, REGISTER_LABEL_STYLE
 from view.login.login_widgets import show_toast
-from view.login.starfield_widget import StarfieldWidget
+from view.ui.widgets.starfield_widget import StarfieldWidget
 
 
 class LoginView(QDialog):
