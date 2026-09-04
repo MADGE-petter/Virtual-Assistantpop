@@ -274,8 +274,8 @@ class VoiceService:
 
     def _idle_check_loop(self):
         """Background loop checking for idle timeout (Sleep mode disabled)."""
-        while not self._stop_idle_event.is_set():
-            time.sleep(1.0)
+        # Event.wait() sẽ block luồng hoàn toàn (0% CPU) cho đến khi event được set.
+        self._stop_idle_event.wait()
 
     # ==================== CONVERSATION HELPERS ====================
     

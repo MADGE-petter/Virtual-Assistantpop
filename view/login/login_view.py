@@ -177,6 +177,14 @@ class LoginView(QDialog):
         layout.addLayout(content_box)
         layout.addStretch()
         self._create_footer()
+        
+        # Pre-fill auto login data
+        auto_data = self.login_service.get_auto_login()
+        if isinstance(auto_data, dict):
+            if auto_data.get("username"):
+                self.username_input.setText(auto_data["username"])
+            if auto_data.get("password"):
+                self.password_input.setText(auto_data["password"])
 
     def _create_footer(self):
         """Tạo footer version info đơn giản"""
@@ -256,6 +264,7 @@ class LoginView(QDialog):
             
         if self.login_service.authenticate_user(username, password):
             print(f"[LoginView] Login successful for: {username}")
+            self.login_service.save_auto_login(username, password)
             self.login_success.emit(username)
             self.accept()
         else:
@@ -283,8 +292,9 @@ class LoginView(QDialog):
             return
             
         if self.login_service.save_new_user(username, password):
-            show_toast(self, "Đăng ký tài khoản thành công!", "success")
-            # Tự động chuyển về đăng nhập
-            self.toggle_mode(None)
+            show_toast(self, "Đăng ký thành công!", "success")
+            self.login_service.save_auto_login(username, password)
+            self.login_success.emit(username)
+            self.accept()
         else:
             QMessageBox.warning(self, "Lỗi", "Tên đăng nhập đã tồn tại!")

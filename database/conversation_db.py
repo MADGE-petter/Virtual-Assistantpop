@@ -46,7 +46,8 @@ class ConversationDB(BaseRepository):
                 username TEXT UNIQUE NOT NULL,
                 password TEXT NOT NULL,
                 email TEXT,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         """)
 
@@ -105,7 +106,7 @@ class ConversationDB(BaseRepository):
                 timestamp TEXT,
                 app_name TEXT,
                 action TEXT,
-                tenNguoiDung TEXT
+                username TEXT
             )
         """)
 
@@ -118,21 +119,21 @@ class ConversationDB(BaseRepository):
                 ram_percent REAL,
                 disk_percent REAL,
                 temperature REAL,
-                tenNguoiDung TEXT
+                username TEXT
             )
         """)
 
         indexes = [
-            "CREATE INDEX IF NOT EXISTS idx_conversations_maNguoiDung ON conversations(maNguoiDung)",
-            "CREATE INDEX IF NOT EXISTS idx_conversations_maPhien ON conversations(maPhien)",
-            "CREATE INDEX IF NOT EXISTS idx_conversations_thoiGianTao ON conversations(thoiGianTao)",
-            "CREATE INDEX IF NOT EXISTS idx_sessions_maNguoiDung ON sessions(maNguoiDung)",
-            "CREATE INDEX IF NOT EXISTS idx_sessions_thoiGianBatDau ON sessions(thoiGianBatDau)",
-            "CREATE INDEX IF NOT EXISTS idx_users_tenNguoiDung ON users(tenNguoiDung)",
+            "CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id)",
+            "CREATE INDEX IF NOT EXISTS idx_conversations_session_id ON conversations(session_id)",
+            "CREATE INDEX IF NOT EXISTS idx_conversations_created_at ON conversations(created_at)",
+            "CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)",
+            "CREATE INDEX IF NOT EXISTS idx_sessions_created_at ON sessions(created_at)",
+            "CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)",
             "CREATE INDEX IF NOT EXISTS idx_usage_sessions_date ON usage_sessions(date)",
-            "CREATE INDEX IF NOT EXISTS idx_usage_sessions_user ON usage_sessions(tenNguoiDung)",
+            "CREATE INDEX IF NOT EXISTS idx_usage_sessions_user ON usage_sessions(username)",
             "CREATE INDEX IF NOT EXISTS idx_app_usage_date ON app_usage(date)",
-            "CREATE INDEX IF NOT EXISTS idx_app_usage_user ON app_usage(tenNguoiDung)",
+            "CREATE INDEX IF NOT EXISTS idx_app_usage_user ON app_usage(username)",
             "CREATE INDEX IF NOT EXISTS idx_health_snapshots_date ON health_snapshots(date)",
         ]
         for idx_sql in indexes:
@@ -140,13 +141,13 @@ class ConversationDB(BaseRepository):
                 cursor.execute(idx_sql)
             except Exception:
                 pass
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_health_snapshots_user ON health_snapshots(tenNguoiDung)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_health_snapshots_user ON health_snapshots(username)")
 
         cursor.execute("""
             CREATE TRIGGER IF NOT EXISTS update_users_timestamp 
             AFTER UPDATE ON users
             BEGIN
-                UPDATE users SET thoiGianCapNhat = CURRENT_TIMESTAMP WHERE maNguoiDung = NEW.maNguoiDung;
+                UPDATE users SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
             END
         """)
     
@@ -228,8 +229,8 @@ class ConversationDB(BaseRepository):
             cursor = conn.cursor()
             
             cursor.execute("""
-                INSERT INTO users (username)
-                VALUES (?)
+                INSERT INTO users (username, password)
+                VALUES (?, '')
             """, (username,))
             
             user_id = cursor.lastrowid

@@ -32,7 +32,7 @@ class UsageTracker:
                     start_time TEXT,
                     end_time TEXT,
                     duration_seconds INTEGER,
-                    tenNguoiDung TEXT
+                    username TEXT
                 )
             ''')
 
@@ -43,7 +43,7 @@ class UsageTracker:
                     timestamp TEXT,
                     app_name TEXT,
                     action TEXT,
-                    tenNguoiDung TEXT
+                    username TEXT
                 )
             ''')
 
@@ -66,7 +66,7 @@ class UsageTracker:
                     ram_percent REAL,
                     disk_percent REAL,
                     temperature REAL,
-                    tenNguoiDung TEXT
+                    username TEXT
                 )
             ''')
 
@@ -78,7 +78,7 @@ class UsageTracker:
         with self.db_manager.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO usage_sessions (date, start_time, tenNguoiDung)
+                INSERT INTO usage_sessions (date, start_time, username)
                 VALUES (?, ?, ?)
             ''', (
                 self.session_start.strftime('%Y-%m-%d'),
@@ -113,7 +113,7 @@ class UsageTracker:
         with self.db_manager.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO app_usage (date, timestamp, app_name, action, tenNguoiDung)
+                INSERT INTO app_usage (date, timestamp, app_name, action, username)
                 VALUES (?, ?, ?, ?, ?)
             ''', (
                 now.strftime('%Y-%m-%d'),
@@ -129,7 +129,7 @@ class UsageTracker:
         with self.db_manager.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO health_snapshots (date, timestamp, cpu_percent, ram_percent, disk_percent, temperature, tenNguoiDung)
+                INSERT INTO health_snapshots (date, timestamp, cpu_percent, ram_percent, disk_percent, temperature, username)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             ''', (
                 now.strftime('%Y-%m-%d'),
@@ -152,7 +152,7 @@ class UsageTracker:
         params = [start_date]
 
         if user_name:
-            query += ' AND tenNguoiDung = ?'
+            query += ' AND username = ?'
             params.append(user_name)
 
         query += ' GROUP BY date ORDER BY date DESC'
@@ -179,7 +179,7 @@ class UsageTracker:
         params = [start_date]
 
         if user_name:
-            query += ' AND tenNguoiDung = ?'
+            query += ' AND username = ?'
             params.append(user_name)
 
         query += '''
@@ -206,7 +206,7 @@ class UsageTracker:
         params = [start_date]
 
         if user_name:
-            query += ' AND tenNguoiDung = ?'
+            query += ' AND username = ?'
             params.append(user_name)
 
         query += ' ORDER BY date ASC, timestamp ASC'
@@ -273,7 +273,7 @@ class UsageTracker:
         params = [start_date]
 
         if user_name:
-            query += ' AND tenNguoiDung = ?'
+            query += ' AND username = ?'
             params.append(user_name)
 
         with self.db_manager.get_connection() as conn:
@@ -302,7 +302,7 @@ class UsageTracker:
         params = []
 
         if user_name:
-            query += 'WHERE tenNguoiDung = ? '
+            query += 'WHERE username = ? '
             params.append(user_name)
 
         query += 'ORDER BY timestamp DESC LIMIT 1'
@@ -353,7 +353,7 @@ class UsageTracker:
         params = [start_date]
 
         if user_name:
-            query += ' AND tenNguoiDung = ?'
+            query += ' AND username = ?'
             params.append(user_name)
 
         with self.db_manager.get_connection() as conn:

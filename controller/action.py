@@ -61,9 +61,28 @@ class ActionHandler:
         self.user_name = name
         self._update_handlers('set_user_name', name)
     
-    def handle(self, intent, text, user_name=None, context=None):
+    def handle(self, intent, text, user_name=None, context=None, execute=False):
         if user_name:
             self.set_user_name(user_name)
+            
+        sensitive_intents = {
+            "open_website": "Mở trang web",
+            "open_app": "Mở ứng dụng",
+            "system_control": "Điều khiển hệ thống",
+            "open_file": "Mở tệp"
+        }
+        
+        # Ngăn chặn thực thi ngay nếu là lệnh nhạy cảm và chưa được confirm
+        if intent in sensitive_intents and not execute:
+            summary = f"{sensitive_intents[intent]}: '{text}'"
+            return ActionResult(
+                text="Vui lòng xác nhận hành động.",
+                needs_permission=True,
+                tool_name=intent,
+                tool_args={"text": text},
+                summary_text=summary,
+                confirmation_title="Xác nhận hành động"
+            )
         
         # Intent to handler mapping
         handlers = {
@@ -85,8 +104,6 @@ class ActionHandler:
         if intent == "weather":
             result = self.weather_handler.handle(text, context)
             return result  # ActionResult from handler
-        
-        # Global last_intent removed - use context-based approach in ConversationService
         
         handler = handlers.get(intent, self.greeting_handler.handle_unknown)
         result = handler(text)

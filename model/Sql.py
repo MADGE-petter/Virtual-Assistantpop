@@ -25,8 +25,8 @@ class SqlService:
         return self.db._get_connection()
         
     def start_session(self, user_name):
-       
-        self.current_session_id = self.db.start_session(user_name)
+        user_id = self.db.get_or_create_user(user_name)
+        self.current_session_id = self.db.start_session(user_id)
         return self.current_session_id
     
     def end_session(self, session_id=None):
@@ -62,11 +62,11 @@ class SqlService:
             
             cursor.execute("""
                 SELECT COUNT(*) as total_conversations,
-                       COUNT(DISTINCT DATE(c.thoiGianTao)) as total_days,
-                       COUNT(DISTINCT c.maPhien) as total_sessions
+                       COUNT(DISTINCT DATE(c.created_at)) as total_days,
+                       COUNT(DISTINCT c.session_id) as total_sessions
                 FROM conversations c
-                JOIN users u ON c.maNguoiDung = u.maNguoiDung
-                WHERE LOWER(u.tenNguoiDung) = ?
+                JOIN users u ON c.user_id = u.id
+                WHERE LOWER(u.username) = ?
             """, (user_name.lower(),))
             
             stats = cursor.fetchone()
@@ -89,13 +89,13 @@ class SqlService:
             cursor = conn.cursor()
             
             cursor.execute("""
-                SELECT DATE(c.thoiGianTao) as date,
+                SELECT DATE(c.created_at) as date,
                        COUNT(*) as conversation_count,
-                       COUNT(DISTINCT c.maPhien) as session_count
+                       COUNT(DISTINCT c.session_id) as session_count
                 FROM conversations c
-                JOIN users u ON c.maNguoiDung = u.maNguoiDung
-                WHERE LOWER(u.tenNguoiDung) = ?
-                GROUP BY DATE(c.thoiGianTao)
+                JOIN users u ON c.user_id = u.id
+                WHERE LOWER(u.username) = ?
+                GROUP BY DATE(c.created_at)
                 ORDER BY date DESC
                 LIMIT ?
             """, (user_name.lower(), limit))
@@ -114,9 +114,9 @@ class SqlService:
             cursor = conn.cursor()
             
             cursor.execute("""
-                SELECT MIN(c.thoiGianTao) FROM conversations c
-                JOIN users u ON c.maNguoiDung = u.maNguoiDung
-                WHERE LOWER(u.tenNguoiDung) = ?
+                SELECT MIN(c.created_at) FROM conversations c
+                JOIN users u ON c.user_id = u.id
+                WHERE LOWER(u.username) = ?
             """, (user_name.lower(),))
             
             result = cursor.fetchone()
@@ -154,10 +154,10 @@ class SqlService:
             cursor = conn.cursor()
             
             cursor.execute("""
-                SELECT tenNguoiDung 
+                SELECT username 
                 FROM users 
-                WHERE tenNguoiDung != 'bạn'
-                ORDER BY maNguoiDung DESC 
+                WHERE username != 'bạn'
+                ORDER BY id DESC 
                 LIMIT 1
             """)
             
@@ -176,12 +176,12 @@ class SqlService:
             cursor = conn.cursor()
             
             # Tạo hoặc lấy user ID cho tên mới
-            cursor.execute("SELECT maNguoiDung FROM users WHERE tenNguoiDung = ?", (new_name,))
+            cursor.execute("SELECT id FROM users WHERE username = ?", (new_name,))
             user_result = cursor.fetchone()
             
             if not user_result:
                 # Tạo user mới
-                cursor.execute("INSERT INTO users (tenNguoiDung) VALUES (?)", (new_name,))
+                cursor.execute("INSERT INTO users (username, password) VALUES (?, '')", (new_name,))
                 new_user_id = cursor.lastrowid
             else:
                 new_user_id = user_result[0]
@@ -190,15 +190,15 @@ class SqlService:
                 # Cập nhật conversations trong session hiện tại
                 cursor.execute("""
                     UPDATE conversations 
-                    SET maNguoiDung = ? 
-                    WHERE maPhien = ?
+                    SET user_id = ? 
+                    WHERE session_id = ?
                 """, (new_user_id, session_id))
                 
                 # Cập nhật session
                 cursor.execute("""
                     UPDATE sessions 
-                    SET maNguoiDung = ? 
-                    WHERE maPhien = ?
+                    SET user_id = ? 
+                    WHERE id = ?
                 """, (new_user_id, session_id))
             
             conn.commit()

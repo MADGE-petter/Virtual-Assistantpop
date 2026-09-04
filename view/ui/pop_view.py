@@ -18,7 +18,6 @@ from view.ui.settings import SettingsDialog
 from view.ui.icons import get_pop_logo_icon
 from model.pop_chat_model import PopChatModel
 from model.voice_state_model import VoiceState
-from service.agent import OpenClawAgentEngine
 
 
 class PopView(QMainWindow):
@@ -43,6 +42,8 @@ class PopView(QMainWindow):
     _alertSignal = pyqtSignal(dict)
     _showWindowSignal = pyqtSignal()
     _hideWindowSignal = pyqtSignal()
+    _confirmationCardSignal = pyqtSignal(str, str, str, dict)
+    _filePreviewSignal = pyqtSignal(list)
 
     def __init__(self, user_name: str = "Tài khoản"):
         super().__init__()
@@ -58,9 +59,8 @@ class PopView(QMainWindow):
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Window)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
-        # Chat Data Model & Agent Engine
+        # Chat Data Model
         self.chat_model = PopChatModel()
-        self.agent_engine = OpenClawAgentEngine()
 
         self._drag_pos = QPoint()
 
@@ -75,6 +75,8 @@ class PopView(QMainWindow):
         self._alertSignal.connect(self._handle_show_alert_notification)
         self._showWindowSignal.connect(self._handle_show_window)
         self._hideWindowSignal.connect(self._handle_hide_window)
+        self._confirmationCardSignal.connect(self._handle_show_confirmation_card)
+        self._filePreviewSignal.connect(self._handle_show_file_preview)
 
         # Desktop Mini Mascot Floating Avatar Widget
         self.mini_mascot = MiniMascotWidget()
@@ -258,6 +260,14 @@ class PopView(QMainWindow):
 
         self.chat_area.append_message(msg)
 
+    def show_confirmation_card(self, title: str, summary: str, tool_name: str, tool_args: dict):
+        """Thread-safe call to display action confirmation."""
+        self._confirmationCardSignal.emit(title, summary, tool_name, tool_args)
+
+    def show_file_preview(self, files: list):
+        """Thread-safe call to display file preview."""
+        self._filePreviewSignal.emit(files)
+
     # ============================================================
     # MAIN-THREAD SIGNAL HANDLERS
     # ============================================================
@@ -304,6 +314,14 @@ class PopView(QMainWindow):
     def _handle_hide_window(self):
         self._switch_to_mini_mascot()
 
+    def _handle_show_confirmation_card(self, title: str, summary: str, tool_name: str, tool_args: dict):
+        self.chat_area.set_thinking(False)
+        self.chat_area.append_confirmation_card(title, summary, tool_name, tool_args)
+        
+    def _handle_show_file_preview(self, files: list):
+        self.chat_area.set_thinking(False)
+        self.chat_area.append_file_preview_card(files)
+
     # ============================================================
     # PRIVATE INTERNAL HANDLERS & AGENT DISPATCHER
     # ============================================================
@@ -312,71 +330,18 @@ class PopView(QMainWindow):
         msg = self.chat_model.add_user_message(text)
         self.chat_area.append_message(msg)
         self.right_panel.add_activity_log("User Message", "chat")
-
-        # Process through Agentic Engine
-        plan = self.agent_engine.analyze_request(text)
-
-        if plan.is_clarification_needed:
-            # Speak & show clarification question
-            bot_msg = self.chat_model.add_bot_message(plan.clarification_question)
-            self.chat_area.append_message(bot_msg)
-            if self.controller and hasattr(self.controller, 'audio'):
-                self.controller.audio.speak(plan.clarification_question)
-            return
-
-        if plan.needs_confirmation:
-            # Display Action Confirmation Card
-            self.chat_area.append_confirmation_card(
-                title=plan.confirmation_title,
-                summary=plan.summary_text,
-                tool_name=plan.tool_name,
-                tool_args=plan.tool_args
-            )
-            confirm_voice = f"Vui lòng xác nhận hành động: {plan.summary_text}"
-            if self.controller and hasattr(self.controller, 'audio'):
-                self.controller.audio.speak(confirm_voice)
-            return
-
-        if plan.tool_name == "file_search":
-            from tools.file_search_tool import FileSearchTool
-            files = FileSearchTool.search_files(plan.tool_args.get("query", ""))
-            if files:
-                self.chat_area.append_file_preview_card(files)
-            else:
-                bot_msg = self.chat_model.add_bot_message(f"Không tìm thấy tệp nào phù hợp với từ khóa '{plan.tool_args.get('query')}' trên máy tính.")
-                self.chat_area.append_message(bot_msg)
-            return
-
-        if plan.tool_name == "web_search":
-            from tools.web_tool import WebTool
-            res = WebTool.search_or_read_web(plan.tool_args.get("query", ""))
-            reply = res.get("summary") or res.get("content") or "Đã hoàn thành tra cứu web."
-            bot_msg = self.chat_model.add_bot_message(reply)
-            self.chat_area.append_message(bot_msg)
-            return
-
+        
         # General conversation -> Delegate to Controller
         self.chat_area.set_thinking(True)
         self.sendMessage.emit(text)
 
     def _on_execute_tool(self, tool_name: str, tool_args: dict):
-        """Execute tool after user approves action confirmation card."""
-        print(f"[PopView] User confirmed action -> Executing tool '{tool_name}' with args: {tool_args}")
-        status_msg = ""
-        if tool_name == "zalo_send":
-            from tools.zalo_tool import ZaloTool
-            res = ZaloTool.send_message(tool_args.get("recipient"), tool_args.get("message"))
-            status_msg = res.get("message", "Đã gửi tin nhắn Zalo.")
-        elif tool_name == "facebook_send":
-            from tools.facebook_tool import FacebookTool
-            res = FacebookTool.send_message(tool_args.get("recipient"), tool_args.get("message"))
-            status_msg = res.get("message", "Đã gửi tin nhắn Facebook.")
-
-        bot_msg = self.chat_model.add_bot_message(status_msg)
-        self.chat_area.append_message(bot_msg)
-        if self.controller and hasattr(self.controller, 'audio'):
-            self.controller.audio.speak(status_msg)
-
+        """Execute tool after user approves action confirmation card (Routed to backend)."""
+        print(f"[PopView] User confirmed action -> Requesting Controller to execute '{tool_name}'")
+        # Route back to controller to execute instead of hardcoding in View
+        if self.controller and hasattr(self.controller, 'execute_tool'):
+            self.controller.execute_tool(tool_name, tool_args)
+        
     def _on_new_chat(self):
         self._show_chat_view()
         new_session = self.chat_model.create_new_session("Cuộc trò chuyện mới")

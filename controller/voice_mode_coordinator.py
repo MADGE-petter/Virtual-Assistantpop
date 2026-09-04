@@ -3,24 +3,21 @@ from typing import Optional, Callable
 
 from service.AudioService import AudioService
 from service.voice_service import VoiceService
-from service.alert_service import AlertManager
 
 
 class VoiceModeCoordinator:
-    """Handles wake/sleep transitions and voice mode management."""
+    """Handles transitions between active and sleep (voice-only) modes."""
     
     def __init__(
         self,
         audio: AudioService,
         voice: VoiceService,
-        alert_mgr: AlertManager,
         view=None,
         on_wake_up: Optional[Callable] = None,
-        on_go_sleep: Optional[Callable] = None,
+        on_go_sleep: Optional[Callable] = None
     ):
         self.audio = audio
         self.voice = voice
-        self.alert_mgr = alert_mgr
         self.view = view
         self._on_wake_up = on_wake_up
         self._on_go_sleep = on_go_sleep
@@ -33,10 +30,6 @@ class VoiceModeCoordinator:
         
         # Activate voice mode
         self.voice.handle_wake_up()
-        
-        # Notify alert manager
-        self.alert_mgr.set_sleep_mode(False)
-        self.alert_mgr.reset_wellness_timers()
         
         # Show view
         if self.view:
@@ -55,9 +48,6 @@ class VoiceModeCoordinator:
         
         # Deactivate voice mode
         self.voice.go_to_sleep(manual=manual, speak_callback=speak_callback)
-        
-        # Notify alert manager
-        self.alert_mgr.set_sleep_mode(True)
         
         # Hide view
         if manual and self.view:

@@ -89,7 +89,7 @@ class ProactiveService:
             # Kiểm tra khung giờ (±5 phút)
             if ngay == ngayHienTai and self._is_time_match(gio, gioHienTai, phutHienTai):
                 # Tạo gợi ý
-                noiDungGoiY = self._tao_noi_dung_goi_y(tenMucTieu, gio, doTinCay)
+                noiDungGoiY = self._create_suggestion(tenMucTieu, gio, doTinCay)
                 
                 # Gọi callback để phát âm thanh
                 if self.suggestion_callback:

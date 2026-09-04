@@ -1,17 +1,14 @@
 from PyQt6.QtCore import QObject, pyqtSignal
 
 from controller.action import ActionHandler
-from controller.alert_coordinator import AlertCoordinator
 from controller.conversation_controller import ConversationController
 from controller.conversation_coordinator import ConversationCoordinator
 from controller.shutdown_coordinator import ShutdownCoordinator
 from controller.startup_coordinator import StartupCoordinator
 from controller.voice_mode_coordinator import VoiceModeCoordinator
 from model.Sql import SqlService
-from service.alert_service import AlertManager
 from service.analytics_service import get_analytics_service
 from service.AudioService import AudioService
-from service.interactive_alert_service import InteractiveAlertService
 from service.user_service import UserService
 from service.voice_service import VoiceService
 
@@ -21,7 +18,6 @@ class PopController(QObject):
     
     # Signal để wake up từ thread khác (thread-safe)
     wakeUpRequested = pyqtSignal()
-    alertReceived = pyqtSignal(dict)
     
     def __init__(self, view=None, model=None, login_username=None):
         super().__init__()
@@ -45,19 +41,8 @@ class PopController(QObject):
             if loaded_name and loaded_name != "bạn":
                 self._user_svc.display_name = loaded_name
         
-        # Alert interaction service
-        self._interactive_alert_service = InteractiveAlertService(self.audio, view=view)
-
-        # Alert & Analytics
+        # Analytics
         analytics_user = self._user_svc.login_name if getattr(self._user_svc, 'login_name', None) and self._user_svc.login_name != "bạn" else getattr(self._user_svc, 'display_name', None) or "bạn"
-        self._alert_mgr = AlertManager(
-            self.audio,
-            self._interactive_alert_service.on_alert,
-            30,
-            analytics_user,
-            interactive_callback=self._interactive_alert_service.on_interactive_alert,
-        )
-        self._interactive_alert_service.set_alert_manager(self._alert_mgr)
         self._analytics = get_analytics_service(analytics_user or "user")
 
         if login_username:
@@ -69,22 +54,25 @@ class PopController(QObject):
         # === KHỞI TẠO SUB-CONTROLLERS & SERVICES ===
         self.voice = VoiceService(self.audio, view=view)
         self.user = self._user_svc
-        self.alert_mgr = self._alert_mgr
         self.analytics = self._analytics
+        
+        # Memory service
+        from service.memory_service import MemoryService
+        self.memory = MemoryService(self.sql)
+        
         self.conversation = ConversationController(
             self.audio,
             self.sql,
             self.actions,
-            self.user,
-            self._interactive_alert_service,
+            self.user
         )
+        # Connect MemoryService to ConversationService
+        self.conversation.service.init_memory_service(self.memory)
         
         # === KHỞI TẠO MODULAR COORDINATORS ===
-        self.alert_coordinator = AlertCoordinator(self.audio, view=view)
         self.voice_coordinator = VoiceModeCoordinator(
             audio=self.audio,
             voice=self.voice,
-            alert_mgr=self._alert_mgr,
             view=view,
             on_wake_up=self._do_wake_up,
             on_go_sleep=self._on_go_sleep
@@ -97,7 +85,6 @@ class PopController(QObject):
         self.startup = StartupCoordinator(
             audio=self.audio,
             voice=self.voice,
-            alert_mgr=self._alert_mgr,
             analytics=self._analytics,
             conversation=self.conversation,
             sql=self.sql,
@@ -107,7 +94,6 @@ class PopController(QObject):
         self.shutdown = ShutdownCoordinator(
             audio=self.audio,
             voice=self.voice,
-            alert_mgr=self._alert_mgr,
             analytics=self._analytics,
             conversation=self.conversation
         )
@@ -117,12 +103,14 @@ class PopController(QObject):
         self.voice.on_go_sleep = self._on_go_sleep
         self.voice.on_idle_timeout = self._on_idle
         self.wakeUpRequested.connect(self._do_wake_up)
-        self.alertReceived.connect(self._handle_alert_received)
         
         # Inject controller vào view (view không cần biết services)
         if view:
-            view.set_controller(self)
-            # Connect View signals to Controller slots
+            self.view.set_controller(self)
+            self.conversation.on_permission_requested = self.view.show_confirmation_card
+            self.conversation.on_file_preview_requested = self.view.show_file_preview
+            
+            # Connect View signals
             view.sendMessage.connect(self._on_send_message)
             view.voiceToggled.connect(self._on_voice_toggled)
             view.stopGeneration.connect(self._on_stop_generation)
@@ -158,14 +146,16 @@ class PopController(QObject):
     
     def _on_switch_model(self, model_name: str = ""):
         """Handle model switch request."""
-        if hasattr(self, 'agent') and hasattr(self.agent, 'set_model'):
-            self.agent.set_model(model_name)
-        elif hasattr(self, 'conversation') and hasattr(self.conversation, 'set_model'):
-            self.conversation.set_model(model_name)
+        try:
+            if hasattr(self, 'conversation') and hasattr(self.conversation, 'set_model'):
+                self.conversation.set_model(model_name)
 
-        if self.view:
-            msg = f"Đã chuyển sang mô hình: {model_name}" if model_name else "Đã cập nhật mô hình AI"
-            self.view.show_toast(msg, "info")
+            if self.view:
+                msg = f"Đã chuyển sang mô hình: {model_name}" if model_name else "Đã cập nhật mô hình AI"
+                self.view.show_toast(msg, "info")
+        except Exception as e:
+            if self.view:
+                self.view.show_toast(f"Lỗi chuyển model: {str(e)}", "error")
     
     def _on_open_settings(self):
         """Handle open settings request."""
@@ -253,18 +243,6 @@ class PopController(QObject):
         """Callback khi idle (Sleep mode disabled)."""
         pass
     
-    def _on_alert(self, alert_data):
-        """Callback khi có alert."""
-        self.alertReceived.emit(alert_data)
-    
-    def _handle_alert_received(self, alert_data):
-        if self.view:
-            self.view.show_alert_notification(alert_data)
-    
-    def _on_interactive_alert(self, alert, action, context=None):
-        """Callback khi có interactive alert - ủy quyền cho AlertCoordinator."""
-        self.alert_coordinator.handle_interactive_alert(alert, action, context=context)
-    
     def _on_gesture(self, gesture_type):
         """Callback từ gesture service."""
         self.handle_gesture(gesture_type)
@@ -276,7 +254,6 @@ class PopController(QObject):
     def _enter_active_mode(self):
         """Vào active mode - hiện app và bắt đầu conversation."""
         self._activate_view()
-        self.alert_mgr.reset_wellness_timers()
         self.conversation_coordinator.start_conversation(from_wake_up=False)
         self.voice.start_idle_monitor(self._on_idle)
     
@@ -284,6 +261,36 @@ class PopController(QObject):
         """Bắt đầu conversation thread qua ConversationCoordinator."""
         self.conversation_coordinator.start_conversation(from_wake_up=from_wake_up)
     
+    def execute_tool(self, tool_name: str, tool_args: dict):
+        """Thực thi tool sau khi user xác nhận."""
+        print(f"[PopController] Execute Tool: {tool_name} with args: {tool_args}")
+        status_msg = ""
+        
+        sensitive_actions = ["open_website", "open_app", "system_control", "open_file"]
+        
+        try:
+            if tool_name in sensitive_actions:
+                # Execute using ActionHandler with execute=True
+                text = tool_args.get("text", "")
+                result = self.actions.handle(tool_name, text, execute=True)
+                
+                from service.conversation_service import ActionResult
+                status_msg = result.text if isinstance(result, ActionResult) else str(result)
+            elif tool_name == "zalo_send":
+                from tools.zalo_tool import ZaloTool
+                res = ZaloTool.send_message(tool_args.get("recipient"), tool_args.get("message"))
+                status_msg = res.get("message", "Đã gửi tin nhắn Zalo.")
+            elif tool_name == "facebook_send":
+                from tools.facebook_tool import FacebookTool
+                res = FacebookTool.send_message(tool_args.get("recipient"), tool_args.get("message"))
+                status_msg = res.get("message", "Đã gửi tin nhắn Facebook.")
+        except Exception as e:
+            status_msg = f"Đã xảy ra lỗi khi thực thi lệnh: {e}"
+        
+        if status_msg and self.view:
+            self.view.update_chat(status_msg, sender="bot")
+            self.speak(status_msg)
+            
     # ============================================================
     # LEGACY COMPATIBILITY
     # ============================================================

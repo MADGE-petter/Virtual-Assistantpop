@@ -3,7 +3,6 @@ from typing import Optional, Callable
 
 from service.AudioService import AudioService
 from service.voice_service import VoiceService
-from service.alert_service import AlertManager
 from service.analytics_service import AnalyticsService
 from controller.conversation_controller import ConversationController
 from model.Sql import SqlService
@@ -19,7 +18,6 @@ class StartupCoordinator:
         self,
         audio: AudioService,
         voice: VoiceService,
-        alert_mgr: AlertManager,
         analytics: AnalyticsService,
         conversation: ConversationController,
         sql: SqlService,
@@ -28,7 +26,6 @@ class StartupCoordinator:
     ):
         self.audio = audio
         self.voice = voice
-        self.alert_mgr = alert_mgr
         self.analytics = analytics
         self.conversation = conversation
         self.sql = sql
@@ -50,20 +47,25 @@ class StartupCoordinator:
                 if hasattr(self.audio, 'startup_warmup'):
                     self.audio.startup_warmup()
                 
-                # 2. Initialize intent service
-                self.conversation.init_intent_service()
-                
-                # 3. Start monitoring services
-                self.alert_mgr.start()
+                # 2. Start monitoring services (Analytics only)
                 self.analytics.start()
                 
-                # 4. Set user name for app handler
+                # 3. Set user name for app handler
                 if login_username:
                     try:
                         if hasattr(self.conversation, 'service') and hasattr(self.conversation.service, 'actions'):
                             self.conversation.service.actions.app_handler.set_login_name(login_username)
                     except Exception:
                         pass
+                        
+                # 4. Start ProactiveService
+                try:
+                    from service.proactive_service import get_proactive_service
+                    proactive = get_proactive_service(user_id=1, callback=self.audio.speak)
+                    proactive.start()
+                except Exception as e:
+                    print(f"[StartupCoordinator] Error starting ProactiveService: {e}")
+                    
                 print("[StartupCoordinator] Async background startup complete.")
             except Exception as e:
                 print(f"[StartupCoordinator] Async startup warning: {e}")
@@ -79,9 +81,6 @@ class StartupCoordinator:
         
         # Activate view
         activate_view()
-        
-        # Reset wellness timers
-        self.alert_mgr.reset_wellness_timers()
         
         # Start conversation
         start_conversation(from_wake_up=False)

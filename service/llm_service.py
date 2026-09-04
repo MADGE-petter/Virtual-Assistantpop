@@ -162,6 +162,19 @@ class LLMService:
             if self._llm is not None:
                 logger.info("[LLMService] Unloading model.")
                 self._llm = None
+                
+    def switch_model(self, model_filename: str) -> None:
+        """Switch to a new model."""
+        new_path = self._resolve_model_path(model_filename, None)
+        if new_path == self.model_path:
+            logger.info(f"[LLMService] Model is already {model_filename}, skipping switch.")
+            return
+            
+        logger.info(f"[LLMService] Switching model from {self.model_path} to {new_path}")
+        self.unload()
+        self.model_path = new_path
+        # Force load immediately
+        self._ensure_loaded()
 
     # ------------------------------------------------------------------ #
     # Inference
@@ -174,6 +187,7 @@ class LLMService:
         top_p: float = DEFAULT_TOP_P,
         stop: Optional[List[str]] = None,
         system_prompt: Optional[str] = None,
+        response_format: Optional[Dict] = None,
     ) -> str:
         """Run a chat completion.
 
@@ -196,13 +210,17 @@ class LLMService:
         msgs.extend(messages)
 
         try:
-            response = llm.create_chat_completion(
-                messages=msgs,
-                max_tokens=max_tokens,
-                temperature=temperature,
-                top_p=top_p,
-                stop=stop or [],
-            )
+            kwargs = {
+                "messages": msgs,
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+                "top_p": top_p,
+                "stop": stop or [],
+            }
+            if response_format is not None:
+                kwargs["response_format"] = response_format
+                
+            response = llm.create_chat_completion(**kwargs)
             content = response["choices"][0]["message"]["content"]
             return (content or "").strip()
         except Exception as e:

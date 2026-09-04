@@ -108,6 +108,8 @@ def main():
             QTimer.singleShot(0, _init_main_window)
 
         login_window.login_success.connect(on_login_success)
+        
+        # Auto login data is now handled by LoginView to pre-fill inputs
         login_window.show()
         print("[Login] Login window shown, starting event loop...")
         

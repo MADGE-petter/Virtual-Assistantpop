@@ -20,14 +20,12 @@ class ConversationController:
         sql_service: ISqlService,
         action_handler: IActionHandler,
         user_controller: IUserController,
-        interactive_alert_service=None,
     ):
         self.service = ConversationService(
             audio_service,
             sql_service,
             action_handler,
             user_controller,
-            interactive_alert_service,
         )
 
     def init_intent_service(self):
@@ -63,11 +61,14 @@ class ConversationController:
             from_wake_up=from_wake_up,
         )
 
-    def stop(self) -> None:
-        self.service.stop()
+    def stop_conversation(self) -> None:
+        self.service.stop_conversation()
 
     def set_assistant_active(self, active: bool) -> None:
         self.service.set_assistant_active(active)
+        
+    def set_model(self, model_name: str) -> None:
+        self.service.set_model(model_name)
     
     # ============ MVC PUBLIC API ============
     
@@ -84,12 +85,21 @@ class ConversationController:
     def _process_user_message(self, text: str):
         """Process user message in background."""
         try:
-            self.service.process_exchange(
+            result = self.service.process_exchange(
                 user_input=text,
                 speak_callback=self.service.audio.speak,
                 user_name=getattr(self.service.user, 'display_name', 'bạn') or 'bạn',
                 session_id=self.service._session_id or "default"
             )
+            # Route back structured UI requests to PopController via callbacks if they exist
+            if hasattr(result, 'needs_permission') and result.needs_permission:
+                if hasattr(self, 'on_permission_requested') and callable(self.on_permission_requested):
+                    self.on_permission_requested(result.confirmation_title, result.summary_text, result.tool_name, result.tool_args)
+            
+            if hasattr(result, 'tool_name') and result.tool_name == "file_search" and not result.needs_permission:
+                if hasattr(self, 'on_file_preview_requested') and callable(self.on_file_preview_requested):
+                    self.on_file_preview_requested(result.tool_args.get("files", []))
+                    
         except Exception as e:
             print(f"[ConversationController] Error processing message: {e}")
             import traceback
@@ -97,7 +107,7 @@ class ConversationController:
     
     def stop_generation(self):
         """Stop current generation."""
-        self.service.stop()
+        self.service.stop_generation()
     
     def start_new_conversation(self):
         """Start a new conversation session."""

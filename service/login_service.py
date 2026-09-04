@@ -57,9 +57,23 @@ class LoginService:
         except Exception as e:
             print(f"[LoginService] Lỗi tạo bảng sessions: {e}")
     
-    def hash_password(self, password):
-      
-        return hashlib.sha256(password.encode('utf-8')).hexdigest()
+    def hash_password(self, password, salt=None):
+        import os
+        import hashlib
+        import binascii
+        
+        if salt is None:
+            salt = os.urandom(16)
+        elif isinstance(salt, str):
+            salt = binascii.unhexlify(salt)
+            
+        hash_bytes = hashlib.pbkdf2_hmac(
+            'sha256',
+            password.encode('utf-8'),
+            salt,
+            100000
+        )
+        return f"{binascii.hexlify(salt).decode('utf-8')}${binascii.hexlify(hash_bytes).decode('utf-8')}"
     
     def get_user_password_hash(self, username):
        
@@ -107,10 +121,11 @@ class LoginService:
             
         stored_hash = self.get_user_password_hash(username)
         
-        if not stored_hash:
+        if not stored_hash or '$' not in stored_hash:
             return False
             
-        input_hash = self.hash_password(password)
+        salt_hex = stored_hash.split('$')[0]
+        input_hash = self.hash_password(password, salt=salt_hex)
         return stored_hash == input_hash
     
     def user_exists(self, username):
@@ -167,3 +182,39 @@ class LoginService:
         except Exception as e:
             print(f"[LoginService] Lỗi lưu users JSON: {e}")
             return False
+
+    def _get_auto_login_file(self):
+        import os
+        from pathlib import Path
+        project_root = Path(__file__).resolve().parent.parent
+        db_dir = project_root / "database"
+        return db_dir / "auto_login.json"
+        
+    def save_auto_login(self, username, password=None):
+        import json
+        file_path = self._get_auto_login_file()
+        try:
+            with open(file_path, "w", encoding="utf-8") as f:
+                json.dump({"username": username, "password": password}, f)
+        except Exception as e:
+            print(f"[LoginService] Lỗi lưu auto_login: {e}")
+            
+    def get_auto_login(self):
+        import json
+        file_path = self._get_auto_login_file()
+        try:
+            if file_path.exists():
+                with open(file_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    return data
+        except Exception:
+            pass
+        return None
+        
+    def clear_auto_login(self):
+        file_path = self._get_auto_login_file()
+        try:
+            if file_path.exists():
+                file_path.unlink()
+        except Exception:
+            pass

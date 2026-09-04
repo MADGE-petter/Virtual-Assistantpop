@@ -76,7 +76,7 @@ def migrate_database():
                 start_time TEXT,
                 end_time TEXT,
                 duration_seconds INTEGER,
-                tenNguoiDung TEXT
+                username TEXT
             )
         """)
         
@@ -88,7 +88,7 @@ def migrate_database():
                 timestamp TEXT,
                 app_name TEXT,
                 action TEXT,
-                tenNguoiDung TEXT
+                username TEXT
             )
         """)
         
@@ -102,7 +102,7 @@ def migrate_database():
                 ram_percent REAL,
                 disk_percent REAL,
                 temperature REAL,
-                tenNguoiDung TEXT
+                username TEXT
             )
         """)
         
@@ -112,15 +112,15 @@ def migrate_database():
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_conversations_thoiGianTao ON conversations(thoiGianTao)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_sessions_maNguoiDung ON sessions(maNguoiDung)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_sessions_thoiGianBatDau ON sessions(thoiGianBatDau)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_tenNguoiDung ON users(tenNguoiDung)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)")
         
         # Indexes cho bang analytics
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_usage_sessions_date ON usage_sessions(date)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_usage_sessions_user ON usage_sessions(tenNguoiDung)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_usage_sessions_user ON usage_sessions(username)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_app_usage_date ON app_usage(date)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_app_usage_user ON app_usage(tenNguoiDung)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_app_usage_user ON app_usage(username)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_health_snapshots_date ON health_snapshots(date)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_health_snapshots_user ON health_snapshots(tenNguoiDung)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_health_snapshots_user ON health_snapshots(username)")
         
         # 10. Tao trigger tu dong cap nhat thoiGianCapNhat
         cursor.execute("""

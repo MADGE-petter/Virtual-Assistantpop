@@ -3,7 +3,6 @@ from typing import Optional
 
 from service.AudioService import AudioService
 from service.voice_service import VoiceService
-from service.alert_service import AlertManager
 from service.analytics_service import AnalyticsService
 from controller.conversation_controller import ConversationController
 
@@ -18,13 +17,11 @@ class ShutdownCoordinator:
         self,
         audio: AudioService,
         voice: VoiceService,
-        alert_mgr: AlertManager,
         analytics: AnalyticsService,
         conversation: ConversationController,
     ):
         self.audio = audio
         self.voice = voice
-        self.alert_mgr = alert_mgr
         self.analytics = analytics
         self.conversation = conversation
         self._active = True
@@ -50,17 +47,22 @@ class ShutdownCoordinator:
                 self.voice.stop_idle_monitor()
                 
                 # 3. Stop monitoring services
-                self.alert_mgr.stop()
                 self.analytics.stop()
                 
                 # 4. End conversation session
                 self.conversation.end_session()
-                
-                # 5. Cleanup audio models
+                # 5. Stop ProactiveService
+                try:
+                    from service.proactive_service import get_proactive_service
+                    get_proactive_service().stop()
+                except Exception as e:
+                    print(f"[ShutdownCoordinator] Error stopping ProactiveService: {e}")
+                    
+                # 6. Cleanup audio models
                 if hasattr(self.audio, 'cleanup'):
                     self.audio.cleanup()
                 
-                # 6. Cleanup voice service
+                # 7. Cleanup voice service
                 self.voice.cleanup()
                 print("[ShutdownCoordinator] Shutdown cleanup complete.")
             except Exception as e:
