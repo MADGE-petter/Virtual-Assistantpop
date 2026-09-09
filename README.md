@@ -1,4 +1,4 @@
-# 🌟 POP Assistant (POP AI)
+# POP Assistant (POP AI)
 
 <div align="center">
 
@@ -15,47 +15,47 @@
 
 ---
 
-## 📖 Giới thiệu
+## Giới thiệu
 
 **POP Assistant** là ứng dụng trợ lý ảo desktop toàn diện được xây dựng bằng **Python** và **PyQt6**, tối ưu hóa cho Windows 10/11. Ứng dụng mang đến trải nghiệm tương tác tự nhiên qua giọng nói hoặc văn bản, chạy mô hình ngôn ngữ lớn (Local LLM) trực tiếp trên máy người dùng bảo đảm riêng tư dữ liệu 100%, đồng thời tích hợp khả năng điều khiển hệ thống và giám sát phần cứng thời gian thực.
 
 ---
 
-## ✨ Tính năng nổi bật
+## Tính năng nổi bật
 
-### 1. 💬 Trải nghiệm Chat phong cách Gemini hiện đại
+### 1. Trải nghiệm Chat phong cách Gemini hiện đại
 * **Giao diện khởi đầu Gemini**: Khi chưa có tin nhắn, thanh chat cùng dòng chào mừng cá nhân hóa (*"Xin chào, {Tên}! Tôi có thể giúp gì cho bạn hôm nay?"*) được căn giữa cân đối ở trung tâm màn hình.
 * **Hiệu ứng Animation rơi mượt mà**: Khi gửi câu hỏi đầu tiên, dòng chữ mờ dần và thanh chat trượt êm ái xuống đáy màn hình (`400ms OutCubic`).
 * **Starfield Canvas**: Nền vũ trụ sao lấp lánh nhẹ nhàng, tự động dừng render khi ẩn cửa sổ để tiết kiệm tài nguyên CPU/GPU.
 * **Human-in-the-loop Action Cards**: Thẻ xác nhận tương tác trực quan trước khi thực thi các tác vụ hệ thống nhạy cảm (mở file, chạy ứng dụng, xóa dữ liệu).
 * **Card xem trước tệp tin (File Preview)**: Hiển thị kết quả tìm kiếm file trong máy dạng thẻ kèm nút mở nhanh.
 
-### 2. 🤖 Local & Cloud AI Đa mô hình
+### 2. Local & Cloud AI Đa mô hình
 * **Mô hình cục bộ mặc định**: Hỗ trợ dòng **LiquidAI LFM2.5 (2.6B / 7B)** định dạng **GGUF** qua `llama-cpp-python`.
 * **Tăng tốc phần cứng**: Tự động tận dụng NVIDIA GPU qua CUDA hoặc chạy tối ưu trên CPU đa luồng.
 * **Tích hợp Cloud Models**: Hỗ trợ chuyển đổi linh hoạt sang GPT-4o Mini hoặc Claude 3.5 Sonnet.
 * **Bộ tải mô hình tích hợp (Model Downloader)**: Tải trực tiếp các mô hình AI từ Hugging Face với đa dạng mức lượng tử hóa (Q4_K_M, Q5_K_M, Q8_0,...).
 
-### 3. 🎙️ Pipeline Giọng nói Ngoại tuyến (Offline Voice)
+### 3. Pipeline Giọng nói Ngoại tuyến (Offline Voice)
 * **Nhận diện từ đánh thức (Wake Word)**: Tích hợp `OpenWakeWord` nhận diện từ khóa kích hoạt với độ trễ thấp.
 * **Nhận dạng giọng nói (STT)**: Chuyển đổi giọng nói tiếng Việt thành văn bản ngoại tuyến qua `Sherpa-ONNX`.
 * **Tổng hợp tiếng nói (TTS)**: Phản hồi bằng giọng nói tự nhiên, mượt mà không cần kết nối Internet.
 * **Mini Mascot lơ lửng (Floating Avatar)**: Widget linh vật nhỏ gọn ngoài màn hình: click 1 chạm để bật/tắt micro, nhấp đúp để mở/thu gọn cửa sổ chat chính.
 
-### 4. ⚙️ Tự động hóa & Điều khiển Windows
+### 4. Tự động hóa & Điều khiển Windows
 * Quét, tìm kiếm và mở nhanh các ứng dụng đã cài đặt trên Windows.
 * Điều chỉnh âm lượng hệ thống qua `PyCaw`.
 * Tinh chỉnh độ sáng màn hình laptop/PC.
 * Truy xuất thông tin phần cứng qua Windows WMI.
 * **Dịch vụ chủ động (Proactive Service) & Ghi nhớ thói quen (Habit Tracker)**: Học thói quen sử dụng phần mềm của người dùng và đưa ra gợi ý thông minh.
 
-### 5. 📊 Bảng Giám sát Phần cứng Thời gian thực (System Telemetry)
+### 5. Bảng Giám sát Phần cứng Thời gian thực (System Telemetry)
 * Giám sát tài nguyên phần cứng: CPU, RAM, Disk, Pin qua `psutil`.
 * Đo lường GPU NVIDIA: % Sử dụng GPU, VRAM và Nhiệt độ GPU tức thời thông qua `PyNVML`.
 * Bộ đo sóng âm giọng nói (Audio Waveform Visualizer) hiển thị trạng thái lắng nghe.
 * Nhật ký hoạt động hệ thống (Activity Logs).
 
-### 6. 🛠️ Trung tâm Cài đặt Chuyên sâu (Settings Hub)
+### 6. Trung tâm Cài đặt Chuyên sâu (Settings Hub)
 * **General**: Tùy chỉnh âm thanh, khởi động cùng Windows, phím tắt.
 * **Models**: Quản lý model, chỉ định thư mục lưu trữ, lượng tử hóa.
 * **Profile**: Cập nhật tên hiển thị, hình đại diện và sở thích cá nhân.
@@ -66,7 +66,7 @@
 
 ---
 
-## 🏗️ Kiến trúc Hệ thống
+## Kiến trúc Hệ thống
 
 Dự án áp dụng chặt chẽ mô hình **MVC (Model - View - Controller)** kết hợp **Modular Coordinator & Service Layer**:
 
@@ -106,7 +106,7 @@ Dự án áp dụng chặt chẽ mô hình **MVC (Model - View - Controller)** k
 
 ---
 
-## 💻 Yêu cầu Hệ thống
+## Yêu cầu Hệ thống
 
 | Thành phần | Yêu cầu tối thiểu | Khuyến nghị |
 | :--- | :--- | :--- |
@@ -118,7 +118,7 @@ Dự án áp dụng chặt chẽ mô hình **MVC (Model - View - Controller)** k
 
 ---
 
-## 🚀 Hướng dẫn Cài đặt & Khởi chạy
+## Hướng dẫn Cài đặt & Khởi chạy
 
 ### 1. Clone mã nguồn
 ```bash
@@ -132,7 +132,7 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-> [!TIP]
+> [!NOTE]
 > Nếu bạn sở hữu card đồ họa NVIDIA và muốn kích hoạt tăng tốc CUDA cho Local LLM, hãy cài đặt bản `llama-cpp-python` hỗ trợ CUDA:
 > ```bash
 > pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu121
@@ -144,11 +144,11 @@ Chạy màn hình đăng nhập / khởi động ứng dụng:
 python login.py
 ```
 * Sau khi đăng nhập thành công, ứng dụng sẽ xuất hiện dưới dạng **Mini Mascot** tròn lơ lửng góc màn hình.
-* **Bấm đúp (Double-click)** vào Mini Mascot để mở giao diện chat đầy đủ phong cách Gemini!
+* **Bấm đúp (Double-click)** vào Mini Mascot để mở giao diện chat đầy đủ phong cách Gemini.
 
 ---
 
-## 📁 Cấu trúc Thư mục Dự án
+## Cấu trúc Thư mục Dự án
 
 ```text
 Virtual-Assistantpop/
@@ -189,9 +189,9 @@ Virtual-Assistantpop/
 
 ---
 
-## 🤝 Đóng góp & Phát triển
+## Đóng góp & Phát triển
 
-Mọi đóng góp, báo lỗi (Issue) hoặc đề xuất tính năng mới (Pull Request) đều được hoan nghênh. Xin vui lòng:
+Mọi đóng góp, báo lỗi (Issue) hoặc đề xuất tính năng mới (Pull Request) đều được hoan nghênh:
 1. Fork repository.
 2. Tạo branch tính năng (`git checkout -b feature/AmazingFeature`).
 3. Commit thay đổi (`git commit -m 'Add some AmazingFeature'`).
@@ -200,6 +200,6 @@ Mọi đóng góp, báo lỗi (Issue) hoặc đề xuất tính năng mới (Pul
 
 ---
 
-## 📄 Bản quyền
+## Bản quyền
 
 Dự án được phát hành dưới bản quyền mở. Mọi quyền sở hữu thuộc về nhóm phát triển **MADGE-petter / POP AI Assistant**.
