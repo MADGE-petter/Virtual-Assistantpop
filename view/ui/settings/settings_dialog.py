@@ -6,7 +6,7 @@ from PyQt6.QtWidgets import (
 )
 
 from view.ui.styles import DesignTokens
-from view.ui.icons import get_pop_logo_pixmap
+from view.ui.icons import get_pop_logo_pixmap, create_vector_icon
 from view.ui.widgets.starfield_widget import StarfieldWidget
 from view.ui.settings.settings_config import load_user_settings
 from view.ui.settings.general_tab import GeneralTabWidget
@@ -92,12 +92,13 @@ class SettingsDialog(QDialog):
         win_title.setStyleSheet(f"font-size: 13px; font-weight: bold; color: {DesignTokens.CYAN_ACCENT}; letter-spacing: 1px;")
         hb_layout.addWidget(win_title, stretch=1)
 
-        close_btn = QPushButton("✕")
+        close_btn = QPushButton()
+        close_btn.setIcon(create_vector_icon("close", "#8A9EB5", 14))
         close_btn.setFixedSize(30, 30)
         close_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         close_btn.setStyleSheet(
-            f"QPushButton {{ background: transparent; color: {DesignTokens.TEXT_MUTED}; font-size: 14px; border: none; border-radius: 6px; }}"
-            f"QPushButton:hover {{ background-color: rgba(255, 75, 110, 0.25); color: #FF4B6E; }}"
+            f"QPushButton {{ background: transparent; border: none; border-radius: 6px; }}"
+            f"QPushButton:hover {{ background-color: rgba(255, 75, 110, 0.25); }}"
         )
         close_btn.clicked.connect(self.close)
         hb_layout.addWidget(close_btn)
@@ -131,16 +132,19 @@ class SettingsDialog(QDialog):
         )
 
         nav_items = [
-            "Cài đặt chung",
-            "Quản lý Models",
-            "Tải & Tìm kiếm Model",
-            "Dữ liệu & Files",
-            "Quy tắc Ngữ cảnh",
-            "Hồ sơ người dùng",
-            "Thông số máy"
+            ("settings", "Cài đặt chung"),
+            ("bot", "Quản lý Models"),
+            ("download", "Tải & Tìm kiếm Model"),
+            ("folder", "Dữ liệu & Files"),
+            ("rules", "Quy tắc Ngữ cảnh"),
+            ("user", "Hồ sơ người dùng"),
+            ("monitor", "Thông số máy")
         ]
-        for item in nav_items:
-            self.nav_list.addItem(QListWidgetItem(item))
+        from PyQt6.QtCore import QSize
+        self.nav_list.setIconSize(QSize(18, 18))
+        for icon_key, item_text in nav_items:
+            icon = create_vector_icon(icon_key, "#E6F4FF", 18)
+            self.nav_list.addItem(QListWidgetItem(icon, f"  {item_text}"))
 
         self.nav_list.currentRowChanged.connect(self._on_tab_changed)
         nav_layout.addWidget(self.nav_list, stretch=1)

@@ -43,13 +43,27 @@ class MiniMascotWidget(QWidget):
         # Animation timer
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._animate)
-        self.timer.start(40)  # ~25 FPS
+        # Timer will be started in showEvent and stopped in hideEvent
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        if not self.timer.isActive():
+            self.timer.start(50)  # ~20 FPS: xung nhịp nhịp nhàng mượt mà, tối ưu tài nguyên
+
+    def hideEvent(self, event):
+        super().hideEvent(event)
+        if self.timer.isActive():
+            self.timer.stop()
 
     def set_voice_state(self, state: VoiceState):
         self.voice_state = state
         self.update()
 
     def _animate(self):
+        if not self.isVisible():
+            if self.timer.isActive():
+                self.timer.stop()
+            return
         self._pulse_phase += 0.1
         self.update()
 

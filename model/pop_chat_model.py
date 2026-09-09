@@ -54,13 +54,7 @@ class PopChatModel:
             title="Cuộc trò chuyện mới",
             timestamp=datetime.now().strftime("%H:%M"),
             category="Hôm nay",
-            messages=[
-                ChatMessage(
-                    sender="bot",
-                    text="Xin chào! Tôi là POP AI Assistant. Tôi có thể giúp gì cho bạn hôm nay?",
-                    timestamp=datetime.now().strftime("%I:%M %p")
-                )
-            ]
+            messages=[]
         )
         self.sessions = [initial_session]
         self.active_session_id = initial_session.id

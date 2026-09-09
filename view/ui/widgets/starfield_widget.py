@@ -25,7 +25,7 @@ class StarfieldWidget(QWidget):
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._animate)
-        self.timer.start(33)  # ~30 FPS
+        # Timer will start in showEvent and stop in hideEvent to eliminate background CPU usage
 
     def _init_stars(self):
         """Initialize fixed tiny pure-white star positions distributed in corners and edges."""
@@ -88,10 +88,25 @@ class StarfieldWidget(QWidget):
             })
             total_created += 1
 
+    def showEvent(self, event):
+        super().showEvent(event)
+        if not self.timer.isActive():
+            self.timer.start(55)  # ~18 FPS: mượt mà, tiết kiệm ~45% tải render CPU
+
+    def hideEvent(self, event):
+        super().hideEvent(event)
+        if self.timer.isActive():
+            self.timer.stop()
+
     def _animate(self):
         """Update star twinkling phase so only ~4-6 stars pop up ('lấp ló') at a time, rotating 45° before turning off."""
+        if not self.isVisible():
+            if self.timer.isActive():
+                self.timer.stop()
+            return
+
         for star in self.stars:
-            star['twinkle_phase'] += star['twinkle_speed']
+            star['twinkle_phase'] += star['twinkle_speed'] * 1.6
             raw_sin = math.sin(star['twinkle_phase'])
             raw_cos = math.cos(star['twinkle_phase'])
 

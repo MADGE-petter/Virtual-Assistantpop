@@ -65,12 +65,12 @@ class AudioWaveformWidget(QWidget):
 class MetricBarWidget(QWidget):
     """Hardware Metric Bar Widget with Percentage (po #14)."""
 
-    def __init__(self, label: str, icon_str: str = "⚙", parent=None):
+    def __init__(self, label: str, icon_str: str = "", parent=None):
         super().__init__(parent)
         self.label_str = label
         self._setup_ui(icon_str)
 
-    def _setup_ui(self, icon_str: str):
+    def _setup_ui(self, icon_str: str = ""):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 3, 0, 3)
         layout.setSpacing(8)

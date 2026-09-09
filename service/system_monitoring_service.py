@@ -19,7 +19,7 @@ def get_cpu_usage():
     """Trả về chuỗi mô tả mức sử dụng CPU."""
     if not _psutil_available():
         return "Không thể lấy CPU: psutil không khả dụng"
-    cpu = psutil.cpu_percent(interval=1)
+    cpu = psutil.cpu_percent(interval=None)
     return f"CPU đang sử dụng {cpu}%"
 
 
@@ -27,7 +27,7 @@ def get_cpu_percent():
     """Trả về phần trăm CPU dưới dạng số thực."""
     if not _psutil_available():
         return 0.0
-    return psutil.cpu_percent(interval=0.5)
+    return psutil.cpu_percent(interval=None)
 
 
 def get_ram_usage():
@@ -105,7 +105,7 @@ def get_top_cpu_processes(limit: int = 5) -> List[Dict]:
     processes = []
     for proc in psutil.process_iter(['pid', 'name']):
         try:
-            cpu_percent = proc.cpu_percent(interval=0.1)
+            cpu_percent = proc.cpu_percent(interval=None)
             if cpu_percent and cpu_percent > 0:
                 processes.append({'name': proc.info.get('name') or 'Unknown', 'pid': proc.info.get('pid'), 'cpu_percent': cpu_percent})
         except (psutil.NoSuchProcess, psutil.AccessDenied):
@@ -177,7 +177,7 @@ def get_full_system_status() -> Dict:
         return {}
     status = {}
     try:
-        status['cpu'] = psutil.cpu_percent(interval=0.5)
+        status['cpu'] = psutil.cpu_percent(interval=None)
         status['ram_percent'] = psutil.virtual_memory().percent
         disk_info = []
         for p in psutil.disk_partitions(all=False):

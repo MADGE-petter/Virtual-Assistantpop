@@ -334,16 +334,18 @@ class SidebarWidget(QWidget):
         )
 
         nav_items = [
-            "Cài đặt chung",
-            "Quản lý Models",
-            "Tải & Tìm kiếm Model",
-            "Dữ liệu & Files",
-            "Quy tắc Ngữ cảnh",
-            "Hồ sơ người dùng",
-            "Thông số máy"
+            ("settings", "Cài đặt chung"),
+            ("bot", "Quản lý Models"),
+            ("download", "Tải & Tìm kiếm Model"),
+            ("folder", "Dữ liệu & Files"),
+            ("rules", "Quy tắc Ngữ cảnh"),
+            ("user", "Hồ sơ người dùng"),
+            ("monitor", "Thông số máy")
         ]
-        for item in nav_items:
-            self.settings_nav_list.addItem(QListWidgetItem(item))
+        self.settings_nav_list.setIconSize(QSize(18, 18))
+        for icon_key, item_text in nav_items:
+            icon = create_vector_icon(icon_key, "#E6F4FF", 18)
+            self.settings_nav_list.addItem(QListWidgetItem(icon, f"  {item_text}"))
 
         self.settings_nav_list.currentRowChanged.connect(self._on_settings_tab_clicked)
         self.body_stack.addWidget(self.settings_nav_list)

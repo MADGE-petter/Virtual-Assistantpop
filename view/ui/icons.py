@@ -249,12 +249,92 @@ def create_vector_icon(icon_type: str, color_hex: str = "#96D7E9", size: int = 2
         painter.drawEllipse(QPointF(cx, cy), r, r)
         painter.drawArc(QRectF(s * 0.2, s * 0.5, s * 0.6, s * 0.4), 0, 180 * 16)
 
-    elif icon_type == "exit":
-        # Exit door/arrow icon
-        painter.drawRoundedRect(QRectF(s * 0.25, s * 0.2, s * 0.35, s * 0.6), 2, 2)
-        painter.drawLine(QPointF(s * 0.5, s * 0.5), QPointF(s * 0.8, s * 0.5))
-        painter.drawLine(QPointF(s * 0.65, s * 0.35), QPointF(s * 0.8, s * 0.5))
-        painter.drawLine(QPointF(s * 0.65, s * 0.65), QPointF(s * 0.8, s * 0.5))
+    elif icon_type in ("folder", "database"):
+        # Clean folder icon
+        path = QPainterPath()
+        path.moveTo(pad, pad * 1.3)
+        path.lineTo(s * 0.45, pad * 1.3)
+        path.lineTo(s * 0.55, pad * 1.8)
+        path.lineTo(s - pad, pad * 1.8)
+        path.lineTo(s - pad, s - pad)
+        path.lineTo(pad, s - pad)
+        path.closeSubpath()
+        painter.drawPath(path)
+
+    elif icon_type in ("download", "download_cloud"):
+        # Arrow down into tray
+        painter.drawLine(QPointF(s * 0.5, pad), QPointF(s * 0.5, s * 0.65))
+        painter.drawLine(QPointF(s * 0.35, s * 0.5), QPointF(s * 0.5, s * 0.65))
+        painter.drawLine(QPointF(s * 0.65, s * 0.5), QPointF(s * 0.5, s * 0.65))
+        painter.drawLine(QPointF(pad, s * 0.55), QPointF(pad, s - pad))
+        painter.drawLine(QPointF(pad, s - pad), QPointF(s - pad, s - pad))
+        painter.drawLine(QPointF(s - pad, s - pad), QPointF(s - pad, s * 0.55))
+
+    elif icon_type in ("file", "rules", "doc"):
+        # Document sheet with folded corner
+        path = QPainterPath()
+        path.moveTo(pad, pad)
+        path.lineTo(s * 0.65, pad)
+        path.lineTo(s - pad, s * 0.35)
+        path.lineTo(s - pad, s - pad)
+        path.lineTo(pad, s - pad)
+        path.closeSubpath()
+        painter.drawPath(path)
+        painter.drawLine(QPointF(s * 0.65, pad), QPointF(s * 0.65, s * 0.35))
+        painter.drawLine(QPointF(s * 0.65, s * 0.35), QPointF(s - pad, s * 0.35))
+
+    elif icon_type in ("monitor", "display", "about"):
+        # Desktop monitor screen
+        painter.drawRoundedRect(QRectF(pad, pad, s - 2 * pad, s * 0.5), 3, 3)
+        painter.drawLine(QPointF(s * 0.5, pad + s * 0.5), QPointF(s * 0.5, s - pad))
+        painter.drawLine(QPointF(s * 0.35, s - pad), QPointF(s * 0.65, s - pad))
+
+    elif icon_type in ("bot", "ai", "models"):
+        # Clean robot / AI face
+        painter.drawRoundedRect(QRectF(pad, s * 0.3, s - 2 * pad, s * 0.45), 4, 4)
+        painter.drawLine(QPointF(s * 0.5, pad * 1.1), QPointF(s * 0.5, s * 0.3))
+        painter.drawEllipse(QPointF(s * 0.5, pad * 1.1), s * 0.05, s * 0.05)
+        painter.drawEllipse(QPointF(s * 0.38, s * 0.48), s * 0.04, s * 0.04)
+        painter.drawEllipse(QPointF(s * 0.62, s * 0.48), s * 0.04, s * 0.04)
+        painter.drawLine(QPointF(s * 0.4, s * 0.62), QPointF(s * 0.6, s * 0.62))
+
+    elif icon_type == "ram":
+        # Memory stick
+        painter.drawRect(QRectF(pad, s * 0.35, s - 2 * pad, s * 0.3))
+        for i in range(1, 5):
+            x = pad + i * (s - 2 * pad) / 5
+            painter.drawLine(QPointF(x, s * 0.65), QPointF(x, s * 0.75))
+
+    elif icon_type == "disk":
+        # Hard disk drive
+        painter.drawRoundedRect(QRectF(s * 0.25, pad, s * 0.5, s - 2 * pad), 4, 4)
+        painter.drawEllipse(QPointF(s * 0.5, s * 0.45), s * 0.15, s * 0.15)
+        painter.drawEllipse(QPointF(s * 0.5, s * 0.78), s * 0.04, s * 0.04)
+
+    elif icon_type == "gpu":
+        # Graphics card
+        painter.drawRoundedRect(QRectF(pad, s * 0.3, s - 2 * pad, s * 0.4), 3, 3)
+        painter.drawEllipse(QPointF(s * 0.4, s * 0.5), s * 0.12, s * 0.12)
+        painter.drawEllipse(QPointF(s * 0.65, s * 0.5), s * 0.12, s * 0.12)
+
+    elif icon_type == "check":
+        # Checkmark
+        path = QPainterPath()
+        path.moveTo(pad, s * 0.5)
+        path.lineTo(s * 0.42, s - pad)
+        path.lineTo(s - pad, pad * 1.2)
+        painter.drawPath(path)
+
+    elif icon_type in ("close", "cross"):
+        # Cross / X icon
+        painter.drawLine(QPointF(pad, pad), QPointF(s - pad, s - pad))
+        painter.drawLine(QPointF(s - pad, pad), QPointF(pad, s - pad))
 
     painter.end()
     return QIcon(pix)
+
+
+def get_vector_pixmap(icon_type: str, color_hex: str = "#E6F4FF", size: int = 24) -> QPixmap:
+    """Return crisp static monochrome QPixmap directly."""
+    icon = create_vector_icon(icon_type, color_hex, size)
+    return icon.pixmap(size, size)

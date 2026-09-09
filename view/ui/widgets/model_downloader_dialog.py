@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
 )
 
 from view.ui.styles import DesignTokens
-from view.ui.icons import get_brand_logo_pixmap
+from view.ui.icons import get_brand_logo_pixmap, create_vector_icon
 
 
 class HFSearchThread(QThread):
@@ -87,7 +87,8 @@ class ModelCardWidget(QFrame):
         layout.addLayout(info_layout, stretch=1)
 
         # Download Button
-        dl_btn = QPushButton("⬇  Tải về")
+        dl_btn = QPushButton(" Tải về")
+        dl_btn.setIcon(create_vector_icon("download", "#03050B", 14))
         dl_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         dl_btn.setStyleSheet(
             f"QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #008EFF, stop:1 #00FFAA); "
@@ -130,9 +131,10 @@ class ModelDownloaderDialog(QDialog):
         header_title_layout.addWidget(subtitle)
         header_box.addLayout(header_title_layout, stretch=1)
 
-        close_btn = QPushButton("✕")
+        close_btn = QPushButton()
+        close_btn.setIcon(create_vector_icon("close", "#8A9EB5", 14))
         close_btn.setFixedSize(28, 28)
-        close_btn.setStyleSheet(f"QPushButton {{ border: none; color: {DesignTokens.TEXT_MUTED}; font-size: 14px; background: transparent; }} QPushButton:hover {{ color: white; background: rgba(255,255,255,0.1); border-radius: 14px; }}")
+        close_btn.setStyleSheet(f"QPushButton {{ border: none; background: transparent; border-radius: 6px; }} QPushButton:hover {{ background: rgba(255,255,255,0.1); }}")
         close_btn.clicked.connect(self.reject)
         header_box.addWidget(close_btn)
 
@@ -225,7 +227,7 @@ class ModelDownloaderDialog(QDialog):
             self.search_thread.wait(500)
 
         self.input_search.setText(query)
-        self.status_lbl.setText(f"🔍 Đang tìm kiếm '{query}' trên Hugging Face Hub...")
+        self.status_lbl.setText(f"Đang tìm kiếm '{query}' trên Hugging Face Hub...")
         
         # Clear cards
         while self.card_layout.count():
@@ -252,7 +254,7 @@ class ModelDownloaderDialog(QDialog):
             self.status_lbl.setText("Không tìm thấy mô hình GGUF nào phù hợp.")
             return
 
-        self.status_lbl.setText(f"✨ Tìm thấy {len(models)} mô hình GGUF hàng đầu:")
+        self.status_lbl.setText(f"Tìm thấy {len(models)} mô hình GGUF hàng đầu:")
         for info in models:
             card = ModelCardWidget(info)
             card.downloadRequested.connect(self._start_download_model)
@@ -262,7 +264,7 @@ class ModelDownloaderDialog(QDialog):
 
     def _on_search_error(self, err_msg: str):
         self.search_btn.setEnabled(True)
-        self.status_lbl.setText("⚠️ Không thể kết nối tới Hugging Face. Vui lòng kiểm tra mạng.")
+        self.status_lbl.setText("Không thể kết nối tới Hugging Face. Vui lòng kiểm tra mạng.")
 
     def _start_download_model(self, model_info: dict):
         repo_id = model_info['id']
@@ -282,7 +284,7 @@ class ModelDownloaderDialog(QDialog):
             QMessageBox.information(
                 self, 
                 "Tải Model Thành Công", 
-                f"Đã thêm thành công Model GGUF vào ứng dụng:\n\n📌 {formatted_filename}\n📂 Thư mục: LLM-agents/"
+                f"Đã thêm thành công Model GGUF vào ứng dụng:\n\n• {formatted_filename}\nThư mục: LLM-agents/"
             )
             self.modelDownloaded.emit()
             self.accept()

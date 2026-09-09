@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QColor
 
 from view.ui.styles import DesignTokens
-from view.ui.icons import get_brand_logo_pixmap
+from view.ui.icons import get_brand_logo_pixmap, create_vector_icon, get_vector_pixmap
 
 
 def get_system_hardware_info() -> dict:
@@ -65,7 +65,7 @@ def evaluate_compatibility(size_mb: float, hw: dict) -> dict:
     if has_gpu and (size_mb / 1024.0) <= (vram_gb * 0.85):
         return {
             "status": "smooth_gpu",
-            "badge": "✓ CỰC MƯỢT (GPU VRAM)",
+            "badge": "[GPU VRAM] CỰC MƯỢT",
             "desc": f"Tối ưu hoàn hảo cho card rời {hw['gpu']['gpu_name']} • Tốc độ phản hồi tức thì",
             "color": "#00FFAA",
             "bg": "rgba(0, 255, 170, 0.12)",
@@ -76,7 +76,7 @@ def evaluate_compatibility(size_mb: float, hw: dict) -> dict:
     elif req_ram_gb <= (avail_ram * 0.6):
         return {
             "status": "smooth_ram",
-            "badge": "✓ RẤT MƯỢT (Khuyên Dùng)",
+            "badge": "[KHUYÊN DÙNG] RẤT MƯỢT",
             "desc": f"RAM trống dư dả ({avail_ram:.1f} GB trống) • Chạy ổn định & phản hồi nhanh",
             "color": "#00FFAA",
             "bg": "rgba(0, 255, 170, 0.10)",
@@ -87,7 +87,7 @@ def evaluate_compatibility(size_mb: float, hw: dict) -> dict:
     elif req_ram_gb <= (avail_ram * 0.85):
         return {
             "status": "fit",
-            "badge": "⚠️ VỪA ĐỦ (Cân Nhắc RAM)",
+            "badge": "[CÂN NHẮC] VỪA ĐỦ",
             "desc": f"Vừa vặn dung lượng RAM trống ({avail_ram:.1f} GB) • Nên đóng bớt các ứng dụng nặng",
             "color": "#FFCC00",
             "bg": "rgba(255, 204, 0, 0.10)",
@@ -98,7 +98,7 @@ def evaluate_compatibility(size_mb: float, hw: dict) -> dict:
     else:
         return {
             "status": "heavy",
-            "badge": "✕ QUÁ TẢI (Dễ Tràn RAM / OOM)",
+            "badge": "[CẢNH BÁO] QUÁ TẢI",
             "desc": f"Cần ~{req_ram_gb:.1f} GB RAM (Máy chỉ còn {avail_ram:.1f} GB trống) • Dễ giật lag hoặc tràn bộ nhớ",
             "color": "#FF4B6E",
             "bg": "rgba(255, 75, 110, 0.12)",
@@ -207,12 +207,13 @@ class QuantizationDialog(QDialog):
         title_box.addWidget(repo_lbl)
         header.addLayout(title_box, stretch=1)
 
-        close_btn = QPushButton("✕")
+        close_btn = QPushButton()
+        close_btn.setIcon(create_vector_icon("close", "#8A9EB5", 14))
         close_btn.setFixedSize(28, 28)
         close_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         close_btn.setStyleSheet(
-            f"QPushButton {{ background: transparent; color: {DesignTokens.TEXT_MUTED}; font-size: 14px; border: none; border-radius: 6px; }}"
-            f"QPushButton:hover {{ background-color: rgba(255, 75, 110, 0.25); color: #FF4B6E; }}"
+            f"QPushButton {{ background: transparent; border: none; border-radius: 6px; }}"
+            f"QPushButton:hover {{ background-color: rgba(255, 75, 110, 0.25); }}"
         )
         close_btn.clicked.connect(self.close)
         header.addWidget(close_btn)
@@ -229,21 +230,33 @@ class QuantizationDialog(QDialog):
         hw_layout.setContentsMargins(4, 2, 4, 2)
         hw_layout.setSpacing(16)
 
-        ram_txt = f"🧠 <b>RAM:</b> {self.hw_specs['total_ram_gb']:.1f} GB (<font color='#00FFAA'>Còn trống: {self.hw_specs['avail_ram_gb']:.1f} GB</font>)"
+        ram_txt = f"<b>RAM:</b> {self.hw_specs['total_ram_gb']:.1f} GB (<font color='#00FFAA'>Còn trống: {self.hw_specs['avail_ram_gb']:.1f} GB</font>)"
         gpu_name = self.hw_specs['gpu']['gpu_name']
         if self.hw_specs['gpu']['has_discrete_gpu']:
-            gpu_txt = f"🎮 <b>GPU:</b> {gpu_name} (<font color='#00FFAA'>{self.hw_specs['gpu']['vram_gb']:.1f} GB VRAM</font>)"
+            gpu_txt = f"<b>GPU:</b> {gpu_name} (<font color='#00FFAA'>{self.hw_specs['gpu']['vram_gb']:.1f} GB VRAM</font>)"
         else:
-            gpu_txt = f"🖥️ <b>Đồ họa:</b> {gpu_name} <font color='#8A9EB5'>(Chạy trên RAM máy)</font>"
+            gpu_txt = f"<b>Đồ họa:</b> {gpu_name} <font color='#8A9EB5'>(Chạy trên RAM máy)</font>"
 
+        ram_box = QHBoxLayout()
+        ram_box.setSpacing(6)
+        ram_ico = QLabel()
+        ram_ico.setPixmap(get_vector_pixmap("ram", "#00FFAA", 16))
         lbl_ram = QLabel(ram_txt)
         lbl_ram.setStyleSheet("font-size: 12px; color: #FFFFFF;")
-        
+        ram_box.addWidget(ram_ico)
+        ram_box.addWidget(lbl_ram)
+
+        gpu_box = QHBoxLayout()
+        gpu_box.setSpacing(6)
+        gpu_ico = QLabel()
+        gpu_ico.setPixmap(get_vector_pixmap("gpu", "#00FFAA", 16))
         lbl_gpu = QLabel(gpu_txt)
         lbl_gpu.setStyleSheet("font-size: 12px; color: #FFFFFF;")
+        gpu_box.addWidget(gpu_ico)
+        gpu_box.addWidget(lbl_gpu)
 
-        hw_layout.addWidget(lbl_ram)
-        hw_layout.addWidget(lbl_gpu)
+        hw_layout.addLayout(ram_box)
+        hw_layout.addLayout(gpu_box)
         hw_layout.addStretch()
 
         layout.addWidget(hw_card)
@@ -325,7 +338,8 @@ class QuantizationDialog(QDialog):
             info_box.addWidget(sub_lbl)
             rl.addLayout(info_box, stretch=1)
 
-            dl_btn = QPushButton("⬇ Tải Bản Này")
+            dl_btn = QPushButton(" Tải Bản Này")
+            dl_btn.setIcon(create_vector_icon("download", "#03050B" if eval_info["is_recommended"] else "#E6F4FF", 14))
             dl_btn.setFixedHeight(30)
             dl_btn.setCursor(Qt.CursorShape.PointingHandCursor)
             

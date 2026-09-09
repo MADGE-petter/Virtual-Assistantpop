@@ -94,12 +94,12 @@ class PopView(QMainWindow):
         self.container_box = QFrame()
         self.container_box.setObjectName("mainContainer")
         self.container_box.setStyleSheet(
-            f"QFrame#mainContainer {{ background-color: {DesignTokens.BG_BASE}; border: none; border-radius: 16px; }}"
+            f"QFrame#mainContainer {{ background-color: {DesignTokens.BG_BASE}; border: 1px solid rgba(0, 255, 255, 0.18); border-radius: 16px; }}"
         )
         shadow = QGraphicsDropShadowEffect(self)
-        shadow.setBlurRadius(30)
+        shadow.setBlurRadius(12)
         shadow.setColor(Qt.GlobalColor.black)
-        shadow.setOffset(0, 8)
+        shadow.setOffset(0, 4)
         self.container_box.setGraphicsEffect(shadow)
 
         box_layout = QHBoxLayout(self.container_box)
@@ -126,7 +126,7 @@ class PopView(QMainWindow):
         self.center_stack = QStackedWidget(self.container_box)
         self.center_stack.setStyleSheet("QStackedWidget { background: transparent; }")
 
-        self.chat_area = ChatAreaWidget(self.container_box)
+        self.chat_area = ChatAreaWidget(self.container_box, user_name=self.user_name)
         self.chat_area.sendMessage.connect(self._on_user_send_message)
         self.chat_area.stopGeneration.connect(lambda: self.stopGeneration.emit())
         self.chat_area.switchModel.connect(lambda m: self.switchModel.emit(m))
@@ -175,6 +175,18 @@ class PopView(QMainWindow):
         self.hide()
         self.close()
         self.logoutRequested.emit()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        if hasattr(self, 'starfield') and hasattr(self.starfield, 'timer'):
+            if not self.starfield.timer.isActive():
+                self.starfield.timer.start(55)
+
+    def hideEvent(self, event):
+        super().hideEvent(event)
+        if hasattr(self, 'starfield') and hasattr(self.starfield, 'timer'):
+            if self.starfield.timer.isActive():
+                self.starfield.timer.stop()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)

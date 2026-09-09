@@ -4,7 +4,7 @@ from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
     QPushButton, QScrollArea, QFrame, QMessageBox, QCompleter,
-    QProgressBar, QSizePolicy
+    QProgressBar
 )
 
 from view.ui.styles import DesignTokens
@@ -26,34 +26,52 @@ class DownloadTabWidget(QWidget):
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(28, 24, 28, 24)
-        layout.setSpacing(16)
+        layout.setContentsMargins(32, 28, 32, 28)
+        layout.setSpacing(18)
 
-        # Header
+        # Header Title Bar
         title_box = QVBoxLayout()
-        title_box.setSpacing(4)
+        title_box.setSpacing(6)
+
+        title_row = QHBoxLayout()
         title = QLabel("Tìm Kiếm & Tải Model từ Hugging Face")
-        title.setStyleSheet(f"font-size: 18px; font-weight: 700; color: #FFFFFF; letter-spacing: 0.5px;")
-        desc = QLabel("Khám phá hàng ngàn mô hình AI GGUF trên Hugging Face Hub và tự do lựa chọn phiên bản Quantization (Q4, Q5, Q8...)")
-        desc.setStyleSheet(f"color: rgba(255, 255, 255, 0.6); font-size: 13px;")
-        title_box.addWidget(title)
+        title.setStyleSheet(f"font-size: 20px; font-weight: 700; color: {DesignTokens.TEXT_MAIN}; letter-spacing: 0.5px;")
+
+        badge = QLabel("HUGGING FACE HUB")
+        badge.setStyleSheet(
+            f"background: rgba(0, 255, 170, 0.12); color: {DesignTokens.CYAN_ACCENT}; font-size: 11px; "
+            f"font-weight: 700; border-radius: 4px; padding: 2px 8px; border: 1px solid rgba(0, 255, 170, 0.25);"
+        )
+        title_row.addWidget(title)
+        title_row.addWidget(badge)
+        title_row.addStretch()
+
+        desc = QLabel("Khám phá hàng ngàn mô hình AI GGUF trên Hugging Face Hub và tự do lựa chọn phiên bản Quantization tối ưu")
+        desc.setStyleSheet(f"color: {DesignTokens.TEXT_MUTED}; font-size: 13px;")
+
+        title_box.addLayout(title_row)
         title_box.addWidget(desc)
         layout.addLayout(title_box)
 
-        # Search Bar Box
+        # Glowing Search Bar Box
         search_card = QFrame()
         search_card.setStyleSheet(
-            f"QFrame {{ background: #000000; border: 1px solid rgba(255, 255, 255, 0.15); "
-            f"border-radius: 8px; padding: 4px 8px; }}"
+            f"QFrame {{ background: rgba(16, 22, 31, 0.85); border: 1px solid rgba(0, 255, 255, 0.25); "
+            f"border-radius: 20px; padding: 4px 12px; }}"
+            f"QFrame:hover {{ border-color: rgba(0, 255, 255, 0.5); }}"
         )
         sb_layout = QHBoxLayout(search_card)
-        sb_layout.setContentsMargins(4, 2, 4, 2)
+        sb_layout.setContentsMargins(8, 2, 4, 2)
         sb_layout.setSpacing(10)
+
+        from view.ui.icons import create_vector_icon
+        search_icon = QLabel()
+        search_icon.setPixmap(create_vector_icon("search", "#96D7E9", 16).pixmap(16, 16))
 
         self.input_search = QLineEdit()
         self.input_search.setPlaceholderText("Nhập tên model (VD: Llama-3.2, Qwen2.5, Gemma-2, DeepSeek, Mistral...)...")
         self.input_search.setStyleSheet(
-            f"QLineEdit {{ background: transparent; border: none; color: #FFFFFF; font-size: 13px; padding: 6px 4px; }}"
+            f"QLineEdit {{ background: transparent; border: none; color: {DesignTokens.TEXT_MAIN}; font-size: 13px; padding: 6px 4px; }}"
         )
         self.input_search.textChanged.connect(self._on_search_text_changed)
         self.input_search.returnPressed.connect(self._on_search_models_clicked)
@@ -69,12 +87,14 @@ class DownloadTabWidget(QWidget):
         self.btn_search.setFixedHeight(34)
         self.btn_search.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_search.setStyleSheet(
-            f"QPushButton {{ background-color: #FFFFFF; color: #000000; font-weight: 700; "
-            f"font-size: 12px; border: none; border-radius: 6px; padding: 0 18px; }}"
-            f"QPushButton:hover {{ background-color: #E0E0E0; }}"
+            f"QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #008EFF, stop:1 #00FFAA); "
+            f"color: #03050B; font-weight: 700; font-size: 12px; border: none; border-radius: 16px; padding: 0 20px; }}"
+            f"QPushButton:hover {{ background: #00FFAA; }}"
+            f"QPushButton:pressed {{ background: #00CC88; }}"
         )
         self.btn_search.clicked.connect(self._on_search_models_clicked)
 
+        sb_layout.addWidget(search_icon)
         sb_layout.addWidget(self.input_search, stretch=1)
         sb_layout.addWidget(self.btn_search)
         layout.addWidget(search_card)
@@ -82,37 +102,37 @@ class DownloadTabWidget(QWidget):
         # Download Progress Card (Hidden by default, shown during download)
         self.progress_frame = QFrame()
         self.progress_frame.setStyleSheet(
-            f"QFrame {{ background: rgba(255, 255, 255, 0.05); border: 1px dashed rgba(255, 255, 255, 0.2); "
-            f"border-radius: 8px; padding: 14px 18px; }}"
+            f"QFrame {{ background: rgba(16, 22, 31, 0.9); border: 1px solid rgba(0, 255, 255, 0.35); "
+            f"border-radius: 12px; padding: 14px 18px; }}"
         )
         self.progress_frame.hide()
         pf_layout = QVBoxLayout(self.progress_frame)
-        pf_layout.setContentsMargins(0, 0, 0, 0)
+        pf_layout.setContentsMargins(4, 4, 4, 4)
         pf_layout.setSpacing(8)
 
         self.dl_title_lbl = QLabel("Đang chuẩn bị tải...")
-        self.dl_title_lbl.setStyleSheet(f"font-weight: 700; font-size: 13px; color: #FFFFFF;")
+        self.dl_title_lbl.setStyleSheet(f"font-weight: 700; font-size: 13px; color: {DesignTokens.CYAN_ACCENT};")
 
         self.dl_progress_bar = QProgressBar()
         self.dl_progress_bar.setFixedHeight(8)
         self.dl_progress_bar.setStyleSheet(
-            f"QProgressBar {{ background: #111111; border: none; border-radius: 4px; text-align: center; }}"
-            f"QProgressBar::chunk {{ background: #FFFFFF; border-radius: 4px; }}"
+            f"QProgressBar {{ background: {DesignTokens.SURFACE_3}; border: none; border-radius: 4px; text-align: center; }}"
+            f"QProgressBar::chunk {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #008EFF, stop:1 #00FFAA); border-radius: 4px; }}"
         )
         self.dl_progress_bar.setValue(0)
         self.dl_progress_bar.setTextVisible(False)
 
         pf_bottom = QHBoxLayout()
-        self.dl_info_lbl = QLabel("Đang kết nối đến Hugging Face Resolve...")
-        self.dl_info_lbl.setStyleSheet(f"font-size: 12px; color: rgba(255, 255, 255, 0.6);")
+        self.dl_info_lbl = QLabel("Đang kết nối đến Hugging Face Resolve CDN...")
+        self.dl_info_lbl.setStyleSheet(f"font-size: 12px; color: {DesignTokens.TEXT_SECONDARY};")
 
         self.dl_cancel_btn = QPushButton("Hủy Tải")
-        self.dl_cancel_btn.setFixedHeight(26)
+        self.dl_cancel_btn.setFixedHeight(28)
         self.dl_cancel_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.dl_cancel_btn.setStyleSheet(
-            f"QPushButton {{ background: transparent; color: rgba(255, 255, 255, 0.7); border: 1px solid rgba(255, 255, 255, 0.2); "
-            f"border-radius: 4px; padding: 0 12px; font-size: 11px; font-weight: 600; }}"
-            f"QPushButton:hover {{ background: rgba(255, 0, 0, 0.1); color: #FF0000; border-color: #FF0000; }}"
+            f"QPushButton {{ background: rgba(255, 75, 110, 0.12); color: {DesignTokens.CORAL_ACCENT}; "
+            f"border: 1px solid rgba(255, 75, 110, 0.3); border-radius: 6px; padding: 0 14px; font-size: 12px; font-weight: 600; }}"
+            f"QPushButton:hover {{ background: rgba(255, 75, 110, 0.25); color: #FFFFFF; border-color: {DesignTokens.CORAL_ACCENT}; }}"
         )
         self.dl_cancel_btn.clicked.connect(self._cancel_download)
 
@@ -127,7 +147,7 @@ class DownloadTabWidget(QWidget):
 
         # Search Results Status Label
         self.status_lbl = QLabel("Nhập từ khóa phía trên để bắt đầu tìm kiếm mô hình...")
-        self.status_lbl.setStyleSheet(f"font-size: 12px; font-weight: 600; color: rgba(255, 255, 255, 0.6); margin-top: 4px;")
+        self.status_lbl.setStyleSheet(f"font-size: 13px; font-weight: 600; color: {DesignTokens.TEXT_MUTED}; margin-top: 4px;")
         layout.addWidget(self.status_lbl)
 
         # Scroll Area for Search Results
@@ -138,7 +158,7 @@ class DownloadTabWidget(QWidget):
         self.cards_container = QWidget()
         self.cards_layout = QVBoxLayout(self.cards_container)
         self.cards_layout.setContentsMargins(0, 0, 0, 0)
-        self.cards_layout.setSpacing(10)
+        self.cards_layout.setSpacing(12)
 
         self.scroll_models.setWidget(self.cards_container)
         layout.addWidget(self.scroll_models, stretch=1)
@@ -162,7 +182,7 @@ class DownloadTabWidget(QWidget):
             self._search_models(query)
 
     def _search_models(self, query: str):
-        self.status_lbl.setText(f"🔍 Đang tìm kiếm '{query}' trên Hugging Face Hub...")
+        self.status_lbl.setText(f"Đang tìm kiếm '{query}' trên Hugging Face Hub...")
         while self.cards_layout.count():
             item = self.cards_layout.takeAt(0)
             if item.widget():
@@ -187,30 +207,30 @@ class DownloadTabWidget(QWidget):
         for m in models:
             card = QFrame()
             card.setStyleSheet(
-                f"QFrame {{ background: #000000; border: 1px solid rgba(255, 255, 255, 0.15); "
-                f"border-radius: 8px; padding: 16px; }}"
-                f"QFrame:hover {{ border-color: #FFFFFF; }}"
+                f"QFrame {{ background: rgba(16, 22, 31, 0.75); border: 1px solid rgba(255, 255, 255, 0.08); "
+                f"border-radius: 12px; padding: 16px; }}"
+                f"QFrame:hover {{ border-color: rgba(0, 255, 255, 0.35); background: rgba(21, 28, 39, 0.85); }}"
             )
             cl = QVBoxLayout(card)
-            cl.setContentsMargins(6, 4, 6, 4)
+            cl.setContentsMargins(8, 6, 8, 6)
             cl.setSpacing(12)
             
             # Top row: Icon + Title + Author
             top_row = QHBoxLayout()
-            top_row.setSpacing(12)
+            top_row.setSpacing(14)
             
             icon_lbl = QLabel()
             icon_lbl.setPixmap(get_brand_logo_pixmap(m["name"], 40))
             top_row.addWidget(icon_lbl)
             
             title_box = QVBoxLayout()
-            title_box.setSpacing(2)
+            title_box.setSpacing(3)
             
             name_lbl = QLabel(m["name"])
-            name_lbl.setStyleSheet(f"font-size: 16px; font-weight: 700; color: #FFFFFF;")
+            name_lbl.setStyleSheet(f"font-size: 15px; font-weight: 700; color: {DesignTokens.TEXT_MAIN};")
             
             author_str = m.get('author', 'Community')
-            sub_lbl = QLabel(f"<font color='rgba(255, 255, 255, 0.6)'>Tác giả: </font><font color='#FFFFFF'>{author_str}</font>")
+            sub_lbl = QLabel(f"<span style='color: {DesignTokens.TEXT_MUTED};'>Tác giả:</span> <span style='color: {DesignTokens.TEXT_SECONDARY}; font-weight: 500;'>{author_str}</span>")
             sub_lbl.setStyleSheet("font-size: 12px;")
             
             title_box.addWidget(name_lbl)
@@ -221,10 +241,10 @@ class DownloadTabWidget(QWidget):
             dl_count = m.get("downloads", 0)
             if dl_count > 0:
                 dl_str = f"{dl_count:,}"
-                badge = QLabel(f"↓ {dl_str}")
+                badge = QLabel(f"{dl_str} lượt tải")
                 badge.setStyleSheet(
-                    "background: rgba(255, 255, 255, 0.1); color: #FFFFFF; "
-                    "padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;"
+                    f"background: rgba(0, 204, 255, 0.12); color: {DesignTokens.CYAN}; "
+                    f"padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; border: 1px solid rgba(0, 204, 255, 0.25);"
                 )
                 top_row.addWidget(badge, alignment=Qt.AlignmentFlag.AlignTop)
                 
@@ -234,7 +254,7 @@ class DownloadTabWidget(QWidget):
             mid_row = QHBoxLayout()
             tags = m.get('tags', 'Language Model').replace('-', ' ').title()
             tags_lbl = QLabel(f"Phân loại: {tags} • Định dạng đa lượng tử hóa (GGUF)")
-            tags_lbl.setStyleSheet("font-size: 12px; color: rgba(255, 255, 255, 0.7);")
+            tags_lbl.setStyleSheet(f"font-size: 12px; color: {DesignTokens.TEXT_MUTED};")
             tags_lbl.setWordWrap(True)
             mid_row.addWidget(tags_lbl)
             cl.addLayout(mid_row)
@@ -247,19 +267,19 @@ class DownloadTabWidget(QWidget):
             web_btn.setFixedHeight(32)
             web_btn.setCursor(Qt.CursorShape.PointingHandCursor)
             web_btn.setStyleSheet(
-                f"QPushButton {{ background: transparent; color: #FFFFFF; border: 1px solid rgba(255, 255, 255, 0.3); "
-                f"border-radius: 6px; padding: 0 16px; font-size: 12px; font-weight: 600; }}"
-                f"QPushButton:hover {{ background: rgba(255, 255, 255, 0.1); }}"
+                f"QPushButton {{ background: {DesignTokens.SURFACE_2}; color: {DesignTokens.TEXT_SECONDARY}; "
+                f"border: 1px solid {DesignTokens.BORDER}; border-radius: 6px; padding: 0 14px; font-size: 12px; font-weight: 500; }}"
+                f"QPushButton:hover {{ background: {DesignTokens.SURFACE_3}; border-color: {DesignTokens.CYAN}; color: {DesignTokens.TEXT_MAIN}; }}"
             )
             web_btn.clicked.connect(lambda _, url=f"https://huggingface.co/{m['id']}": QDesktopServices.openUrl(QUrl(url)))
             
-            dl_btn = QPushButton("⬇ Chọn Quant & Tải")
+            dl_btn = QPushButton("Chọn Quantization & Tải")
             dl_btn.setFixedHeight(32)
             dl_btn.setCursor(Qt.CursorShape.PointingHandCursor)
             dl_btn.setStyleSheet(
-                f"QPushButton {{ background-color: #FFFFFF; color: #000000; "
-                f"font-weight: 700; border: none; border-radius: 6px; padding: 0 16px; font-size: 12px; }}"
-                f"QPushButton:hover {{ background-color: #E0E0E0; }}"
+                f"QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #008EFF, stop:1 #00FFAA); "
+                f"color: #03050B; font-weight: 700; border: none; border-radius: 6px; padding: 0 16px; font-size: 12px; }}"
+                f"QPushButton:hover {{ background: #00FFAA; }}"
             )
             dl_btn.clicked.connect(lambda _, repo=m['id'], name=m['name']: self._open_quantization_selector(repo, name))
             
