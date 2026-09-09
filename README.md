@@ -9,7 +9,7 @@
 ![Voice](https://img.shields.io/badge/Voice-Sherpa--ONNX-00FFAA?style=for-the-badge)
 ![Platform](https://img.shields.io/badge/Platform-Windows_10%2F11-0078D6?style=for-the-badge&logo=windows&logoColor=white)
 
-**Trợ lý ảo cá nhân thông minh thế hệ mới dành cho Windows — Kết hợp Local LLM, Voice Pipeline ngoại tuyến, Tự động hóa hệ thống và Giao diện hiện đại phong cách Gemini.**
+**Trợ lý ảo cá nhân thông minh thế hệ mới dành cho Windows — Kết hợp Local LLM, Voice Pipeline ngoại tuyến, Tự động hóa hệ thống.**
 
 </div>
 
@@ -198,8 +198,3 @@ Mọi đóng góp, báo lỗi (Issue) hoặc đề xuất tính năng mới (Pul
 4. Push lên branch (`git push origin feature/AmazingFeature`).
 5. Tạo Pull Request.
 
----
-
-## Bản quyền
-
-Dự án được phát hành dưới bản quyền mở. Mọi quyền sở hữu thuộc về nhóm phát triển **MADGE-petter / POP AI Assistant**.
