@@ -1,5 +1,5 @@
 import os
-from PyQt6.QtCore import Qt, pyqtSignal, QStringListModel, QUrl
+from PyQt6.QtCore import Qt, pyqtSignal, QStringListModel, QUrl, QTimer
 from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
@@ -22,6 +22,12 @@ class DownloadTabWidget(QWidget):
         super().__init__(parent)
         self.user_settings = user_settings
         self.download_thread = None
+        self.search_thread = None
+        self._pending_search_query = None
+        self.search_timer = QTimer(self)
+        self.search_timer.setSingleShot(True)
+        self.search_timer.setInterval(250)
+        self.search_timer.timeout.connect(self._run_debounced_search)
         self._setup_ui()
 
     def _setup_ui(self):
@@ -53,20 +59,22 @@ class DownloadTabWidget(QWidget):
         title_box.addWidget(desc)
         layout.addLayout(title_box)
 
-        # Glowing Search Bar Box
+        # Search Bar
         search_card = QFrame()
         search_card.setStyleSheet(
-            f"QFrame {{ background: rgba(16, 22, 31, 0.85); border: 1px solid rgba(0, 255, 255, 0.25); "
-            f"border-radius: 20px; padding: 4px 12px; }}"
-            f"QFrame:hover {{ border-color: rgba(0, 255, 255, 0.5); }}"
+            f"QFrame {{ background: {DesignTokens.SURFACE_1}; border: 1px solid {DesignTokens.BORDER}; "
+            f"border-radius: 9px; }}"
+            f"QFrame:hover {{ border-color: #405366; }}"
         )
         sb_layout = QHBoxLayout(search_card)
-        sb_layout.setContentsMargins(8, 2, 4, 2)
-        sb_layout.setSpacing(10)
+        sb_layout.setContentsMargins(14, 5, 6, 5)
+        sb_layout.setSpacing(12)
 
         from view.ui.icons import create_vector_icon
         search_icon = QLabel()
         search_icon.setPixmap(create_vector_icon("search", "#96D7E9", 16).pixmap(16, 16))
+        search_icon.setFixedSize(20, 20)
+        search_icon.setStyleSheet("background: transparent; border: none;")
 
         self.input_search = QLineEdit()
         self.input_search.setPlaceholderText("Nhập tên model (VD: Llama-3.2, Qwen2.5, Gemma-2, DeepSeek, Mistral...)...")
@@ -80,6 +88,8 @@ class DownloadTabWidget(QWidget):
         self.completer_model = QStringListModel()
         self.completer = QCompleter(self.completer_model, self)
         self.completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self.completer.setFilterMode(Qt.MatchFlag.MatchContains)
+        self.completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
         self.completer.activated.connect(self._on_completer_activated)
         self.input_search.setCompleter(self.completer)
 
@@ -87,10 +97,11 @@ class DownloadTabWidget(QWidget):
         self.btn_search.setFixedHeight(34)
         self.btn_search.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_search.setStyleSheet(
-            f"QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #008EFF, stop:1 #00FFAA); "
-            f"color: #03050B; font-weight: 700; font-size: 12px; border: none; border-radius: 16px; padding: 0 20px; }}"
-            f"QPushButton:hover {{ background: #00FFAA; }}"
-            f"QPushButton:pressed {{ background: #00CC88; }}"
+            "QPushButton { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #008EFF, stop:1 #00D69A); "
+            "color: #06131B; font-weight: 700; font-size: 11px; border: 1px solid #21C5A2; "
+            "border-radius: 6px; padding: 0 16px; }"
+            "QPushButton:hover { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #20A4FF, stop:1 #30E3B3); }"
+            "QPushButton:pressed { background: #00B88B; }"
         )
         self.btn_search.clicked.connect(self._on_search_models_clicked)
 
@@ -165,15 +176,28 @@ class DownloadTabWidget(QWidget):
 
     def _on_search_text_changed(self, text: str):
         query = text.strip()
-        if len(query) >= 2:
-            self.suggest_thread = HFSearchThread(query, is_suggest=True, parent=self)
-            self.suggest_thread.suggestionsFound.connect(self._on_suggestions_found)
-            self.suggest_thread.start()
+        self.search_timer.stop()
+        self.completer.popup().hide()
+        self.completer_model.setStringList([])
+        if len(query) < 2:
+            self._pending_search_query = None
+            self.status_lbl.setText("Nhập ít nhất 2 ký tự để tìm model...")
+            while self.cards_layout.count():
+                item = self.cards_layout.takeAt(0)
+                if item.widget():
+                    item.widget().deleteLater()
+            return
 
-    def _on_suggestions_found(self, suggestions: list):
-        self.completer_model.setStringList(suggestions)
+        self.status_lbl.setText(f"Đang tìm '{query}' trên Hugging Face...")
+        self.search_timer.start()
+
+    def _run_debounced_search(self):
+        query = self.input_search.text().strip()
+        if len(query) >= 2:
+            self._search_models(query)
 
     def _on_completer_activated(self, text: str):
+        self.input_search.setText(text)
         self._search_models(text)
 
     def _on_search_models_clicked(self):
@@ -182,18 +206,44 @@ class DownloadTabWidget(QWidget):
             self._search_models(query)
 
     def _search_models(self, query: str):
+        self.search_timer.stop()
         self.status_lbl.setText(f"Đang tìm kiếm '{query}' trên Hugging Face Hub...")
         while self.cards_layout.count():
             item = self.cards_layout.takeAt(0)
             if item.widget():
                 item.widget().deleteLater()
 
+        if self.search_thread and self.search_thread.isRunning():
+            self._pending_search_query = query
+            return
+
+        self._start_search(query)
+
+    def _start_search(self, query: str):
         self.search_thread = HFSearchThread(query, is_suggest=False, parent=self)
-        self.search_thread.resultsFound.connect(self._on_search_results_found)
-        self.search_thread.searchError.connect(lambda err: self.status_lbl.setText(f"Lỗi tìm kiếm: {err}"))
+        self.search_thread.resultsFound.connect(
+            lambda models, searched_query=query: self._on_search_results_found(models)
+            if searched_query == self.input_search.text().strip() else None
+        )
+        self.search_thread.searchError.connect(
+            lambda err, searched_query=query: self.status_lbl.setText(f"Lỗi tìm kiếm: {err}")
+            if searched_query == self.input_search.text().strip() else None
+        )
+        self.search_thread.finished.connect(lambda searched_query=query: self._on_search_finished(searched_query))
         self.search_thread.start()
 
+    def _on_search_finished(self, finished_query: str):
+        self.search_thread = None
+        pending_query = self._pending_search_query
+        self._pending_search_query = None
+        if pending_query and pending_query != finished_query and pending_query == self.input_search.text().strip():
+            self._search_models(pending_query)
+
     def _on_search_results_found(self, models: list):
+        self.completer_model.setStringList([model["id"] for model in models])
+        self.completer.setCompletionPrefix(self.input_search.text().strip())
+        if self.input_search.hasFocus() and self.completer.completionCount():
+            self.completer.complete()
         while self.cards_layout.count():
             item = self.cards_layout.takeAt(0)
             if item.widget():
@@ -206,32 +256,34 @@ class DownloadTabWidget(QWidget):
         self.status_lbl.setText(f"Tìm thấy {len(models)} mô hình GGUF khả dụng trên Hugging Face:")
         for m in models:
             card = QFrame()
+            card.setObjectName("modelResultCard")
             card.setStyleSheet(
-                f"QFrame {{ background: rgba(16, 22, 31, 0.75); border: 1px solid rgba(255, 255, 255, 0.08); "
-                f"border-radius: 12px; padding: 16px; }}"
-                f"QFrame:hover {{ border-color: rgba(0, 255, 255, 0.35); background: rgba(21, 28, 39, 0.85); }}"
+                f"QFrame#modelResultCard {{ background: {DesignTokens.SURFACE_1}; border: 1px solid {DesignTokens.BORDER}; "
+                f"border-radius: 10px; }}"
+                f"QFrame#modelResultCard:hover {{ border-color: #405366; background: {DesignTokens.SURFACE_2}; }}"
             )
             cl = QVBoxLayout(card)
-            cl.setContentsMargins(8, 6, 8, 6)
-            cl.setSpacing(12)
+            cl.setContentsMargins(16, 14, 16, 14)
+            cl.setSpacing(10)
             
             # Top row: Icon + Title + Author
             top_row = QHBoxLayout()
-            top_row.setSpacing(14)
+            top_row.setSpacing(12)
             
             icon_lbl = QLabel()
-            icon_lbl.setPixmap(get_brand_logo_pixmap(m["name"], 40))
+            icon_lbl.setPixmap(get_brand_logo_pixmap(m["name"], 34))
+            icon_lbl.setFixedSize(34, 34)
             top_row.addWidget(icon_lbl)
             
             title_box = QVBoxLayout()
             title_box.setSpacing(3)
             
             name_lbl = QLabel(m["name"])
-            name_lbl.setStyleSheet(f"font-size: 15px; font-weight: 700; color: {DesignTokens.TEXT_MAIN};")
+            name_lbl.setStyleSheet(f"font-size: 14px; font-weight: 650; color: {DesignTokens.TEXT_MAIN};")
             
             author_str = m.get('author', 'Community')
-            sub_lbl = QLabel(f"<span style='color: {DesignTokens.TEXT_MUTED};'>Tác giả:</span> <span style='color: {DesignTokens.TEXT_SECONDARY}; font-weight: 500;'>{author_str}</span>")
-            sub_lbl.setStyleSheet("font-size: 12px;")
+            sub_lbl = QLabel(f"{author_str}  /  {m['id']}")
+            sub_lbl.setStyleSheet(f"font-size: 11px; color: {DesignTokens.TEXT_MUTED};")
             
             title_box.addWidget(name_lbl)
             title_box.addWidget(sub_lbl)
@@ -241,10 +293,10 @@ class DownloadTabWidget(QWidget):
             dl_count = m.get("downloads", 0)
             if dl_count > 0:
                 dl_str = f"{dl_count:,}"
-                badge = QLabel(f"{dl_str} lượt tải")
+                badge = QLabel(f"{dl_str} downloads")
                 badge.setStyleSheet(
-                    f"background: rgba(0, 204, 255, 0.12); color: {DesignTokens.CYAN}; "
-                    f"padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; border: 1px solid rgba(0, 204, 255, 0.25);"
+                    f"color: {DesignTokens.TEXT_MUTED}; padding: 3px 7px; border-radius: 2px; "
+                    f"font-size: 10px; font-weight: 600; border: 1px solid {DesignTokens.BORDER};"
                 )
                 top_row.addWidget(badge, alignment=Qt.AlignmentFlag.AlignTop)
                 
@@ -253,8 +305,8 @@ class DownloadTabWidget(QWidget):
             # Middle row: Description/Tags
             mid_row = QHBoxLayout()
             tags = m.get('tags', 'Language Model').replace('-', ' ').title()
-            tags_lbl = QLabel(f"Phân loại: {tags} • Định dạng đa lượng tử hóa (GGUF)")
-            tags_lbl.setStyleSheet(f"font-size: 12px; color: {DesignTokens.TEXT_MUTED};")
+            tags_lbl = QLabel(f"{tags}  ·  GGUF")
+            tags_lbl.setStyleSheet(f"font-size: 11px; color: {DesignTokens.TEXT_SECONDARY};")
             tags_lbl.setWordWrap(True)
             mid_row.addWidget(tags_lbl)
             cl.addLayout(mid_row)
@@ -267,24 +319,38 @@ class DownloadTabWidget(QWidget):
             web_btn.setFixedHeight(32)
             web_btn.setCursor(Qt.CursorShape.PointingHandCursor)
             web_btn.setStyleSheet(
-                f"QPushButton {{ background: {DesignTokens.SURFACE_2}; color: {DesignTokens.TEXT_SECONDARY}; "
-                f"border: 1px solid {DesignTokens.BORDER}; border-radius: 6px; padding: 0 14px; font-size: 12px; font-weight: 500; }}"
-                f"QPushButton:hover {{ background: {DesignTokens.SURFACE_3}; border-color: {DesignTokens.CYAN}; color: {DesignTokens.TEXT_MAIN}; }}"
+                f"QPushButton {{ background: transparent; color: {DesignTokens.TEXT_SECONDARY}; "
+                f"border: 1px solid {DesignTokens.BORDER}; border-radius: 3px; padding: 0 12px; font-size: 11px; font-weight: 600; }}"
+                f"QPushButton:hover {{ background: {DesignTokens.SURFACE_3}; border-color: #526577; color: {DesignTokens.TEXT_MAIN}; }}"
             )
             web_btn.clicked.connect(lambda _, url=f"https://huggingface.co/{m['id']}": QDesktopServices.openUrl(QUrl(url)))
             
-            dl_btn = QPushButton("Chọn Quantization & Tải")
+            dl_border = QFrame()
+            dl_border.setObjectName("downloadGradientBorder")
+            dl_border.setFixedHeight(36)
+            dl_border.setStyleSheet(
+                "QFrame#downloadGradientBorder {"
+                "background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #008EFF, stop:1 #00D69A);"
+                "border-radius: 7px; }"
+            )
+            dl_border_layout = QHBoxLayout(dl_border)
+            dl_border_layout.setContentsMargins(1, 1, 1, 1)
+            dl_border_layout.setSpacing(0)
+
+            dl_btn = QPushButton("Chọn bản & Tải")
             dl_btn.setFixedHeight(32)
+            dl_btn.setMinimumWidth(120)
             dl_btn.setCursor(Qt.CursorShape.PointingHandCursor)
             dl_btn.setStyleSheet(
-                f"QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #008EFF, stop:1 #00FFAA); "
-                f"color: #03050B; font-weight: 700; border: none; border-radius: 6px; padding: 0 16px; font-size: 12px; }}"
-                f"QPushButton:hover {{ background: #00FFAA; }}"
+                f"QPushButton {{ background: {DesignTokens.SURFACE_1}; color: {DesignTokens.TEXT_MAIN}; font-weight: 650; "
+                f"border: none; border-radius: 6px; padding: 0 14px; font-size: 11px; }}"
+                f"QPushButton:hover {{ background: {DesignTokens.SURFACE_2}; color: #FFFFFF; }}"
             )
             dl_btn.clicked.connect(lambda _, repo=m['id'], name=m['name']: self._open_quantization_selector(repo, name))
+            dl_border_layout.addWidget(dl_btn)
             
             bot_row.addWidget(web_btn)
-            bot_row.addWidget(dl_btn)
+            bot_row.addWidget(dl_border)
             cl.addLayout(bot_row)
 
             self.cards_layout.addWidget(card)

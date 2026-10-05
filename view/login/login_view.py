@@ -26,6 +26,7 @@ from view.ui.widgets.starfield_widget import StarfieldWidget
 
 class LoginView(QDialog):
     login_success = pyqtSignal(str)
+    exit_requested = pyqtSignal()
     
     def __init__(self, login_service):
         super().__init__()
@@ -105,6 +106,7 @@ class LoginView(QDialog):
         close_btn.setStyleSheet(close_btn_style)
         close_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         close_btn.clicked.connect(self.reject)
+        close_btn.clicked.connect(self.exit_requested.emit)
 
         top_bar.addWidget(min_btn)
         top_bar.addWidget(close_btn)

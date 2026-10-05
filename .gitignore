@@ -44,6 +44,8 @@ config.json
 secrets.json
 auto_login.json
 database/auto_login.json
+user_settings.json
+database/user_settings.json
 
 # Export files - KHÔNG upload export lên GitHub
 export_data_*.json

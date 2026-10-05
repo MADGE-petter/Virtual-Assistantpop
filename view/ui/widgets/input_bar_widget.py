@@ -11,7 +11,6 @@ from PyQt6.QtWidgets import (
 
 from view.ui.styles import DesignTokens
 from view.ui.icons import create_vector_icon
-from view.ui.widgets.model_downloader_dialog import ModelDownloaderDialog
 
 
 class MessageTextEdit(QTextEdit):
@@ -84,9 +83,11 @@ class InputBarWidget(QWidget):
         self.text_edit = MessageTextEdit()
         self.text_edit.sendRequested.connect(self._handle_send)
 
-        # Model Selector Pill (Transparent, No Frame)
+        # Model selector defaults to the configured model.
         self.model_combo = QComboBox()
         self.model_combo.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.model_combo.setMinimumWidth(88)
+        self.model_combo.setMaxVisibleItems(10)
         self.model_combo.setStyleSheet(
             f"QComboBox {{ background: transparent; color: {DesignTokens.TEXT_MUTED}; "
             f"font-size: 12px; font-weight: 600; border: none; padding: 2px 4px; }}"
@@ -133,7 +134,7 @@ class InputBarWidget(QWidget):
         main_layout.addLayout(frame_wrapper)
 
         # ----------------------------------------------------
-        # KEYBOARD SHORTCUT / DISCLAIMER CAPTION
+        # INPUT HINT
         # ----------------------------------------------------
         self.sub_text_lbl = QLabel("Enter để gửi • Shift + Enter để xuống dòng")
         self.sub_text_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -176,6 +177,7 @@ class InputBarWidget(QWidget):
         settings = load_user_settings()
         agent_dir = settings.get("model_dir", os.path.join(os.getcwd(), "LLM-agents"))
 
+        previous_signal_state = self.model_combo.blockSignals(True)
         self.model_combo.clear()
         models = []
         if os.path.exists(agent_dir):
@@ -183,30 +185,42 @@ class InputBarWidget(QWidget):
                 if item.startswith('.'): continue
                 if os.path.isdir(os.path.join(agent_dir, item)) or item.endswith(".gguf"):
                     models.append(self._format_model_name(item))
-        if not models:
-            models.append("LFM 2.5 2.6B")
-        
+
+        self.model_combo.addItem("Auto")
         self.model_combo.addItems(models)
-        self.model_combo.addItem("[ + Custom model... ]")
-        self._last_selected_model = self.model_combo.currentText()
+        self.model_combo.addItem(
+            create_vector_icon("download", DesignTokens.TEXT_SECONDARY, 14),
+            "Model++",
+            "__model_hub__",
+        )
+        self.model_combo.setCurrentIndex(0)
+        self._selected_model_index = 0
+        self.model_combo.blockSignals(previous_signal_state)
 
     def _on_model_changed(self, index):
         text = self.model_combo.currentText()
         if not text:
             return
-        if text == "[ + Custom model... ]":
-            self.model_combo.setCurrentText(self._last_selected_model)
-            win = self.window()
-            if hasattr(win, '_open_settings_page'):
-                win._open_settings_page(2)
-            else:
-                from view.ui.settings import SettingsDialog
-                dialog = SettingsDialog(username="Tài khoản", initial_tab=2, parent=self)
-                dialog.modelDownloaded.connect(self._load_local_models)
-                dialog.exec()
-        else:
-            self._last_selected_model = text
-            self.switchModel.emit(text)
+        if self.model_combo.itemData(index, Qt.ItemDataRole.UserRole) == "__model_hub__":
+            self.model_combo.blockSignals(True)
+            self.model_combo.setCurrentIndex(self._selected_model_index)
+            self.model_combo.blockSignals(False)
+            self._open_model_hub()
+            return
+
+        self._selected_model_index = index
+        self.switchModel.emit("" if text == "Auto" else text)
+
+    def _open_model_hub(self):
+        win = self.window()
+        if hasattr(win, "_open_settings_page"):
+            win._open_settings_page(2)
+            return
+
+        from view.ui.settings import SettingsDialog
+        dialog = SettingsDialog(username="Tài khoản", initial_tab=2, parent=self)
+        dialog.modelDownloaded.connect(self._load_local_models)
+        dialog.exec()
 
     def set_listening(self, is_listening: bool):
         pass

@@ -66,6 +66,7 @@ def main():
 
             login_window = LoginView(login_service)
             login_window.login_success.connect(on_login_success)
+            login_window.exit_requested.connect(app.quit)
             login_window.show()
             login_window.raise_()
             login_window.activateWindow()
@@ -108,6 +109,7 @@ def main():
             QTimer.singleShot(0, _init_main_window)
 
         login_window.login_success.connect(on_login_success)
+        login_window.exit_requested.connect(app.quit)
         
         # Auto login data is now handled by LoginView to pre-fill inputs
         login_window.show()

@@ -1,12 +1,12 @@
 import os
 import json
+import re
 import urllib.request
 from PyQt6.QtCore import Qt, pyqtSignal, QThread
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QScrollArea, QFrame, QGraphicsDropShadowEffect, QWidget
+    QScrollArea, QFrame, QWidget
 )
-from PyQt6.QtGui import QColor
 
 from view.ui.styles import DesignTokens
 from view.ui.icons import get_brand_logo_pixmap, create_vector_icon, get_vector_pixmap
@@ -159,8 +159,7 @@ class QuantizationDialog(QDialog):
         self.model_name = model_name
         self.hw_specs = get_system_hardware_info()
 
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setWindowTitle("Chọn phiên bản model")
         self.setFixedSize(760, 560)
 
         self._setup_ui()
@@ -168,26 +167,18 @@ class QuantizationDialog(QDialog):
 
     def _setup_ui(self):
         base_layout = QVBoxLayout(self)
-        base_layout.setContentsMargins(12, 12, 12, 12)
+        base_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Glassmorphic Dialog Container
         self.container = QFrame()
+        self.container.setObjectName("variantDialog")
         self.container.setStyleSheet(
-            f"QFrame {{"
-            f"  background-color: rgba(10, 14, 26, 0.96);"
-            f"  border: 1px solid rgba(0, 255, 170, 0.3);"
-            f"  border-radius: 16px;"
-            f"}}"
+            f"QFrame#variantDialog {{ background: {DesignTokens.BG_BASE}; "
+            f"border: 1px solid {DesignTokens.BORDER}; border-radius: 3px; }}"
         )
-        shadow = QGraphicsDropShadowEffect(self)
-        shadow.setBlurRadius(28)
-        shadow.setColor(QColor(0, 255, 170, 50))
-        shadow.setOffset(0, 6)
-        self.container.setGraphicsEffect(shadow)
 
         layout = QVBoxLayout(self.container)
-        layout.setContentsMargins(24, 20, 24, 20)
-        layout.setSpacing(14)
+        layout.setContentsMargins(22, 18, 22, 18)
+        layout.setSpacing(12)
 
         # 1. Header Bar
         header = QHBoxLayout()
@@ -197,11 +188,11 @@ class QuantizationDialog(QDialog):
 
         title_box = QVBoxLayout()
         title_box.setSpacing(2)
-        title_lbl = QLabel("TÙY CHỌN QUANTIZATION & ĐÁNH GIÁ PHẦN CỨNG")
-        title_lbl.setStyleSheet(f"font-size: 14px; font-weight: 700; color: {DesignTokens.CYAN_ACCENT}; letter-spacing: 0.5px;")
+        title_lbl = QLabel("Chọn phiên bản model")
+        title_lbl.setStyleSheet(f"font-size: 16px; font-weight: 650; color: {DesignTokens.TEXT_MAIN};")
         
-        repo_lbl = QLabel(f"Repository: {self.repo_id}")
-        repo_lbl.setStyleSheet(f"font-size: 12px; color: {DesignTokens.TEXT_MUTED};")
+        repo_lbl = QLabel(self.repo_id)
+        repo_lbl.setStyleSheet(f"font-size: 11px; color: {DesignTokens.TEXT_MUTED};")
         
         title_box.addWidget(title_lbl)
         title_box.addWidget(repo_lbl)
@@ -212,8 +203,8 @@ class QuantizationDialog(QDialog):
         close_btn.setFixedSize(28, 28)
         close_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         close_btn.setStyleSheet(
-            f"QPushButton {{ background: transparent; border: none; border-radius: 6px; }}"
-            f"QPushButton:hover {{ background-color: rgba(255, 75, 110, 0.25); }}"
+            f"QPushButton {{ background: transparent; border: 1px solid transparent; border-radius: 3px; }}"
+            f"QPushButton:hover {{ background-color: {DesignTokens.SURFACE_2}; border-color: {DesignTokens.BORDER}; }}"
         )
         close_btn.clicked.connect(self.close)
         header.addWidget(close_btn)
@@ -223,8 +214,8 @@ class QuantizationDialog(QDialog):
         # 2. Hardware Specs Card Banner
         hw_card = QFrame()
         hw_card.setStyleSheet(
-            f"QFrame {{ background: rgba(14, 20, 36, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); "
-            f"border-radius: 10px; padding: 10px 14px; }}"
+            f"QFrame {{ background: {DesignTokens.SURFACE_1}; border: 1px solid {DesignTokens.BORDER}; "
+            f"border-radius: 3px; padding: 8px 12px; }}"
         )
         hw_layout = QHBoxLayout(hw_card)
         hw_layout.setContentsMargins(4, 2, 4, 2)
@@ -263,7 +254,7 @@ class QuantizationDialog(QDialog):
 
         # 3. Status / Loading Label
         self.status_lbl = QLabel("Đang phân tích và đối chiếu các phiên bản Quantization với phần cứng của bạn...")
-        self.status_lbl.setStyleSheet(f"font-size: 12px; color: {DesignTokens.CYAN_ACCENT}; font-style: italic;")
+        self.status_lbl.setStyleSheet(f"font-size: 11px; color: {DesignTokens.TEXT_SECONDARY};")
         layout.addWidget(self.status_lbl)
 
         # 4. Scroll Area holding Quantization Options
@@ -301,10 +292,21 @@ class QuantizationDialog(QDialog):
 
         for v in variants:
             eval_info = v["eval"]
+            filename = os.path.basename(v["filename"])
+            parameter_match = re.search(r"(?<![A-Za-z0-9])(\d+(?:\.\d+)?B)(?![A-Za-z0-9])", filename, re.IGNORECASE)
+            quant_match = re.search(r"(?<![A-Za-z0-9])Q\d(?:_[A-Z0-9]+)*", filename, re.IGNORECASE)
+            variant_title = " · ".join(
+                value.upper() for value in (
+                    parameter_match.group(1) if parameter_match else None,
+                    quant_match.group(0) if quant_match else None,
+                ) if value
+            ) or filename
+
             row = QFrame()
             row.setStyleSheet(
-                f"QFrame {{ background: {eval_info['bg']}; border: 1px solid {eval_info['border']}; "
-                f"border-radius: 10px; padding: 10px 14px; }}"
+                f"QFrame {{ background: {DesignTokens.SURFACE_1}; "
+                f"border: 1px solid {DesignTokens.BORDER}; border-left: 3px solid {eval_info['color']}; "
+                f"border-radius: 8px; padding: 10px 12px; }}"
             )
 
             rl = QHBoxLayout(row)
@@ -317,44 +319,52 @@ class QuantizationDialog(QDialog):
             top_line = QHBoxLayout()
             top_line.setSpacing(8)
 
-            fn_lbl = QLabel(v["filename"])
-            fn_lbl.setStyleSheet(f"font-size: 13px; font-weight: 700; color: {eval_info['color']};")
+            fn_lbl = QLabel(variant_title)
+            fn_lbl.setStyleSheet(f"font-size: 13px; font-weight: 700; color: {DesignTokens.TEXT_MAIN};")
 
-            badge_lbl = QLabel(eval_info["badge"])
+            status_labels = {
+                "smooth_gpu": "GPU TỐI ƯU",
+                "smooth_ram": "ĐỀ XUẤT",
+                "fit": "VỪA ĐỦ",
+                "heavy": "QUÁ TẢI",
+            }
+            badge_lbl = QLabel(status_labels.get(eval_info["status"], "TƯƠNG THÍCH"))
             badge_lbl.setStyleSheet(
-                f"background: rgba(0,0,0,0.35); color: {eval_info['color']}; font-size: 10px; font-weight: 700; "
-                f"border-radius: 4px; padding: 2px 6px;"
+                f"background: {DesignTokens.SURFACE_2}; color: {eval_info['color']}; font-size: 9px; font-weight: 700; "
+                f"border: 1px solid {DesignTokens.BORDER}; border-radius: 4px; padding: 4px 7px;"
             )
+
+            size_str = f"{v['size_mb'] / 1024:.2f} GB" if v['size_mb'] >= 1024 else f"{v['size_mb']:.1f} MB"
+            size_lbl = QLabel(size_str)
+            size_lbl.setStyleSheet(f"font-size: 11px; font-weight: 650; color: {DesignTokens.TEXT_SECONDARY};")
 
             top_line.addWidget(fn_lbl)
             top_line.addWidget(badge_lbl)
             top_line.addStretch()
+            top_line.addWidget(size_lbl)
 
-            size_str = f"{v['size_mb'] / 1024:.2f} GB" if v['size_mb'] >= 1024 else f"{v['size_mb']:.1f} MB"
-            sub_lbl = QLabel(f"<font color='#FFFFFF'>Dung lượng: <b>{size_str}</b></font> &nbsp;•&nbsp; <font color='#8A9EB5'>{eval_info['desc']}</font>")
-            sub_lbl.setStyleSheet("font-size: 11px;")
+            file_lbl = QLabel(v["filename"])
+            file_lbl.setStyleSheet(f"font-size: 10px; color: {DesignTokens.TEXT_MUTED};")
+            file_lbl.setWordWrap(True)
+            compatibility_lbl = QLabel(eval_info["desc"])
+            compatibility_lbl.setStyleSheet(f"font-size: 10px; color: {DesignTokens.TEXT_SECONDARY};")
+            compatibility_lbl.setWordWrap(True)
 
             info_box.addLayout(top_line)
-            info_box.addWidget(sub_lbl)
+            info_box.addWidget(file_lbl)
+            info_box.addWidget(compatibility_lbl)
             rl.addLayout(info_box, stretch=1)
 
-            dl_btn = QPushButton(" Tải Bản Này")
-            dl_btn.setIcon(create_vector_icon("download", "#03050B" if eval_info["is_recommended"] else "#E6F4FF", 14))
-            dl_btn.setFixedHeight(30)
+            dl_btn = QPushButton("Tải bản này")
+            dl_btn.setIcon(create_vector_icon("download", DesignTokens.TEXT_MAIN, 14))
+            dl_btn.setFixedHeight(34)
+            dl_btn.setMinimumWidth(112)
             dl_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            
-            if eval_info["is_recommended"]:
-                dl_btn.setStyleSheet(
-                    f"QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #008EFF, stop:1 #00FFAA); "
-                    f"color: #03050B; font-weight: bold; border: none; border-radius: 6px; padding: 0 14px; font-size: 11px; }}"
-                    f"QPushButton:hover {{ background: #00FFAA; }}"
-                )
-            else:
-                dl_btn.setStyleSheet(
-                    f"QPushButton {{ background: {DesignTokens.SURFACE_3}; color: {DesignTokens.TEXT_MAIN}; "
-                    f"border: 1px solid {DesignTokens.BORDER}; border-radius: 6px; padding: 0 14px; font-size: 11px; font-weight: 600; }}"
-                    f"QPushButton:hover {{ background: {DesignTokens.SURFACE_2}; border-color: {DesignTokens.CYAN}; color: {DesignTokens.CYAN_ACCENT}; }}"
-                )
+            dl_btn.setStyleSheet(
+                f"QPushButton {{ background: {DesignTokens.SURFACE_2}; color: {DesignTokens.TEXT_MAIN}; font-weight: 650; "
+                f"border: 1px solid #405366; border-radius: 5px; padding: 0 10px; font-size: 10px; }}"
+                f"QPushButton:hover {{ background: #202D3A; border-color: {eval_info['color']}; }}"
+            )
             dl_btn.clicked.connect(lambda _, f=v["filename"]: self._select_file(f))
             rl.addWidget(dl_btn)
 
