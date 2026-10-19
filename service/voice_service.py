@@ -13,7 +13,7 @@ except ImportError:
     np = None
     pyaudio = None
     VOICE_DEPS_AVAILABLE = False
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 from controller.interfaces import IAudioService
 
@@ -58,10 +58,10 @@ class VoiceService:
         self._pyaudio = None
         
         # Callbacks
-        self.on_wake_up = None
-        self.on_go_sleep = None
-        self.on_idle_timeout = None
-        self.on_wake_word_detected = None
+        self.on_wake_up: Optional[Callable] = None
+        self.on_go_sleep: Optional[Callable] = None
+        self.on_idle_timeout: Optional[Callable] = None
+        self.on_wake_word_detected: Optional[Callable] = None
 
     # ==================== WAKE WORD DETECTION (openwakeword) ====================
     
@@ -83,6 +83,10 @@ class VoiceService:
     def _init_audio_stream(self):
         """Initialize PyAudio stream for wake word detection."""
         if self._audio_stream is not None:
+            return
+            
+        if not VOICE_DEPS_AVAILABLE or pyaudio is None:
+            print("[VoiceService] PyAudio is not available")
             return
         
         try:
@@ -156,7 +160,7 @@ class VoiceService:
         while self.is_listening_wake and not self._stop_wake_event.is_set():
             try:
                 # Read audio chunk
-                if self._audio_stream is None:
+                if self._audio_stream is None or np is None or self._oww_model is None:
                     break
                     
                 audio_data = self._audio_stream.read(1280, exception_on_overflow=False)
@@ -166,10 +170,11 @@ class VoiceService:
                 audio_float = audio_np.astype(np.float32) / 32768.0
                 
                 # Predict
-                prediction = self._oww_model.predict(audio_float)
+                prediction: Any = self._oww_model.predict(audio_float)
                 
                 # Check if any wake word detected above threshold
-                for model_name, score in prediction.items():
+                pred_dict = prediction if isinstance(prediction, dict) else (prediction[0] if isinstance(prediction, tuple) and len(prediction) > 0 and isinstance(prediction[0], dict) else {})
+                for model_name, score in pred_dict.items():
                     if score >= self.sensitivity:
                         print(f"[VoiceService] Wake word detected! Model: {model_name}, Score: {score:.3f}")
                         self._handle_wake_word_detected(f"Wake word: {model_name}")

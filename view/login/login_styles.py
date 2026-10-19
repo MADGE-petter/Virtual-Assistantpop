@@ -12,22 +12,23 @@ MAIN_WINDOW_STYLE = """
 
     /* === INPUT FIELDS === */
     QLineEdit {
-        background: rgba(6, 10, 18, 230);
-        border: 1px solid rgba(0, 255, 170, 0.25);
+        background: transparent;
+        border: 1px solid;
+        border-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(255, 255, 255, 0.30), stop:0.35 rgba(255, 255, 255, 0.12), stop:0.8 rgba(255, 255, 255, 0.04), stop:1 rgba(255, 255, 255, 0.01));
         border-radius: 10px;
         padding: 0px 14px;
         color: #FFFFFF;
         font-size: 12px;
         font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
-        selection-background-color: rgba(0, 255, 170, 0.3);
+        selection-background-color: rgba(0, 142, 255, 0.35);
     }
     QLineEdit:focus {
-        border: 1px solid #00FFAA;
-        background: rgba(10, 16, 26, 250);
-        box-shadow: 0 0 10px rgba(0, 255, 170, 0.4);
+        border: 1px solid rgba(0, 255, 170, 0.6);
+        background: rgba(255, 255, 255, 0.02);
     }
     QLineEdit:hover:!focus {
-        border: 1px solid rgba(0, 255, 170, 0.5);
+        border-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(255, 255, 255, 0.55), stop:0.4 rgba(255, 255, 255, 0.22), stop:1 rgba(0, 255, 170, 0.10));
+        background: rgba(255, 255, 255, 0.03);
     }
     QLineEdit::placeholder {
         color: rgba(120, 140, 165, 180);
@@ -35,11 +36,10 @@ MAIN_WINDOW_STYLE = """
 
     /* === PRIMARY ACTION BUTTON === */
     QPushButton#action_btn {
-        background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                           stop:0 rgba(0, 255, 170, 0.8), stop:1 rgba(0, 204, 255, 0.8));
-        border: 1px solid #00FFAA;
+        background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #008EFF, stop:1 #00FFAA);
+        border: none;
         border-radius: 10px;
-        color: #050B14;
+        color: #040812;
         font-size: 13px;
         font-weight: 700;
         font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
@@ -47,14 +47,11 @@ MAIN_WINDOW_STYLE = """
         padding: 6px 20px;
     }
     QPushButton#action_btn:hover {
-        background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                           stop:0 rgba(0, 255, 170, 1.0), stop:1 rgba(0, 204, 255, 1.0));
-        border: 1px solid #FFFFFF;
+        background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #0077D6, stop:1 #00E699);
         color: #000000;
     }
     QPushButton#action_btn:pressed {
-        background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                           stop:0 rgba(0, 204, 255, 0.9), stop:1 rgba(0, 255, 170, 0.9));
+        background: #00CC88;
         color: #000000;
     }
     
@@ -69,7 +66,7 @@ MAIN_WINDOW_STYLE = """
 TITLE_STYLE = """
     QLabel {
         color: qlineargradient(x1:0, y1:0, x2:1, y2:0, 
-                           stop:0 #00FFAA, stop:1 #00CCFF);
+                           stop:0 #008EFF, stop:1 #00FFAA);
         font-size: 20px;
         font-weight: 800;
         font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
@@ -81,14 +78,14 @@ TITLE_STYLE = """
 
 REGISTER_LABEL_STYLE = """
     QLabel {
-        color: rgba(0, 255, 200, 210);
+        color: #00FFAA;
         font-size: 12px;
         font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
         padding: 6px;
         font-weight: 600;
     }
     QLabel:hover {
-        color: #00FFAA;
+        color: #FFFFFF;
         text-decoration: underline;
     }
 """

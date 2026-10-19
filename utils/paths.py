@@ -5,14 +5,23 @@ import sys
 def resource_path(*parts: str) -> str:
     """Return an absolute path to a resource bundled with the app.
 
-    Uses PyInstaller's _MEIPASS when available; otherwise resolves
-    relative to the repository root.
+    When frozen, checks next to the executable first, then PyInstaller's _MEIPASS;
+    otherwise resolves relative to the repository root.
     """
-    # If running from a PyInstaller bundle
-    base = getattr(sys, "_MEIPASS", None)
-    if base is None:
-        # repo root is parent of this utils package
-        base = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    if getattr(sys, 'frozen', False):
+        exe_dir = os.path.dirname(sys.executable)
+        cand = os.path.join(exe_dir, *parts)
+        if os.path.exists(cand):
+            return cand
+        meipass = getattr(sys, "_MEIPASS", None)
+        if meipass:
+            cand_meipass = os.path.join(meipass, *parts)
+            if os.path.exists(cand_meipass):
+                return cand_meipass
+        return cand
+
+    # repo root is parent of this utils package
+    base = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     return os.path.join(base, *parts)
 
 

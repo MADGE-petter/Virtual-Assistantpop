@@ -37,8 +37,8 @@ class ModelsTabWidget(QWidget):
 
         badge = QLabel("GGUF ENGINE")
         badge.setStyleSheet(
-            f"background: rgba(0, 204, 255, 0.12); color: {DesignTokens.CYAN}; font-size: 11px; "
-            f"font-weight: 700; border-radius: 4px; padding: 2px 8px; border: 1px solid rgba(0, 204, 255, 0.25);"
+            f"background: transparent; color: {DesignTokens.CYAN}; font-size: 11px; "
+            f"font-weight: 700; border-radius: 4px; padding: 2px 8px; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT};"
         )
         title_row.addWidget(title)
         title_row.addWidget(badge)
@@ -55,9 +55,9 @@ class ModelsTabWidget(QWidget):
         open_hub_btn.setFixedHeight(36)
         open_hub_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         open_hub_btn.setStyleSheet(
-            f"QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #008EFF, stop:1 #00FFAA); "
+            f"QPushButton {{ background: {DesignTokens.GRADIENT_BLUE_GREEN}; "
             f"color: #03050B; font-weight: 700; font-size: 12px; border: none; border-radius: 8px; padding: 0 18px; }}"
-            f"QPushButton:hover {{ background: #00FFAA; }}"
+            f"QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #0077D6, stop:1 #00E699); }}"
             f"QPushButton:pressed {{ background: #00CC88; }}"
         )
         open_hub_btn.clicked.connect(lambda: self.requestOpenDownloadTab.emit())
@@ -67,9 +67,12 @@ class ModelsTabWidget(QWidget):
 
         # Storage Directory Glass Card
         dir_card = QFrame()
+        dir_card.setObjectName("dirCard")
         dir_card.setStyleSheet(
-            f"QFrame {{ background: rgba(16, 22, 31, 0.75); border: 1px solid rgba(255, 255, 255, 0.08); "
+            f"#dirCard {{ background: transparent; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; "
             f"border-radius: 12px; }}"
+            f"#dirCard:hover {{ background: rgba(255, 255, 255, 0.03); border-color: {DesignTokens.BORDER_GRADIENT_HOVER}; }}"
+            f"#dirCard QLabel {{ border: none; background: transparent; }}"
         )
         df_layout = QHBoxLayout(dir_card)
         df_layout.setContentsMargins(16, 12, 16, 12)
@@ -81,7 +84,7 @@ class ModelsTabWidget(QWidget):
         self.txt_model_dir = QLineEdit(self.user_settings.get("model_dir", os.path.join(os.getcwd(), "LLM-agents")))
         self.txt_model_dir.setReadOnly(True)
         self.txt_model_dir.setStyleSheet(
-            f"QLineEdit {{ background: rgba(10, 15, 24, 0.8); border: 1px solid rgba(0, 255, 255, 0.15); "
+            f"QLineEdit {{ background: transparent; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; "
             f"border-radius: 6px; padding: 6px 12px; font-size: 12px; color: {DesignTokens.TEXT_MAIN}; }}"
             f"QLineEdit:focus {{ border-color: {DesignTokens.CYAN}; }}"
         )
@@ -90,9 +93,9 @@ class ModelsTabWidget(QWidget):
         change_dir_btn.setFixedHeight(32)
         change_dir_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         change_dir_btn.setStyleSheet(
-            f"QPushButton {{ background: {DesignTokens.SURFACE_2}; color: {DesignTokens.TEXT_MAIN}; "
-            f"border: 1px solid {DesignTokens.BORDER}; border-radius: 6px; padding: 0 14px; font-size: 12px; font-weight: 500; }}"
-            f"QPushButton:hover {{ background: {DesignTokens.SURFACE_3}; border-color: {DesignTokens.CYAN}; color: {DesignTokens.CYAN_ACCENT}; }}"
+            f"QPushButton {{ background: transparent; color: {DesignTokens.TEXT_MAIN}; "
+            f"border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; border-radius: 6px; padding: 0 14px; font-size: 12px; font-weight: 500; }}"
+            f"QPushButton:hover {{ background: rgba(255, 255, 255, 0.04); border-color: {DesignTokens.BORDER_GRADIENT_HOVER}; color: {DesignTokens.CYAN_ACCENT}; }}"
         )
         change_dir_btn.clicked.connect(self._change_model_directory)
 
@@ -140,7 +143,7 @@ class ModelsTabWidget(QWidget):
         if not os.path.exists(target_dir) or not os.listdir(target_dir):
             empty_card = QFrame()
             empty_card.setStyleSheet(
-                "QFrame { background: rgba(16, 22, 31, 0.5); border: 1px dashed rgba(255, 255, 255, 0.15); "
+                "QFrame { background: transparent; border: 1px dashed rgba(255, 255, 255, 0.15); "
                 "border-radius: 12px; padding: 36px; }"
             )
             ec_layout = QVBoxLayout(empty_card)
@@ -171,10 +174,12 @@ class ModelsTabWidget(QWidget):
             total_size_mb += size_mb
 
             card = QFrame()
+            card.setObjectName(f"modelCard_{count}")
             card.setStyleSheet(
-                f"QFrame {{ background: rgba(16, 22, 31, 0.75); border: 1px solid rgba(255, 255, 255, 0.08); "
+                f"#modelCard_{count} {{ background: transparent; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; "
                 f"border-radius: 12px; padding: 12px 16px; }}"
-                f"QFrame:hover {{ border-color: rgba(0, 255, 255, 0.35); background: rgba(21, 28, 39, 0.85); }}"
+                f"#modelCard_{count}:hover {{ border-color: {DesignTokens.BORDER_GRADIENT_HOVER}; background: rgba(255, 255, 255, 0.03); }}"
+                f"#modelCard_{count} QLabel {{ border: none; background: transparent; }}"
             )
             cl = QHBoxLayout(card)
             cl.setContentsMargins(8, 4, 8, 4)

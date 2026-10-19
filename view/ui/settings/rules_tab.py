@@ -33,8 +33,8 @@ class RulesTabWidget(QWidget):
 
         badge = QLabel("SYSTEM PROMPT")
         badge.setStyleSheet(
-            f"background: rgba(0, 255, 170, 0.12); color: {DesignTokens.CYAN_ACCENT}; font-size: 11px; "
-            f"font-weight: 700; border-radius: 4px; padding: 2px 8px; border: 1px solid rgba(0, 255, 170, 0.25);"
+            f"background: transparent; color: {DesignTokens.CYAN_ACCENT}; font-size: 11px; "
+            f"font-weight: 700; border-radius: 4px; padding: 2px 8px; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT};"
         )
         title_row.addWidget(title)
         title_row.addWidget(badge)
@@ -49,9 +49,11 @@ class RulesTabWidget(QWidget):
 
         # Quick Presets Card
         presets_card = QFrame()
+        presets_card.setObjectName("presetsCard")
         presets_card.setStyleSheet(
-            f"QFrame {{ background: rgba(16, 22, 31, 0.75); border: 1px solid rgba(255, 255, 255, 0.08); "
+            f"#presetsCard {{ background: transparent; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; "
             f"border-radius: 12px; padding: 6px 12px; }}"
+            f"#presetsCard QLabel {{ border: none; background: transparent; }}"
         )
         pb_layout = QHBoxLayout(presets_card)
         pb_layout.setContentsMargins(8, 6, 8, 6)
@@ -73,9 +75,9 @@ class RulesTabWidget(QWidget):
             p_btn.setFixedHeight(30)
             p_btn.setCursor(Qt.CursorShape.PointingHandCursor)
             p_btn.setStyleSheet(
-                f"QPushButton {{ background: {DesignTokens.SURFACE_2}; color: {DesignTokens.TEXT_MAIN}; border: 1px solid {DesignTokens.BORDER}; "
+                f"QPushButton {{ background: transparent; color: {DesignTokens.TEXT_MAIN}; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; "
                 f"border-radius: 6px; padding: 0 12px; font-size: 12px; font-weight: 500; }}"
-                f"QPushButton:hover {{ background: {DesignTokens.SURFACE_3}; border-color: {DesignTokens.CYAN}; color: {DesignTokens.CYAN_ACCENT}; }}"
+                f"QPushButton:hover {{ background: rgba(255, 255, 255, 0.04); border-color: {DesignTokens.BORDER_GRADIENT_HOVER}; color: {DesignTokens.CYAN_ACCENT}; }}"
             )
             p_btn.clicked.connect(lambda _, txt=p_content: self.txt_rule.setPlainText(txt))
             pb_layout.addWidget(p_btn)
@@ -85,9 +87,12 @@ class RulesTabWidget(QWidget):
 
         # Editor Area Card
         editor_card = QFrame()
+        editor_card.setObjectName("editorCard")
         editor_card.setStyleSheet(
-            f"QFrame {{ background: rgba(16, 22, 31, 0.75); border: 1px solid rgba(255, 255, 255, 0.08); "
+            f"#editorCard {{ background: transparent; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; "
             f"border-radius: 14px; }}"
+            f"#editorCard:hover {{ background: rgba(255, 255, 255, 0.02); border-color: {DesignTokens.BORDER_GRADIENT_HOVER}; }}"
+            f"#editorCard QLabel {{ border: none; background: transparent; }}"
         )
         ec_layout = QVBoxLayout(editor_card)
         ec_layout.setContentsMargins(16, 14, 16, 14)
@@ -110,9 +115,9 @@ class RulesTabWidget(QWidget):
         initial_rule = self.user_settings.get("system_rule", "Bạn là POP AI Assistant, trợ lý thông minh thân thiện bằng tiếng Việt.")
         self.txt_rule.setPlainText(initial_rule)
         self.txt_rule.setStyleSheet(
-            f"QTextEdit {{ background-color: rgba(10, 15, 24, 0.85); border: 1px solid rgba(0, 255, 255, 0.15); "
+            f"QTextEdit {{ background-color: transparent; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; "
             f"border-radius: 10px; padding: 14px; color: {DesignTokens.TEXT_MAIN}; font-size: 13px; line-height: 1.6; "
-            f"selection-background-color: rgba(0, 255, 170, 0.25); }}"
+            f"selection-background-color: rgba(0, 142, 255, 0.35); }}"
             f"QTextEdit:focus {{ border-color: {DesignTokens.CYAN}; }}"
         )
         self.txt_rule.textChanged.connect(self._update_char_count)
@@ -135,9 +140,9 @@ class RulesTabWidget(QWidget):
         reset_btn.setFixedHeight(38)
         reset_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         reset_btn.setStyleSheet(
-            f"QPushButton {{ background: {DesignTokens.SURFACE_2}; color: {DesignTokens.TEXT_MUTED}; "
-            f"border: 1px solid {DesignTokens.BORDER}; border-radius: 8px; font-size: 12px; font-weight: 500; padding: 0 16px; }}"
-            f"QPushButton:hover {{ background: {DesignTokens.SURFACE_3}; border-color: {DesignTokens.BORDER_GLOW}; color: {DesignTokens.TEXT_MAIN}; }}"
+            f"QPushButton {{ background: transparent; color: {DesignTokens.TEXT_MUTED}; "
+            f"border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; border-radius: 8px; font-size: 12px; font-weight: 500; padding: 0 16px; }}"
+            f"QPushButton:hover {{ background: rgba(255, 255, 255, 0.04); border-color: {DesignTokens.BORDER_GRADIENT_HOVER}; color: {DesignTokens.TEXT_MAIN}; }}"
         )
         reset_btn.clicked.connect(lambda: self.txt_rule.setPlainText("Bạn là POP AI Assistant, trợ lý thông minh thân thiện bằng tiếng Việt."))
         bottom_bar.addWidget(reset_btn)
@@ -148,9 +153,9 @@ class RulesTabWidget(QWidget):
         save_rule_btn.setFixedWidth(150)
         save_rule_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         save_rule_btn.setStyleSheet(
-            f"QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #008EFF, stop:1 #00FFAA); "
+            f"QPushButton {{ background: {DesignTokens.GRADIENT_BLUE_GREEN}; "
             f"color: #03050B; font-weight: 700; font-size: 13px; border: none; border-radius: 8px; padding: 0 16px; }}"
-            f"QPushButton:hover {{ background: #00FFAA; }}"
+            f"QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #0077D6, stop:1 #00E699); }}"
             f"QPushButton:pressed {{ background: #00CC88; }}"
         )
         save_rule_btn.clicked.connect(self._save_system_rule)

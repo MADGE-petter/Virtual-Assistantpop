@@ -6,7 +6,7 @@ from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QSize, QVariantAnimation, QEasi
 from PyQt6.QtGui import QFont, QColor
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QScrollArea, QFrame, QSizePolicy, QApplication, QGraphicsOpacityEffect
+    QScrollArea, QFrame, QSizePolicy, QApplication, QGraphicsOpacityEffect, QTextEdit
 )
 
 from view.ui.styles import DesignTokens
@@ -29,7 +29,7 @@ class ActionConfirmationCardWidget(QFrame):
         self.summary = summary
 
         self.setStyleSheet(
-            f"QFrame {{ background-color: {DesignTokens.SURFACE_2}; border: none; border-radius: 14px; }}"
+            f"QFrame {{ background: transparent; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; border-radius: 14px; }}"
         )
         self._setup_ui()
 
@@ -52,22 +52,22 @@ class ActionConfirmationCardWidget(QFrame):
         btn_box.setSpacing(10)
 
         confirm_btn = QPushButton(" Xác nhận & Thực thi")
-        confirm_btn.setIcon(create_vector_icon("check", "#00FFAA", 14))
+        confirm_btn.setIcon(create_vector_icon("check", "#040812", 14))
         confirm_btn.setFixedHeight(32)
         confirm_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         confirm_btn.setStyleSheet(
-            f"QPushButton {{ background-color: {DesignTokens.BG_BASE}; color: #00FFAA; font-weight: 700; border: 1px solid #00CCFF; border-radius: 8px; padding: 0 14px; }}"
-            f"QPushButton:hover {{ background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 rgba(0, 255, 170, 0.1), stop:1 rgba(0, 204, 255, 0.1)); border-color: #00FFAA; }}"
+            f"QPushButton {{ background: {DesignTokens.GRADIENT_BLUE_GREEN}; color: #040812; font-weight: 700; border: none; border-radius: 8px; padding: 0 14px; }}"
+            f"QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #0077D6, stop:1 #00E699); }}"
         )
         confirm_btn.clicked.connect(lambda: self.confirmed.emit(self.tool_name, self.tool_args))
 
         cancel_btn = QPushButton(" Hủy bỏ")
-        cancel_btn.setIcon(create_vector_icon("close", "#FF4B6E", 14))
+        cancel_btn.setIcon(create_vector_icon("close", DesignTokens.CORAL_ACCENT, 14))
         cancel_btn.setFixedHeight(32)
         cancel_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         cancel_btn.setStyleSheet(
-            f"QPushButton {{ background: {DesignTokens.SURFACE_3}; color: {DesignTokens.CORAL_ACCENT}; border: 1px solid {DesignTokens.CORAL_ACCENT}; border-radius: 8px; padding: 0 14px; font-weight: 600; }}"
-            f"QPushButton:hover {{ background: rgba(255, 75, 110, 0.2); }}"
+            f"QPushButton {{ background: transparent; color: {DesignTokens.CORAL_ACCENT}; border: 1px solid rgba(244, 63, 94, 0.3); border-radius: 8px; padding: 0 14px; font-weight: 600; }}"
+            f"QPushButton:hover {{ background: rgba(244, 63, 94, 0.2); border-color: {DesignTokens.CORAL_ACCENT}; }}"
         )
         cancel_btn.clicked.connect(lambda: self.cancelled.emit())
 
@@ -89,7 +89,7 @@ class FilePreviewCardWidget(QFrame):
         super().__init__(parent)
         self.files = files
         self.setStyleSheet(
-            f"QFrame {{ background-color: {DesignTokens.SURFACE_1}; border: none; border-radius: 14px; }}"
+            f"QFrame {{ background: transparent; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; border-radius: 14px; }}"
         )
         self._setup_ui()
 
@@ -167,47 +167,58 @@ class MessageBubbleWidget(QWidget):
 
     def _setup_ui(self):
         main_layout = QHBoxLayout(self)
-        main_layout.setContentsMargins(12, 6, 12, 6)
+        main_layout.setContentsMargins(16, 4, 16, 4)
+        main_layout.setSpacing(12)
 
         is_user = (self.msg.sender == "user")
 
         if is_user:
-            main_layout.addStretch()
+            main_layout.addStretch(1)
 
             card = QFrame()
+            card.setObjectName("userCard")
+            card.setMaximumWidth(620)
+            card.setMinimumWidth(80)
+            card.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
             card.setStyleSheet(
-                f"QFrame {{ background-color: {DesignTokens.SURFACE_2}; border: none; border-radius: 16px; border-top-right-radius: 4px; }}"
+                f"#userCard {{ background: transparent; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; border-radius: 16px; border-top-right-radius: 4px; }}"
+                f"#userCard QLabel {{ border: none; background: transparent; }}"
             )
             card_layout = QVBoxLayout(card)
             card_layout.setContentsMargins(14, 10, 14, 10)
-            card_layout.setSpacing(4)
+            card_layout.setSpacing(6)
 
             time_lbl = QLabel(self.msg.timestamp)
             time_lbl.setAlignment(Qt.AlignmentFlag.AlignRight)
             time_lbl.setStyleSheet(f"color: {DesignTokens.TEXT_MUTED}; font-size: 10px;")
-
-            text_lbl = QLabel(self.msg.text)
-            text_lbl.setWordWrap(True)
-            text_lbl.setStyleSheet(f"color: {DesignTokens.TEXT_MAIN}; font-size: 14px; line-height: 1.4;")
-
             card_layout.addWidget(time_lbl)
-            card_layout.addWidget(text_lbl)
 
-            avatar_lbl = QLabel()
-            avatar_lbl.setPixmap(create_vector_icon("user", "#96D7E9", 32).pixmap(32, 32))
-            avatar_lbl.setFixedSize(32, 32)
+            raw_text = self.msg.text
+            if raw_text.startswith("📎 ["):
+                self._render_user_attachment_card(card_layout, raw_text)
+            else:
+                text_lbl = QLabel(raw_text)
+                text_lbl.setWordWrap(True)
+                text_lbl.setStyleSheet(f"color: {DesignTokens.TEXT_MAIN}; font-size: 14px; line-height: 1.45;")
+                card_layout.addWidget(text_lbl)
 
             main_layout.addWidget(card)
-            main_layout.addWidget(avatar_lbl, alignment=Qt.AlignmentFlag.AlignTop)
 
         else:
             avatar_lbl = QLabel()
-            avatar_lbl.setPixmap(get_pop_logo_pixmap(32))
+            avatar_lbl.setPixmap(get_pop_logo_pixmap(28))
             avatar_lbl.setFixedSize(32, 32)
+            avatar_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            avatar_lbl.setStyleSheet(f"background: transparent; border-radius: 16px; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT};")
 
             card = QFrame()
+            card.setObjectName("botCard")
+            card.setMaximumWidth(760)
+            card.setMinimumWidth(100)
+            card.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
             card.setStyleSheet(
-                f"QFrame {{ background-color: {DesignTokens.SURFACE_1}; border: none; border-radius: 16px; border-top-left-radius: 4px; }}"
+                f"#botCard {{ background: transparent; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; border-radius: 16px; border-top-left-radius: 4px; }}"
+                f"#botCard QLabel {{ border: none; background: transparent; }}"
             )
             card_layout = QVBoxLayout(card)
             card_layout.setContentsMargins(16, 12, 16, 12)
@@ -241,11 +252,11 @@ class MessageBubbleWidget(QWidget):
             ]
             for act_id, tooltip in actions:
                 btn = QPushButton()
-                btn.setIcon(create_vector_icon(act_id, "#557088", 16))
+                btn.setIcon(create_vector_icon(act_id, DesignTokens.TEXT_MUTED, 15))
                 btn.setFixedSize(26, 26)
                 btn.setToolTip(tooltip)
                 btn.setCursor(Qt.CursorShape.PointingHandCursor)
-                btn.setStyleSheet("QPushButton { border: none; background: transparent; } QPushButton:hover { background: rgba(0,255,255,0.12); border-radius: 4px; }")
+                btn.setStyleSheet(f"QPushButton {{ border: none; background: transparent; }} QPushButton:hover {{ background: rgba(0, 229, 255, 0.12); border-radius: 6px; }}")
                 
                 def _handle_action(a=act_id):
                     if a == "copy":
@@ -264,7 +275,123 @@ class MessageBubbleWidget(QWidget):
             card_layout.addLayout(toolbar_layout)
 
             main_layout.addWidget(avatar_lbl, alignment=Qt.AlignmentFlag.AlignTop)
-            main_layout.addWidget(card, stretch=1)
+            main_layout.addWidget(card)
+            main_layout.addStretch(1)
+
+    def _render_user_attachment_card(self, card_layout: QVBoxLayout, raw_text: str):
+        """Render user message containing file attachments with clean cards and prompt."""
+        lines = raw_text.strip().splitlines()
+        header_line = lines[0] if lines else ""
+
+        file_names = []
+        if ":" in header_line:
+            files_part = header_line.split(":", 1)[1].rstrip("]").strip()
+            file_names = [f.strip() for f in files_part.split(",") if f.strip()]
+
+        prompt_text = ""
+        if "===" in raw_text:
+            last_block = raw_text.split("===")[-1].strip()
+            if last_block.startswith("["):
+                last_block = last_block.split("]", 1)[-1].strip()
+            prompt_text = last_block
+        elif "---" in raw_text:
+            prompt_text = raw_text.split("---")[-1].strip()
+
+        if not prompt_text:
+            prompt_text = "Phân tích và tóm tắt nội dung tệp tin."
+
+        # File Pills Container
+        files_widget = QWidget()
+        files_widget.setMinimumWidth(0)
+        files_widget.setStyleSheet("background: transparent; border: none;")
+        files_layout = QHBoxLayout(files_widget)
+        files_layout.setContentsMargins(0, 0, 0, 0)
+        files_layout.setSpacing(6)
+
+        for fname in file_names:
+            pill = QFrame()
+            pill.setMaximumWidth(280)
+            pill.setMinimumWidth(0)
+            pill.setToolTip(fname)
+            pill.setStyleSheet(
+                "QFrame { background: rgba(0, 255, 170, 0.08); border: 1px solid rgba(0, 255, 170, 0.28); border-radius: 8px; padding: 2px 8px; }"
+            )
+            pill_layout = QHBoxLayout(pill)
+            pill_layout.setContentsMargins(4, 2, 4, 2)
+            pill_layout.setSpacing(4)
+
+            ext = fname.split(".")[-1].lower() if "." in fname else ""
+            if ext in ["png", "jpg", "jpeg", "webp", "bmp"]:
+                icon_type = "image"
+                color = "#38BDF8"
+            else:
+                icon_type = "file"
+                color = "#00FFAA"
+
+            f_icon = QLabel()
+            f_icon.setPixmap(create_vector_icon(icon_type, color, 14).pixmap(14, 14))
+            f_icon.setStyleSheet("border: none; background: transparent;")
+            pill_layout.addWidget(f_icon)
+
+            from PyQt6.QtGui import QFontMetrics
+            fm = QFontMetrics(self.font())
+            elided_name = fm.elidedText(fname, Qt.TextElideMode.ElideMiddle, 220)
+            f_lbl = QLabel(elided_name)
+            f_lbl.setToolTip(fname)
+            f_lbl.setStyleSheet("color: #FFFFFF; font-size: 11px; font-weight: 600; border: none; background: transparent;")
+            pill_layout.addWidget(f_lbl)
+
+            files_layout.addWidget(pill)
+
+        files_layout.addStretch()
+        card_layout.addWidget(files_widget)
+
+        # Prompt text
+        prompt_lbl = QLabel(prompt_text)
+        prompt_lbl.setWordWrap(True)
+        prompt_lbl.setStyleSheet(f"color: {DesignTokens.TEXT_MAIN}; font-size: 14px; line-height: 1.45; font-weight: 500;")
+        card_layout.addWidget(prompt_lbl)
+
+        # Collapsible details toggle
+        toggle_btn = QPushButton("▶ Xem chi tiết nội dung tệp đã trích xuất")
+        toggle_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        toggle_btn.setStyleSheet(
+            "QPushButton { border: none; background: transparent; color: #64748B; font-size: 11px; text-align: left; padding: 2px 0; } "
+            "QPushButton:hover { color: #00FFAA; }"
+        )
+
+        content_box = QTextEdit()
+        content_box.setReadOnly(True)
+        content_box.setPlainText(raw_text)
+        content_box.setMaximumHeight(160)
+        content_box.setStyleSheet(
+            "QTextEdit { background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; color: #94A3B8; font-size: 11px; padding: 6px; }"
+        )
+        content_box.hide()
+
+        def _toggle():
+            if content_box.isHidden():
+                content_box.show()
+                toggle_btn.setText("▼ Thu gọn nội dung tệp")
+            else:
+                content_box.hide()
+                toggle_btn.setText("▶ Xem chi tiết nội dung tệp đã trích xuất")
+
+        toggle_btn.clicked.connect(_toggle)
+        card_layout.addWidget(toggle_btn)
+        card_layout.addWidget(content_box)
+
+    def animate_fade_in(self):
+        """Smooth subtle fade-in animation for newly appended message bubbles."""
+        from PyQt6.QtCore import QPropertyAnimation
+        op = QGraphicsOpacityEffect(self)
+        self.setGraphicsEffect(op)
+        self._fade_anim = QPropertyAnimation(op, b"opacity")
+        self._fade_anim.setDuration(220)
+        self._fade_anim.setStartValue(0.0)
+        self._fade_anim.setEndValue(1.0)
+        self._fade_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._fade_anim.start()
 
 
 class ChatAreaWidget(QWidget):
@@ -278,6 +405,7 @@ class ChatAreaWidget(QWidget):
     toggleRightPanel = pyqtSignal()
     windowMinimize = pyqtSignal()
     windowMaximize = pyqtSignal()
+    windowHideToMascot = pyqtSignal()
     windowClose = pyqtSignal()
     executeToolRequested = pyqtSignal(str, dict)
 
@@ -291,6 +419,9 @@ class ChatAreaWidget(QWidget):
         self.drop_anim = None
         self._setup_ui()
 
+    def minimumSizeHint(self):
+        return QSize(280, 200)
+
     def _setup_ui(self):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
@@ -300,45 +431,77 @@ class ChatAreaWidget(QWidget):
         # 1. TOP HEADER BAR
         # ----------------------------------------------------
         self.header_bar = QFrame()
-        self.header_bar.setFixedHeight(54)
+        self.header_bar.setFixedHeight(50)
         self.header_bar.setStyleSheet("QFrame { background-color: transparent; border: none; }")
         hb_layout = QHBoxLayout(self.header_bar)
-        hb_layout.setContentsMargins(16, 8, 16, 8)
-        hb_layout.setSpacing(12)
+        hb_layout.setContentsMargins(16, 6, 16, 6)
+        hb_layout.setSpacing(10)
 
         self.panel_btn = QPushButton()
-        self.panel_btn.setIcon(create_vector_icon("panel_toggle", "#96D7E9", 18))
+        self.panel_btn.setIcon(create_vector_icon("panel_toggle", DesignTokens.TEXT_SECONDARY, 18))
         self.panel_btn.setFixedSize(32, 32)
         self.panel_btn.setToolTip("Bật/tắt bảng giám sát hệ thống")
-        self.panel_btn.setStyleSheet("QPushButton { border: none; background: transparent; } QPushButton:hover { background: rgba(255,255,255,0.08); border-radius: 8px; }")
+        self.panel_btn.setStyleSheet(f"QPushButton {{ border: none; background: transparent; padding: 0px; }} QPushButton:hover {{ background: rgba(0, 229, 255, 0.1); border-radius: 8px; }}")
         self.panel_btn.clicked.connect(lambda: self.toggleRightPanel.emit())
 
         self.settings_btn = QPushButton()
-        self.settings_btn.setIcon(create_vector_icon("settings", "#96D7E9", 18))
+        self.settings_btn.setIcon(create_vector_icon("settings", DesignTokens.TEXT_SECONDARY, 18))
         self.settings_btn.setFixedSize(32, 32)
         self.settings_btn.setToolTip("Cài đặt")
-        self.settings_btn.setStyleSheet("QPushButton { border: none; background: transparent; } QPushButton:hover { background: rgba(255,255,255,0.08); border-radius: 8px; }")
+        self.settings_btn.setStyleSheet("QPushButton { border: none; background: transparent; padding: 0px; } QPushButton:hover { background: rgba(255, 255, 255, 0.08); border-radius: 8px; }")
         self.settings_btn.clicked.connect(lambda: self.openSettings.emit())
 
         win_controls = QHBoxLayout()
         win_controls.setSpacing(4)
 
-        self.min_btn = QPushButton("─")
+        btn_style = (
+            "QPushButton { border: none; background: transparent; padding: 0px; border-radius: 6px; } "
+            "QPushButton:hover { background: rgba(255, 255, 255, 0.08); }"
+        )
+
+        # 1. Nút Ẩn xuống Mini Mascot (Hiện linh vật nổi mini)
+        self.mascot_btn = QPushButton()
+        self.mascot_btn.setIcon(create_vector_icon("mini_mascot", DesignTokens.CYAN_ACCENT, 14))
+        self.mascot_btn.setFixedSize(28, 28)
+        self.mascot_btn.setToolTip("Ẩn xuống để hiện Linh vật Mini Mascot")
+        self.mascot_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.mascot_btn.setStyleSheet(
+            "QPushButton { border: none; background: transparent; padding: 0px; border-radius: 6px; } "
+            f"QPushButton:hover {{ background: rgba(0, 255, 170, 0.15); }}"
+        )
+        self.mascot_btn.clicked.connect(lambda: self.windowHideToMascot.emit())
+
+        # 2. Nút Thu nhỏ cửa sổ xuống Taskbar
+        self.min_btn = QPushButton()
+        self.min_btn.setIcon(create_vector_icon("minimize", DesignTokens.TEXT_SECONDARY, 12))
         self.min_btn.setFixedSize(28, 28)
-        self.min_btn.setStyleSheet("QPushButton { border: none; color: #96D7E9; font-weight: bold; } QPushButton:hover { background: rgba(255,255,255,0.1); border-radius: 4px; }")
+        self.min_btn.setToolTip("Thu nhỏ cửa sổ")
+        self.min_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.min_btn.setStyleSheet(btn_style)
         self.min_btn.clicked.connect(lambda: self.windowMinimize.emit())
 
-        self.max_btn = QPushButton("□")
+        # 3. Nút Phóng to / Thu nhỏ kích thước
+        self.max_btn = QPushButton()
+        self.max_btn.setIcon(create_vector_icon("maximize", DesignTokens.TEXT_SECONDARY, 12))
         self.max_btn.setFixedSize(28, 28)
-        self.max_btn.setStyleSheet("QPushButton { border: none; color: #96D7E9; font-weight: bold; } QPushButton:hover { background: rgba(255,255,255,0.1); border-radius: 4px; }")
+        self.max_btn.setToolTip("Phóng to / Khôi phục kích thước")
+        self.max_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.max_btn.setStyleSheet(btn_style)
         self.max_btn.clicked.connect(lambda: self.windowMaximize.emit())
 
+        # 4. Nút Đóng
         self.close_btn = QPushButton()
-        self.close_btn.setIcon(create_vector_icon("close", "#FF4B6E", 12))
+        self.close_btn.setIcon(create_vector_icon("close", DesignTokens.CORAL_ACCENT, 12))
         self.close_btn.setFixedSize(28, 28)
-        self.close_btn.setStyleSheet("QPushButton { border: none; } QPushButton:hover { background: rgba(255,75,110,0.25); border-radius: 4px; }")
+        self.close_btn.setToolTip("Đóng")
+        self.close_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.close_btn.setStyleSheet(
+            "QPushButton { border: none; background: transparent; padding: 0px; border-radius: 6px; } "
+            "QPushButton:hover { background: rgba(244, 63, 94, 0.22); }"
+        )
         self.close_btn.clicked.connect(lambda: self.windowClose.emit())
 
+        win_controls.addWidget(self.mascot_btn)
         win_controls.addWidget(self.min_btn)
         win_controls.addWidget(self.max_btn)
         win_controls.addWidget(self.close_btn)
@@ -350,21 +513,20 @@ class ChatAreaWidget(QWidget):
 
         main_layout.addWidget(self.header_bar)
 
-        # ----------------------------------------------------
-        # 2. MESSAGES SCROLL AREA
-        # ----------------------------------------------------
-        self.scroll = QScrollArea()
-        self.scroll.setWidgetResizable(True)
-        self.scroll.setFrameShape(QFrame.Shape.NoFrame)
-        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        # Page 0: MESSAGES SCROLL AREA
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         self.messages_container = QWidget()
+        self.messages_container.setMinimumWidth(0)
         self.messages_layout = QVBoxLayout(self.messages_container)
-        self.messages_layout.setContentsMargins(20, 16, 20, 16)
-        self.messages_layout.setSpacing(16)
+        self.messages_layout.setContentsMargins(16, 12, 16, 12)
+        self.messages_layout.setSpacing(14)
 
-        self.scroll.setWidget(self.messages_container)
-        main_layout.addWidget(self.scroll, stretch=1)
+        self.scroll_area.setWidget(self.messages_container)
+        main_layout.addWidget(self.scroll_area, stretch=1)
 
         self.thinking_widget = ThinkingIndicatorWidget()
         self.thinking_widget.hide()
@@ -409,14 +571,15 @@ class ChatAreaWidget(QWidget):
     def _update_greeting_text(self, opacity: float = 1.0):
         name = self.user_name if self.user_name and self.user_name != "bạn" else "bạn"
         a = max(0.0, min(1.0, float(opacity)))
-        c_cyan = f"rgba(150, 215, 233, {a:.2f})"
+        c_blue = f"rgba(0, 142, 255, {a:.2f})"
         c_green = f"rgba(0, 255, 170, {a:.2f})"
-        c_muted = f"rgba(126, 155, 180, {a:.2f})"
+        c_muted = f"rgba(148, 163, 184, {a:.2f})"
+        font_family = DesignTokens.FONT_FAMILY
         html = (
-            f"<div style='text-align: center; white-space: nowrap;'>"
-            f"<span style='font-size: 24px; font-weight: 700; color: {c_cyan};'>Xin chào, </span>"
-            f"<span style='font-size: 24px; font-weight: 700; color: {c_green};'>{name}</span>"
-            f"<span style='font-size: 22px; font-weight: 400; color: {c_muted};'>! Tôi có thể giúp gì cho bạn hôm nay?</span>"
+            f"<div style='text-align: center; white-space: nowrap; font-family: {font_family};'>"
+            f"<span style='font-size: 26px; font-weight: 700; letter-spacing: -0.4px; color: {c_blue};'>Xin chào, </span>"
+            f"<span style='font-size: 26px; font-weight: 700; letter-spacing: -0.4px; color: {c_green};'>{name}</span>"
+            f"<span style='font-size: 23px; font-weight: 400; letter-spacing: -0.2px; color: {c_muted};'>! Tôi có thể giúp gì cho bạn hôm nay?</span>"
             f"</div>"
         )
         self.greeting_label.setText(html)
@@ -471,7 +634,7 @@ class ChatAreaWidget(QWidget):
         initial_top_h = self.top_spacer.height()
 
         self.drop_anim = QVariantAnimation(self)
-        self.drop_anim.setDuration(400)
+        self.drop_anim.setDuration(350)
         self.drop_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
         self.drop_anim.setStartValue(0.0)
         self.drop_anim.setEndValue(1.0)
@@ -505,7 +668,7 @@ class ChatAreaWidget(QWidget):
         self.top_spacer.hide()
         self.greeting_label.hide()
         self.bottom_spacer.hide()
-        self.scroll.show()
+        self.scroll_area.show()
         self.scroll_to_bottom()
 
     def _reset_to_centered_state(self):
@@ -513,7 +676,7 @@ class ChatAreaWidget(QWidget):
             self.drop_anim.stop()
         self._is_animating = False
         self._is_centered = True
-        self.scroll.hide()
+        self.scroll_area.hide()
         self.top_spacer.show()
         self._update_greeting_text(1.0)
         self.greeting_label.show()
@@ -524,8 +687,10 @@ class ChatAreaWidget(QWidget):
         """Render all messages from a conversation session."""
         while self.messages_layout.count():
             item = self.messages_layout.takeAt(0)
-            if item.widget() and item.widget() != self.thinking_widget:
-                item.widget().deleteLater()
+            if item:
+                w = item.widget()
+                if w and w != self.thinking_widget:
+                    w.deleteLater()
 
         for msg in session.messages:
             bw = MessageBubbleWidget(msg)
@@ -550,6 +715,7 @@ class ChatAreaWidget(QWidget):
             self.messages_layout.insertWidget(idx, bw)
         else:
             self.messages_layout.addWidget(bw)
+        bw.animate_fade_in()
         self.scroll_to_bottom()
 
     def append_confirmation_card(self, title: str, summary: str, tool_name: str, tool_args: dict):
@@ -590,6 +756,7 @@ class ChatAreaWidget(QWidget):
         self.scroll_to_bottom()
 
     def scroll_to_bottom(self):
-        sb = self.scroll.verticalScrollBar()
-        sb.setValue(sb.maximum())
-        QTimer.singleShot(0, lambda: sb.setValue(sb.maximum()))
+        sb = self.scroll_area.verticalScrollBar()
+        if sb:
+            sb.setValue(sb.maximum())
+            QTimer.singleShot(0, lambda: sb.setValue(sb.maximum()))

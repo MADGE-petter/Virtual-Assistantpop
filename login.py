@@ -42,19 +42,18 @@ def main():
         except Exception as e:
             print(f"[Login] Could not set icon: {e}")
 
-        from service.login_service import LoginService
-        from view.login.login_view import LoginView
+        # Load embedded modern typography (Plus Jakarta Sans)
+        from view.ui.styles import init_fonts
+        init_fonts()
 
-        # Tạo Service ở Controller level
-        print("[Login] Creating LoginService...")
-        login_service = LoginService()
-        
-        # Khởi tạo LoginView trực tiếp
-        login_window = LoginView(login_service)
+        from controller.login_controller import LoginController
+
+        print("[Login] Initializing LoginController (MVC)...")
+        login_controller = LoginController()
         main_window = None  # Khai báo để nonlocal hoạt động
         
         def on_logout():
-            nonlocal main_window, login_window
+            nonlocal main_window, login_controller
             print("[Login] Đăng xuất thành công - Đang mở lại cửa sổ đăng nhập...")
             if main_window:
                 if hasattr(main_window, 'mini_mascot') and main_window.mini_mascot:
@@ -64,21 +63,19 @@ def main():
                 main_window.close()
                 main_window = None
 
-            login_window = LoginView(login_service)
-            login_window.login_success.connect(on_login_success)
-            login_window.exit_requested.connect(app.quit)
-            login_window.show()
-            login_window.raise_()
-            login_window.activateWindow()
+            login_controller = LoginController()
+            login_controller.login_success.connect(on_login_success)
+            login_controller.exit_requested.connect(app.quit)
+            login_controller.show()
 
         def on_login_success(username):
-            nonlocal main_window, login_window
+            nonlocal main_window, login_controller
             print(f"Login successful: {username}")
 
             # Đóng login window NGAY LẬP TỨC
-            if login_window:
-                login_window.hide()
-                login_window.close()
+            if login_controller:
+                login_controller.hide()
+                login_controller.close()
             app.processEvents()
 
             # Gọi Pop View (Main Window) khi đăng nhập thành công
@@ -108,11 +105,10 @@ def main():
 
             QTimer.singleShot(0, _init_main_window)
 
-        login_window.login_success.connect(on_login_success)
-        login_window.exit_requested.connect(app.quit)
+        login_controller.login_success.connect(on_login_success)
+        login_controller.exit_requested.connect(app.quit)
         
-        # Auto login data is now handled by LoginView to pre-fill inputs
-        login_window.show()
+        login_controller.show()
         print("[Login] Login window shown, starting event loop...")
         
         # Run the application

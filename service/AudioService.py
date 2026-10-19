@@ -77,7 +77,11 @@ class AudioService:
         self.last_speak_end_time = 0
         
         # Models directory
-        self.models_dir = os.path.join(os.path.dirname(__file__), "..", "voice-models")
+        try:
+            from utils.paths import resource_path
+            self.models_dir = resource_path("voice-models")
+        except Exception:
+            self.models_dir = os.path.join(os.path.dirname(__file__), "..", "voice-models")
         self.asr_model_dir = os.path.join(self.models_dir, self.ASR_MODEL_CONFIG["name"])
         self.tts_model_dir = os.path.join(self.models_dir, self.TTS_MODEL_CONFIG["name"])
         
@@ -254,7 +258,7 @@ class AudioService:
     
     # ==================== SPEAK (TTS) ====================
     
-    def speak(self, text: str, update_ui: bool = True, speaker: str = None) -> bool:
+    def speak(self, text: str, update_ui: bool = True, speaker: Optional[str] = None) -> bool:
         """Synthesize and play speech using sherpa-onnx Piper TTS."""
         # Piper TTS doesn't support multiple speakers, ignore speaker parameter
         threading.Thread(

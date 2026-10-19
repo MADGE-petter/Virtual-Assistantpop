@@ -107,14 +107,35 @@ def create_vector_icon(icon_type: str, color_hex: str = "#96D7E9", size: int = 2
     painter = QPainter(pix)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
-    color = QColor(color_hex)
-    pen = QPen(color, 2, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
+    if color_hex == "gradient":
+        gradient = QLinearGradient(0, 0, size, size)
+        gradient.setColorAt(0.0, QColor("#008EFF"))  # Xanh dương (Electric Blue)
+        gradient.setColorAt(1.0, QColor("#00FFAA"))  # Xanh lá (Emerald Green)
+        pen = QPen(QBrush(gradient), 2, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
+        color = QColor("#008EFF")
+    else:
+        gradient = None
+        color = QColor(color_hex)
+        pen = QPen(color, 2, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
     painter.setPen(pen)
 
     s = size
     pad = s * 0.2
 
-    if icon_type == "search":
+    if icon_type in ("message", "chat", "conversation"):
+        # Modern rounded chat bubble
+        mw = s * 0.62
+        mh = s * 0.48
+        mx = (s - mw) / 2
+        my = (s - mh) / 2 - 1.5
+        path = QPainterPath()
+        path.addRoundedRect(QRectF(mx, my, mw, mh), 3.5, 3.5)
+        path.moveTo(mx + mw * 0.22, my + mh)
+        path.lineTo(mx + mw * 0.12, my + mh + s * 0.14)
+        path.lineTo(mx + mw * 0.44, my + mh)
+        painter.drawPath(path)
+
+    elif icon_type == "search":
         # Search magnifying glass
         r = s * 0.28
         cx, cy = s * 0.4, s * 0.4
@@ -137,14 +158,18 @@ def create_vector_icon(icon_type: str, color_hex: str = "#96D7E9", size: int = 2
         painter.drawLine(QPointF(s * 0.5, pad), QPointF(s * 0.5, s - pad))
         painter.drawLine(QPointF(pad, s * 0.5), QPointF(s - pad, s * 0.5))
 
-    elif icon_type == "attachment":
-        # Paperclip icon
+    elif icon_type in ("attachment", "paperclip"):
+        # Classic sleek paperclip
         path = QPainterPath()
-        path.moveTo(s * 0.65, s * 0.3)
-        path.lineTo(s * 0.4, s * 0.6)
-        path.cubicTo(s * 0.3, s * 0.7, s * 0.3, s * 0.85, s * 0.45, s * 0.85)
-        path.cubicTo(s * 0.6, s * 0.85, s * 0.75, s * 0.7, s * 0.75, s * 0.5)
-        path.lineTo(s * 0.5, s * 0.2)
+        path.moveTo(s * 0.40, s * 0.74)
+        path.lineTo(s * 0.66, s * 0.48)
+        path.arcTo(QRectF(s * 0.58, s * 0.32, s * 0.24, s * 0.24), 45, 180)
+        path.lineTo(s * 0.32, s * 0.62)
+        path.arcTo(QRectF(s * 0.18, s * 0.54, s * 0.28, s * 0.28), 225, 180)
+        path.lineTo(s * 0.60, s * 0.34)
+        path.arcTo(QRectF(s * 0.52, s * 0.18, s * 0.20, s * 0.20), 45, 180)
+        path.lineTo(s * 0.42, s * 0.44)
+        painter.setPen(QPen(color, 1.8, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
         painter.drawPath(path)
 
     elif icon_type == "mic":
@@ -159,10 +184,35 @@ def create_vector_icon(icon_type: str, color_hex: str = "#96D7E9", size: int = 2
         painter.drawLine(QPointF(cx, cy + s * 0.28), QPointF(cx, cy + s * 0.4))
 
     elif icon_type == "send":
-        # Up arrow / Send
-        painter.drawLine(QPointF(s * 0.5, s * 0.75), QPointF(s * 0.5, s * 0.25))
-        painter.drawLine(QPointF(s * 0.28, s * 0.45), QPointF(s * 0.5, s * 0.25))
-        painter.drawLine(QPointF(s * 0.72, s * 0.45), QPointF(s * 0.5, s * 0.25))
+        # Top-down horizontal paper airplane in pure white
+        # Upper wing
+        path_upper = QPainterPath()
+        path_upper.moveTo(s * 0.88, s * 0.5)
+        path_upper.lineTo(s * 0.16, s * 0.22)
+        path_upper.lineTo(s * 0.38, s * 0.5)
+        path_upper.closeSubpath()
+
+        # Lower wing
+        path_lower = QPainterPath()
+        path_lower.moveTo(s * 0.88, s * 0.5)
+        path_lower.lineTo(s * 0.38, s * 0.5)
+        path_lower.lineTo(s * 0.16, s * 0.78)
+        path_lower.closeSubpath()
+
+        # Pure white outline
+        painter.setPen(QPen(QColor(255, 255, 255, 255), 1.2, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
+
+        # Upper wing: bright pure white
+        painter.setBrush(QBrush(QColor(255, 255, 255, 255)))
+        painter.drawPath(path_upper)
+
+        # Lower wing: soft silver-white tone for 3D paper fold realism
+        painter.setBrush(QBrush(QColor(220, 230, 242, 245)))
+        painter.drawPath(path_lower)
+
+        # Center spine fold crease
+        painter.setPen(QPen(QColor(160, 175, 195, 255), 1.0, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+        painter.drawLine(QPointF(s * 0.38, s * 0.5), QPointF(s * 0.88, s * 0.5))
 
     elif icon_type == "settings":
         # Gear icon
@@ -235,7 +285,7 @@ def create_vector_icon(icon_type: str, color_hex: str = "#96D7E9", size: int = 2
 
     elif icon_type == "dots":
         # 3 dots menu
-        painter.setBrush(QBrush(color))
+        painter.setBrush(QBrush(gradient if gradient else color))
         painter.setPen(Qt.PenStyle.NoPen)
         r = s * 0.07
         painter.drawEllipse(QPointF(s * 0.5, s * 0.3), r, r)
@@ -281,7 +331,17 @@ def create_vector_icon(icon_type: str, color_hex: str = "#96D7E9", size: int = 2
         path.closeSubpath()
         painter.drawPath(path)
         painter.drawLine(QPointF(s * 0.65, pad), QPointF(s * 0.65, s * 0.35))
-        painter.drawLine(QPointF(s * 0.65, s * 0.35), QPointF(s - pad, s * 0.35))
+    elif icon_type in ("image", "photo", "picture"):
+        # Picture frame with mountain and sun
+        painter.drawRoundedRect(QRectF(pad, pad, s - 2 * pad, s - 2 * pad), 3, 3)
+        painter.drawEllipse(QPointF(s * 0.35, s * 0.38), s * 0.08, s * 0.08)
+        m_path = QPainterPath()
+        m_path.moveTo(pad, s * 0.72)
+        m_path.lineTo(s * 0.42, s * 0.48)
+        m_path.lineTo(s * 0.62, s * 0.65)
+        m_path.lineTo(s * 0.75, s * 0.54)
+        m_path.lineTo(s - pad, s * 0.72)
+        painter.drawPath(m_path)
 
     elif icon_type in ("monitor", "display", "about"):
         # Desktop monitor screen
@@ -329,6 +389,25 @@ def create_vector_icon(icon_type: str, color_hex: str = "#96D7E9", size: int = 2
         # Cross / X icon
         painter.drawLine(QPointF(pad, pad), QPointF(s - pad, s - pad))
         painter.drawLine(QPointF(s - pad, pad), QPointF(pad, s - pad))
+
+    elif icon_type == "minimize":
+        # Crisp horizontal bar
+        painter.drawLine(QPointF(pad, s * 0.5), QPointF(s - pad, s * 0.5))
+
+    elif icon_type == "maximize":
+        # Square
+        painter.drawRect(QRectF(pad, pad, s - 2 * pad, s - 2 * pad))
+
+    elif icon_type == "restore":
+        # Overlapping squares
+        painter.drawRect(QRectF(s * 0.35, pad, s * 0.52, s * 0.52))
+        painter.drawRect(QRectF(pad, s * 0.35, s * 0.52, s * 0.52))
+
+    elif icon_type in ("mini_mascot", "pip", "float", "mascot"):
+        # Pip / Mini mascot floating badge icon
+        painter.drawRoundedRect(QRectF(pad, pad, s - 2 * pad, s - 2 * pad), 3, 3)
+        painter.setBrush(QBrush(gradient if gradient else color))
+        painter.drawEllipse(QRectF(s * 0.44, s * 0.44, s * 0.38, s * 0.38))
 
     painter.end()
     return QIcon(pix)

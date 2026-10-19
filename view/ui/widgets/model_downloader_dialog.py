@@ -174,17 +174,17 @@ class ModelDownloaderDialog(QDialog):
         main_layout.addWidget(self.status_lbl)
 
         # Scroll Area with Card List
-        self.scroll = QScrollArea()
-        self.scroll.setWidgetResizable(True)
-        self.scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
 
         self.card_container = QWidget()
         self.card_layout = QVBoxLayout(self.card_container)
         self.card_layout.setContentsMargins(0, 0, 0, 0)
         self.card_layout.setSpacing(10)
 
-        self.scroll.setWidget(self.card_container)
-        main_layout.addWidget(self.scroll, stretch=1)
+        self.scroll_area.setWidget(self.card_container)
+        main_layout.addWidget(self.scroll_area, stretch=1)
 
         # Download Manager Footer
         self.progress_container = QFrame()
@@ -232,8 +232,10 @@ class ModelDownloaderDialog(QDialog):
         # Clear cards
         while self.card_layout.count():
             item = self.card_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+            if item:
+                w = item.widget()
+                if w:
+                    w.deleteLater()
 
         self.search_btn.setEnabled(False)
         self.search_thread = HFSearchThread(query, self)
@@ -247,8 +249,10 @@ class ModelDownloaderDialog(QDialog):
         # Clear cards
         while self.card_layout.count():
             item = self.card_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+            if item:
+                w = item.widget()
+                if w:
+                    w.deleteLater()
 
         if not models:
             self.status_lbl.setText("Không tìm thấy mô hình GGUF nào phù hợp.")

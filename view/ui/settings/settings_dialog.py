@@ -54,8 +54,8 @@ class SettingsDialog(QDialog):
         self.container_box = QFrame()
         self.container_box.setStyleSheet(
             f"QFrame#container_box {{"
-            f"  background-color: rgba(10, 14, 26, 0.90);"
-            f"  border: 1px solid rgba(0, 255, 170, 0.25);"
+            f"  background-color: {DesignTokens.BG_BASE};"
+            f"  border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT};"
             f"  border-radius: 16px;"
             f"}}"
         )
@@ -125,10 +125,10 @@ class SettingsDialog(QDialog):
         self.nav_list = QListWidget()
         self.nav_list.setStyleSheet(
             f"QListWidget {{ background: transparent; border: none; font-size: 13px; outline: none; }}"
-            f"QListWidget::item {{ padding: 11px 14px; border-radius: 10px; margin-bottom: 5px; color: {DesignTokens.TEXT_MAIN}; }}"
-            f"QListWidget::item:hover {{ background: rgba(0, 255, 170, 0.08); color: {DesignTokens.CYAN}; }}"
-            f"QListWidget::item:selected {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 rgba(0, 255, 170, 0.2), stop:1 rgba(0, 142, 255, 0.2)); "
-            f"color: {DesignTokens.CYAN_ACCENT}; font-weight: bold; border-left: 3px solid {DesignTokens.CYAN_ACCENT}; }}"
+            f"QListWidget::item {{ padding: 11px 14px; border-radius: 10px; margin-bottom: 5px; color: {DesignTokens.TEXT_MAIN}; border: 1px solid transparent; }}"
+            f"QListWidget::item:hover {{ background: rgba(255, 255, 255, 0.03); border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; color: {DesignTokens.CYAN}; }}"
+            f"QListWidget::item:selected {{ background: transparent; "
+            f"color: {DesignTokens.CYAN_ACCENT}; font-weight: bold; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; border-left: 3px solid {DesignTokens.CYAN_ACCENT}; }}"
         )
 
         nav_items = [
@@ -143,7 +143,7 @@ class SettingsDialog(QDialog):
         from PyQt6.QtCore import QSize
         self.nav_list.setIconSize(QSize(18, 18))
         for icon_key, item_text in nav_items:
-            icon = create_vector_icon(icon_key, "#E6F4FF", 18)
+            icon = create_vector_icon(icon_key, "gradient", 18)
             self.nav_list.addItem(QListWidgetItem(icon, f"  {item_text}"))
 
         self.nav_list.currentRowChanged.connect(self._on_tab_changed)

@@ -10,6 +10,7 @@ import random
 
 class VoiceState(str, Enum):
     READY = "READY"
+    IDLE = "READY"  # Alias for backward compatibility
     LISTENING = "LISTENING"
     THINKING = "THINKING"
     SPEAKING = "SPEAKING"

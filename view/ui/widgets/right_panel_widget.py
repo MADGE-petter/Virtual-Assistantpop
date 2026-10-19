@@ -49,7 +49,6 @@ class AudioWaveformWidget(QWidget):
 
         gradient = QLinearGradient(0, h, 0, 0)
         gradient.setColorAt(0.0, QColor(0, 142, 255))
-        gradient.setColorAt(0.6, QColor(0, 255, 255))
         gradient.setColorAt(1.0, QColor(0, 255, 170))
 
         painter.setBrush(QBrush(gradient))
@@ -77,14 +76,14 @@ class MetricBarWidget(QWidget):
 
         self.name_lbl = QLabel(self.label_str)
         self.name_lbl.setFixedWidth(45)
-        self.name_lbl.setStyleSheet(f"color: {DesignTokens.TEXT_SECONDARY}; font-size: 11px; font-weight: 500;")
+        self.name_lbl.setStyleSheet(f"color: {DesignTokens.TEXT_SECONDARY}; font-size: 11px; font-weight: 600;")
 
         self.progress = QProgressBar()
-        self.progress.setFixedHeight(8)
+        self.progress.setFixedHeight(7)
         self.progress.setTextVisible(False)
         self.progress.setStyleSheet(
-            f"QProgressBar {{ background-color: {DesignTokens.SURFACE_3}; border: none; border-radius: 4px; }}"
-            f"QProgressBar::chunk {{ background-color: {DesignTokens.TEXT_SECONDARY}; border-radius: 4px; }}"
+            f"QProgressBar {{ background-color: rgba(255, 255, 255, 0.06); border: none; border-radius: 3px; }}"
+            f"QProgressBar::chunk {{ background: {DesignTokens.GRADIENT_BLUE_GREEN}; border-radius: 3px; }}"
         )
 
         self.val_lbl = QLabel("0%")
@@ -109,8 +108,9 @@ class RightPanelWidget(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setMinimumWidth(260)
+        self.setMinimumWidth(0)
         self.setMaximumWidth(260)
+        self.setFixedWidth(260)
         self.setObjectName("rightPanel")
 
         self.voice_model = VoiceStateModel()
@@ -133,14 +133,19 @@ class RightPanelWidget(QWidget):
 
     def _setup_ui(self):
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(12, 14, 12, 14)
-        main_layout.setSpacing(14)
+        main_layout.setContentsMargins(12, 12, 12, 12)
+        main_layout.setSpacing(12)
 
         # ----------------------------------------------------
         # 13. VOICE STATUS & VISUALIZER CARD
         # ----------------------------------------------------
         voice_card = QFrame()
-        voice_card.setStyleSheet(f"QFrame {{ background-color: {DesignTokens.SURFACE_1}; border: none; border-radius: 12px; }}")
+        voice_card.setObjectName("voiceCard")
+        voice_card.setStyleSheet(
+            f"#voiceCard {{ background: transparent; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; border-radius: 14px; }}"
+            f"#voiceCard:hover {{ background: rgba(255, 255, 255, 0.03); border-color: {DesignTokens.BORDER_GRADIENT_HOVER}; }}"
+            f"#voiceCard QLabel {{ border: none; background: transparent; }}"
+        )
         vc_layout = QVBoxLayout(voice_card)
         vc_layout.setContentsMargins(12, 10, 12, 10)
         vc_layout.setSpacing(8)
@@ -175,7 +180,12 @@ class RightPanelWidget(QWidget):
         # 14. SYSTEM MONITOR CARD
         # ----------------------------------------------------
         sys_card = QFrame()
-        sys_card.setStyleSheet(f"QFrame {{ background-color: {DesignTokens.SURFACE_1}; border: none; border-radius: 12px; }}")
+        sys_card.setObjectName("sysCard")
+        sys_card.setStyleSheet(
+            f"#sysCard {{ background: transparent; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; border-radius: 14px; }}"
+            f"#sysCard:hover {{ background: rgba(255, 255, 255, 0.03); border-color: {DesignTokens.BORDER_GRADIENT_HOVER}; }}"
+            f"#sysCard QLabel {{ border: none; background: transparent; }}"
+        )
         sc_layout = QVBoxLayout(sys_card)
         sc_layout.setContentsMargins(12, 10, 12, 10)
         sc_layout.setSpacing(6)
@@ -185,18 +195,10 @@ class RightPanelWidget(QWidget):
         sc_layout.addWidget(sc_title)
 
         self.cpu_bar = MetricBarWidget("CPU")
-        self.cpu_bar.progress.setStyleSheet(
-            f"QProgressBar {{ background-color: {DesignTokens.SURFACE_3}; border: none; border-radius: 4px; }}"
-            f"QProgressBar::chunk {{ background-color: {DesignTokens.TEXT_SECONDARY}; border-radius: 4px; }}"
-        )
         self.ram_bar = MetricBarWidget("RAM")
-        self.ram_bar.progress.setStyleSheet(self.cpu_bar.progress.styleSheet())
         self.gpu_bar = MetricBarWidget("GPU")
-        self.gpu_bar.progress.setStyleSheet(self.cpu_bar.progress.styleSheet())
         self.vram_bar = MetricBarWidget("VRAM")
-        self.vram_bar.progress.setStyleSheet(self.cpu_bar.progress.styleSheet())
         self.temp_bar = MetricBarWidget("TEMP")
-        self.temp_bar.progress.setStyleSheet(self.cpu_bar.progress.styleSheet())
 
         sc_layout.addWidget(self.cpu_bar)
         sc_layout.addWidget(self.ram_bar)

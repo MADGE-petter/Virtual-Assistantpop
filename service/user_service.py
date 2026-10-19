@@ -1,23 +1,24 @@
-"""User Service - Xử lý user name operations (merged with UserController)."""
-
-
+from typing import Any, Optional, Tuple
 
 
 class UserService:  
+    login_name: str
+    display_name: Optional[str]
+
     def __init__(self, sql_service):
         self.sql_service = sql_service
-        self.login_name = "bạn"
-        self.display_name = None
+        self.login_name: str = "bạn"
+        self.display_name: Optional[str] = None
         self._current_session_id = None
     
-    def set_login_username(self, username):
+    def set_login_username(self, username: str) -> None:
         """Thiết lập username đăng nhập (from UserController)."""
         self.login_name = username
         if username:
             self.display_name = self.get_display_name_by_login(username)
             print(f"[UserService] Loaded user: login={username}, display={self.display_name}")
     
-    def get_login_name(self):
+    def get_login_name(self) -> str:
         """Lấy tên đăng nhập (from UserController)."""
         return self.login_name
     
@@ -41,7 +42,7 @@ class UserService:
         
         return self.login_name
     
-    def get_display_name_by_login(self, login_name):
+    def get_display_name_by_login(self, login_name: str) -> Optional[str]:
         
         try:
             conn = self.sql_service.get_connection()
@@ -63,7 +64,7 @@ class UserService:
             print(f"Error getting display name: {e}")
             return None
     
-    def update_display_name_by_login(self, login_name, display_name):
+    def update_display_name_by_login(self, login_name: str, display_name: str) -> bool:
         
         try:
             conn = self.sql_service.get_connection()
@@ -83,7 +84,7 @@ class UserService:
             print(f"Error updating display name: {e}")
             return False
     
-    def update_user_name(self, new_name, current_session=None):
+    def update_user_name(self, new_name: str, current_session: Any = None) -> tuple:
         
         if not new_name or new_name == "bạn" or new_name == "...":
             return None, None
@@ -99,12 +100,12 @@ class UserService:
                 return old_name, new_name       
         return old_name, None   
         
-    def get_user_name(self):       
+    def get_user_name(self) -> str:       
         return self.display_name if self.display_name else "bạn"
     
-    def get_display_name(self):
+    def get_display_name(self) -> str:
         """Lấy tên hiển thị (from UserController)."""
         return self.get_user_name()
     
-    def is_name_known(self):
-        return self.display_name is not None and self.display_name.strip()
+    def is_name_known(self) -> bool:
+        return bool(self.display_name is not None and self.display_name.strip())

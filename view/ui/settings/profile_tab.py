@@ -57,9 +57,12 @@ class ProfileTabWidget(QWidget):
 
         # Profile Banner Card
         profile_card = QFrame()
+        profile_card.setObjectName("profileCard")
         profile_card.setStyleSheet(
-            f"QFrame {{ background: rgba(16, 22, 31, 0.75); border: 1px solid rgba(255, 255, 255, 0.08); "
+            f"#profileCard {{ background: transparent; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; "
             f"border-radius: 14px; padding: 18px 22px; }}"
+            f"#profileCard:hover {{ background: rgba(255, 255, 255, 0.03); border-color: {DesignTokens.BORDER_GRADIENT_HOVER}; }}"
+            f"#profileCard QLabel {{ border: none; background: transparent; }}"
         )
         pc_layout = QHBoxLayout(profile_card)
         pc_layout.setContentsMargins(6, 4, 6, 4)
@@ -71,8 +74,8 @@ class ProfileTabWidget(QWidget):
         avatar_lbl.setFixedSize(64, 64)
         avatar_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         avatar_lbl.setStyleSheet(
-            f"background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #008EFF, stop:1 #00FFAA); "
-            f"color: #03050B; font-size: 24px; font-weight: 800; border-radius: 32px; border: 2px solid rgba(0, 255, 255, 0.5);"
+            f"background: {DesignTokens.GRADIENT_BLUE_GREEN}; "
+            f"color: #03050B; font-size: 24px; font-weight: 800; border-radius: 32px; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT};"
         )
         pc_layout.addWidget(avatar_lbl)
 
@@ -88,14 +91,14 @@ class ProfileTabWidget(QWidget):
 
         role_badge = QLabel("ADMINISTRATOR")
         role_badge.setStyleSheet(
-            f"background: rgba(0, 255, 170, 0.12); color: {DesignTokens.CYAN_ACCENT}; "
-            f"font-size: 11px; font-weight: 700; border-radius: 4px; padding: 3px 10px; border: 1px solid rgba(0, 255, 170, 0.25);"
+            f"background: transparent; color: {DesignTokens.CYAN_ACCENT}; "
+            f"font-size: 11px; font-weight: 700; border-radius: 4px; padding: 3px 10px; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT};"
         )
 
         status_badge = QLabel("● ONLINE")
         status_badge.setStyleSheet(
-            f"background: rgba(0, 142, 255, 0.12); color: {DesignTokens.BLUE_ACCENT}; "
-            f"font-size: 11px; font-weight: 700; border-radius: 4px; padding: 3px 10px; border: 1px solid rgba(0, 142, 255, 0.25);"
+            f"background: transparent; color: {DesignTokens.BLUE_ACCENT}; "
+            f"font-size: 11px; font-weight: 700; border-radius: 4px; padding: 3px 10px; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT};"
         )
 
         badges_row.addWidget(role_badge)
@@ -110,9 +113,12 @@ class ProfileTabWidget(QWidget):
 
         # Core Memory Editor Card
         mem_card = QFrame()
+        mem_card.setObjectName("memCard")
         mem_card.setStyleSheet(
-            f"QFrame {{ background: rgba(16, 22, 31, 0.75); border: 1px solid rgba(255, 255, 255, 0.08); "
+            f"#memCard {{ background: transparent; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; "
             f"border-radius: 14px; }}"
+            f"#memCard:hover {{ background: rgba(255, 255, 255, 0.02); border-color: {DesignTokens.BORDER_GRADIENT_HOVER}; }}"
+            f"#memCard QLabel {{ border: none; background: transparent; }}"
         )
         mc_layout = QVBoxLayout(mem_card)
         mc_layout.setContentsMargins(18, 16, 18, 16)
@@ -144,8 +150,9 @@ class ProfileTabWidget(QWidget):
             "VD: Tôi là lập trình viên Python và Fullstack, thích câu trả lời ngắn gọn, có ví dụ code trực quan, hay dùng hệ điều hành Windows..."
         )
         self.txt_core_memory.setStyleSheet(
-            f"QTextEdit {{ background-color: rgba(10, 15, 24, 0.85); border: 1px solid rgba(0, 255, 255, 0.15); "
-            f"border-radius: 10px; padding: 14px; color: {DesignTokens.TEXT_MAIN}; font-size: 13px; line-height: 1.6; }}"
+            f"QTextEdit {{ background-color: transparent; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; "
+            f"border-radius: 10px; padding: 14px; color: {DesignTokens.TEXT_MAIN}; font-size: 13px; line-height: 1.6; "
+            f"selection-background-color: rgba(0, 142, 255, 0.35); }}"
             f"QTextEdit:focus {{ border-color: {DesignTokens.CYAN}; }}"
         )
         self.txt_core_memory.textChanged.connect(self._update_char_count)
@@ -169,9 +176,9 @@ class ProfileTabWidget(QWidget):
         save_btn.setFixedWidth(180)
         save_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         save_btn.setStyleSheet(
-            f"QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #008EFF, stop:1 #00FFAA); "
+            f"QPushButton {{ background: {DesignTokens.GRADIENT_BLUE_GREEN}; "
             f"color: #03050B; font-weight: 700; font-size: 13px; border: none; border-radius: 8px; padding: 0 16px; }}"
-            f"QPushButton:hover {{ background: #00FFAA; }}"
+            f"QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #0077D6, stop:1 #00E699); }}"
             f"QPushButton:pressed {{ background: #00CC88; }}"
         )
         save_btn.clicked.connect(self._save_core_memory)

@@ -36,7 +36,7 @@ def get_system_hardware_info() -> dict:
         mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
         gpu_info["has_discrete_gpu"] = True
         gpu_info["gpu_name"] = str(gpu_name)
-        gpu_info["vram_gb"] = mem_info.total / (1024 ** 3)
+        gpu_info["vram_gb"] = float(int(mem_info.total)) / (1024 ** 3)
     except Exception:
         # 2. Fallback WMI để lấy tên Card đồ họa Onboard
         try:
@@ -173,7 +173,7 @@ class QuantizationDialog(QDialog):
         self.container.setObjectName("variantDialog")
         self.container.setStyleSheet(
             f"QFrame#variantDialog {{ background: {DesignTokens.BG_BASE}; "
-            f"border: 1px solid {DesignTokens.BORDER}; border-radius: 3px; }}"
+            f"border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; border-radius: 14px; }}"
         )
 
         layout = QVBoxLayout(self.container)
@@ -203,8 +203,8 @@ class QuantizationDialog(QDialog):
         close_btn.setFixedSize(28, 28)
         close_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         close_btn.setStyleSheet(
-            f"QPushButton {{ background: transparent; border: 1px solid transparent; border-radius: 3px; }}"
-            f"QPushButton:hover {{ background-color: {DesignTokens.SURFACE_2}; border-color: {DesignTokens.BORDER}; }}"
+            f"QPushButton {{ background: transparent; border: 1px solid transparent; border-radius: 6px; }}"
+            f"QPushButton:hover {{ background-color: rgba(255, 255, 255, 0.08); border-color: {DesignTokens.BORDER}; }}"
         )
         close_btn.clicked.connect(self.close)
         header.addWidget(close_btn)
@@ -213,9 +213,11 @@ class QuantizationDialog(QDialog):
 
         # 2. Hardware Specs Card Banner
         hw_card = QFrame()
+        hw_card.setObjectName("hwCard")
         hw_card.setStyleSheet(
-            f"QFrame {{ background: {DesignTokens.SURFACE_1}; border: 1px solid {DesignTokens.BORDER}; "
-            f"border-radius: 3px; padding: 8px 12px; }}"
+            f"#hwCard {{ background: transparent; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; "
+            f"border-radius: 12px; padding: 8px 12px; }}"
+            f"#hwCard QLabel {{ border: none; background: transparent; }}"
         )
         hw_layout = QHBoxLayout(hw_card)
         hw_layout.setContentsMargins(4, 2, 4, 2)
@@ -258,17 +260,17 @@ class QuantizationDialog(QDialog):
         layout.addWidget(self.status_lbl)
 
         # 4. Scroll Area holding Quantization Options
-        self.scroll = QScrollArea()
-        self.scroll.setWidgetResizable(True)
-        self.scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
 
         self.list_widget = QWidget()
         self.list_layout = QVBoxLayout(self.list_widget)
         self.list_layout.setContentsMargins(0, 0, 0, 0)
         self.list_layout.setSpacing(8)
 
-        self.scroll.setWidget(self.list_widget)
-        layout.addWidget(self.scroll, stretch=1)
+        self.scroll_area.setWidget(self.list_widget)
+        layout.addWidget(self.scroll_area, stretch=1)
 
         base_layout.addWidget(self.container)
 
@@ -281,8 +283,10 @@ class QuantizationDialog(QDialog):
     def _on_variants_loaded(self, variants: list):
         while self.list_layout.count():
             item = self.list_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+            if item:
+                w = item.widget()
+                if w:
+                    w.deleteLater()
 
         if not variants:
             self.status_lbl.setText("Không tìm thấy file .gguf nào trong repository này.")
@@ -303,10 +307,13 @@ class QuantizationDialog(QDialog):
             ) or filename
 
             row = QFrame()
+            row.setObjectName("variantRow")
             row.setStyleSheet(
-                f"QFrame {{ background: {DesignTokens.SURFACE_1}; "
-                f"border: 1px solid {DesignTokens.BORDER}; border-left: 3px solid {eval_info['color']}; "
+                f"QFrame#variantRow {{ background: transparent; "
+                f"border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; border-left: 3px solid {eval_info['color']}; "
                 f"border-radius: 8px; padding: 10px 12px; }}"
+                f"QFrame#variantRow:hover {{ background: rgba(255, 255, 255, 0.03); border-color: {DesignTokens.BORDER_GRADIENT_HOVER}; border-left: 3px solid {eval_info['color']}; }}"
+                f"QFrame#variantRow QLabel {{ border: none; background: transparent; }}"
             )
 
             rl = QHBoxLayout(row)
@@ -330,8 +337,8 @@ class QuantizationDialog(QDialog):
             }
             badge_lbl = QLabel(status_labels.get(eval_info["status"], "TƯƠNG THÍCH"))
             badge_lbl.setStyleSheet(
-                f"background: {DesignTokens.SURFACE_2}; color: {eval_info['color']}; font-size: 9px; font-weight: 700; "
-                f"border: 1px solid {DesignTokens.BORDER}; border-radius: 4px; padding: 4px 7px;"
+                f"background: transparent; color: {eval_info['color']}; font-size: 9px; font-weight: 700; "
+                f"border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; border-radius: 4px; padding: 4px 7px;"
             )
 
             size_str = f"{v['size_mb'] / 1024:.2f} GB" if v['size_mb'] >= 1024 else f"{v['size_mb']:.1f} MB"
@@ -356,14 +363,14 @@ class QuantizationDialog(QDialog):
             rl.addLayout(info_box, stretch=1)
 
             dl_btn = QPushButton("Tải bản này")
-            dl_btn.setIcon(create_vector_icon("download", DesignTokens.TEXT_MAIN, 14))
+            dl_btn.setIcon(create_vector_icon("download", "#040812", 14))
             dl_btn.setFixedHeight(34)
             dl_btn.setMinimumWidth(112)
             dl_btn.setCursor(Qt.CursorShape.PointingHandCursor)
             dl_btn.setStyleSheet(
-                f"QPushButton {{ background: {DesignTokens.SURFACE_2}; color: {DesignTokens.TEXT_MAIN}; font-weight: 650; "
-                f"border: 1px solid #405366; border-radius: 5px; padding: 0 10px; font-size: 10px; }}"
-                f"QPushButton:hover {{ background: #202D3A; border-color: {eval_info['color']}; }}"
+                f"QPushButton {{ background: {DesignTokens.GRADIENT_BLUE_GREEN}; color: #040812; font-weight: 700; "
+                f"border: none; border-radius: 6px; padding: 0 10px; font-size: 11px; }}"
+                f"QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #0077D6, stop:1 #00E699); }}"
             )
             dl_btn.clicked.connect(lambda _, f=v["filename"]: self._select_file(f))
             rl.addWidget(dl_btn)

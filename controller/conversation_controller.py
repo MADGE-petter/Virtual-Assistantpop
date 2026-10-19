@@ -27,6 +27,8 @@ class ConversationController:
             action_handler,
             user_controller,
         )
+        self.on_permission_requested: Optional[Callable] = None
+        self.on_file_preview_requested: Optional[Callable] = None
 
     def init_intent_service(self):
         self.service.init_intent_service()
@@ -89,7 +91,7 @@ class ConversationController:
                 user_input=text,
                 speak_callback=self.service.audio.speak,
                 user_name=getattr(self.service.user, 'display_name', 'bạn') or 'bạn',
-                session_id=self.service._session_id or "default"
+                session_id=str(self.service._session_id or "default")
             )
             # Route back structured UI requests to PopController via callbacks if they exist
             if hasattr(result, 'needs_permission') and result.needs_permission:

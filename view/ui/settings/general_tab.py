@@ -86,8 +86,8 @@ class GeneralTabWidget(QWidget):
         
         badge = QLabel("HỆ THỐNG")
         badge.setStyleSheet(
-            f"background: rgba(0, 255, 170, 0.12); color: {DesignTokens.CYAN_ACCENT}; font-size: 11px; "
-            f"font-weight: 700; border-radius: 4px; padding: 2px 8px; border: 1px solid rgba(0, 255, 170, 0.25);"
+            f"background: transparent; color: {DesignTokens.CYAN_ACCENT}; font-size: 11px; "
+            f"font-weight: 700; border-radius: 4px; padding: 2px 8px; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT};"
         )
         title_row.addWidget(title)
         title_row.addWidget(badge)
@@ -102,9 +102,12 @@ class GeneralTabWidget(QWidget):
 
         # Settings Card Container (Glassmorphism card)
         card = QFrame()
+        card.setObjectName("generalCard")
         card.setStyleSheet(
-            f"QFrame {{ background: rgba(16, 22, 31, 0.75); border: 1px solid rgba(255, 255, 255, 0.08); "
+            f"#generalCard {{ background: transparent; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; "
             f"border-radius: 14px; }}"
+            f"#generalCard:hover {{ background: rgba(255, 255, 255, 0.03); border-color: {DesignTokens.BORDER_GRADIENT_HOVER}; }}"
+            f"#generalCard QLabel {{ border: none; background: transparent; }}"
         )
         card_layout = QVBoxLayout(card)
         card_layout.setContentsMargins(22, 18, 22, 18)
@@ -160,9 +163,9 @@ class GeneralTabWidget(QWidget):
         save_btn.setFixedWidth(150)
         save_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         save_btn.setStyleSheet(
-            f"QPushButton {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #008EFF, stop:1 #00FFAA); "
+            f"QPushButton {{ background: {DesignTokens.GRADIENT_BLUE_GREEN}; "
             f"color: #03050B; font-weight: 700; font-size: 13px; border: none; border-radius: 8px; padding: 0 16px; }}"
-            f"QPushButton:hover {{ background: #00FFAA; }}"
+            f"QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #0077D6, stop:1 #00E699); }}"
             f"QPushButton:pressed {{ background: #00CC88; }}"
         )
         save_btn.clicked.connect(self._save_settings)

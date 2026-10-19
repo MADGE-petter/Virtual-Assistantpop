@@ -70,10 +70,10 @@ class DatabaseTabWidget(QWidget):
         # File List Box
         self.assets_list = QListWidget()
         self.assets_list.setStyleSheet(
-            f"QListWidget {{ background: rgba(16, 22, 31, 0.75); border: 1px solid rgba(255, 255, 255, 0.08); "
+            f"QListWidget {{ background: transparent; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; "
             f"border-radius: 12px; color: {DesignTokens.TEXT_MAIN}; padding: 8px; font-size: 13px; outline: none; }}"
-            f"QListWidget::item {{ padding: 10px 14px; border-radius: 8px; margin-bottom: 4px; background: rgba(21, 28, 39, 0.4); border: 1px solid rgba(255, 255, 255, 0.04); }}"
-            f"QListWidget::item:hover {{ background: rgba(0, 255, 170, 0.08); border-color: rgba(0, 255, 170, 0.25); color: #FFFFFF; }}"
+            f"QListWidget::item {{ padding: 10px 14px; border-radius: 8px; margin-bottom: 4px; background: transparent; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; }}"
+            f"QListWidget::item:hover {{ background: rgba(255, 255, 255, 0.04); border-color: {DesignTokens.BORDER_GRADIENT_HOVER}; color: #FFFFFF; }}"
         )
         self.assets_list.itemDoubleClicked.connect(self._on_item_double_clicked)
         layout.addWidget(self.assets_list, stretch=1)
@@ -92,9 +92,9 @@ class DatabaseTabWidget(QWidget):
         open_folder_btn.setFixedHeight(36)
         open_folder_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         open_folder_btn.setStyleSheet(
-            f"QPushButton {{ background: {DesignTokens.SURFACE_2}; color: {DesignTokens.TEXT_MAIN}; "
-            f"border: 1px solid {DesignTokens.BORDER}; border-radius: 8px; font-weight: 500; font-size: 12px; padding: 0 16px; }}"
-            f"QPushButton:hover {{ background: {DesignTokens.SURFACE_3}; border-color: {DesignTokens.CYAN}; color: {DesignTokens.CYAN_ACCENT}; }}"
+            f"QPushButton {{ background: transparent; color: {DesignTokens.TEXT_MAIN}; "
+            f"border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; border-radius: 8px; font-weight: 500; font-size: 12px; padding: 0 16px; }}"
+            f"QPushButton:hover {{ background: rgba(255, 255, 255, 0.04); border-color: {DesignTokens.BORDER_GRADIENT_HOVER}; color: {DesignTokens.CYAN_ACCENT}; }}"
         )
         open_folder_btn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(self.assets_dir)))
         bottom_bar.addWidget(open_folder_btn)
@@ -114,9 +114,12 @@ class DatabaseTabWidget(QWidget):
 
     def _create_stat_card(self, title: str, value: str, sub: str):
         card = QFrame()
+        card.setObjectName("statCard")
         card.setStyleSheet(
-            f"QFrame {{ background: rgba(16, 22, 31, 0.75); border: 1px solid rgba(255, 255, 255, 0.08); "
+            f"#statCard {{ background: transparent; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; "
             f"border-radius: 12px; padding: 12px; }}"
+            f"#statCard:hover {{ background: rgba(255, 255, 255, 0.03); border-color: {DesignTokens.BORDER_GRADIENT_HOVER}; }}"
+            f"#statCard QLabel {{ border: none; background: transparent; }}"
         )
         cl = QVBoxLayout(card)
         cl.setContentsMargins(12, 10, 12, 10)

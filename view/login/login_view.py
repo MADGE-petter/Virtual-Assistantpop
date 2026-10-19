@@ -25,21 +25,26 @@ from view.ui.widgets.starfield_widget import StarfieldWidget
 
 
 class LoginView(QDialog):
+    # MVC Signals
+    login_requested = pyqtSignal(str, str)
+    register_requested = pyqtSignal(str, str, str)
     login_success = pyqtSignal(str)
     exit_requested = pyqtSignal()
     
-    def __init__(self, login_service):
+    def __init__(self, login_service=None, controller=None):
         super().__init__()
-        if login_service is None:
-            raise ValueError("login_service is required - View must receive Service from Controller")
+        self.controller = controller
         self.login_service = login_service
 
-        self.settings = self.login_service.load_settings()
         self._footer_label = None
         self._starfield = None
         self._is_register_mode = False
         self._drag_pos = None
         self.init_ui()
+
+    def set_controller(self, controller):
+        """Set controller reference for MVC pattern."""
+        self.controller = controller
     
     def init_ui(self):
         """Khởi tạo giao diện đăng nhập tối giản: Chữ + 2 ô input + Button"""
@@ -95,13 +100,16 @@ class LoginView(QDialog):
             }
         """
 
-        min_btn = QPushButton("─")
+        from view.ui.icons import create_vector_icon
+        min_btn = QPushButton()
+        min_btn.setIcon(create_vector_icon("minimize", "#C8DCF0", 12))
         min_btn.setFixedSize(28, 24)
         min_btn.setStyleSheet(btn_style)
         min_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         min_btn.clicked.connect(self.showMinimized)
 
-        close_btn = QPushButton("✕")
+        close_btn = QPushButton()
+        close_btn.setIcon(create_vector_icon("close", "#FF4B6E", 12))
         close_btn.setFixedSize(28, 24)
         close_btn.setStyleSheet(close_btn_style)
         close_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -180,13 +188,14 @@ class LoginView(QDialog):
         layout.addStretch()
         self._create_footer()
         
-        # Pre-fill auto login data
-        auto_data = self.login_service.get_auto_login()
-        if isinstance(auto_data, dict):
-            if auto_data.get("username"):
-                self.username_input.setText(auto_data["username"])
-            if auto_data.get("password"):
-                self.password_input.setText(auto_data["password"])
+        # Pre-fill auto login data if login_service is directly provided
+        if self.login_service:
+            auto_data = self.login_service.get_auto_login()
+            if isinstance(auto_data, dict):
+                if auto_data.get("username"):
+                    self.username_input.setText(auto_data["username"])
+                if auto_data.get("password"):
+                    self.password_input.setText(auto_data["password"])
 
     def _create_footer(self):
         """Tạo footer version info đơn giản"""
@@ -220,11 +229,7 @@ class LoginView(QDialog):
             self.move(event.globalPosition().toPoint() - self._drag_pos)
             event.accept()
 
-    def save_settings(self):
-        """Lưu cài đặt người dùng qua Service"""
-        self.login_service.save_settings(self.settings)
-
-    def toggle_mode(self, event):
+    def toggle_mode(self, ev=None):
         """Chuyển đổi giữa đăng nhập và đăng ký"""
         self._is_register_mode = not self._is_register_mode
         
@@ -253,50 +258,67 @@ class LoginView(QDialog):
             self.handle_login()
 
     def handle_login(self):
-        """Xử lý đăng nhập"""
-        username = self.username_input.text()
+        """Xử lý đăng nhập: emit signal tới Controller (hoặc fallback tới service nếu chạy legacy)."""
+        username = self.username_input.text().strip()
         password = self.password_input.text()
         
-        print(f"[LoginView] Login attempt: username='{username}'")
-        
-        if not username or not password:
-            print("[LoginView] Empty username or password")
-            show_toast(self, "Vui lòng điền đầy đủ thông tin!", "error")
+        # Nếu có Controller hoặc có slot kết nối với login_requested
+        if self.controller or self.receivers(self.login_requested) > 0:
+            self.login_requested.emit(username, password)
             return
-            
-        if self.login_service.authenticate_user(username, password):
-            print(f"[LoginView] Login successful for: {username}")
-            self.login_service.save_auto_login(username, password)
-            self.login_success.emit(username)
-            self.accept()
-        else:
-            print("[LoginView] Login failed")
-            show_toast(self, "Tên đăng nhập hoặc mật khẩu không chính xác!", "error")
+
+        # Fallback chế độ legacy
+        if self.login_service:
+            if not username or not password:
+                self.show_toast("Vui lòng điền đầy đủ thông tin!", "error")
+                return
+            if self.login_service.authenticate_user(username, password):
+                self.login_service.save_auto_login(username, password)
+                self.login_success.emit(username)
+                self.accept()
+            else:
+                self.show_toast("Tên đăng nhập hoặc mật khẩu không chính xác!", "error")
 
     def handle_register(self):
-        """Xử lý đăng ký"""
-        username = self.username_input.text()
+        """Xử lý đăng ký: emit signal tới Controller (hoặc fallback tới service nếu chạy legacy)."""
+        username = self.username_input.text().strip()
         password = self.password_input.text()
         confirm_password = self.confirm_password_input.text()
         
-        print(f"[LoginView] Register attempt: username='{username}'")
-        
-        if not username or not password:
-            show_toast(self, "Vui lòng điền đầy đủ thông tin!", "error")
+        if self.controller or self.receivers(self.register_requested) > 0:
+            self.register_requested.emit(username, password, confirm_password)
             return
-            
-        if password != confirm_password:
-            show_toast(self, "Mật khẩu xác nhận không khớp!", "error")
-            return
-            
-        if len(password) < 6:
-            show_toast(self, "Mật khẩu phải có ít nhất 6 ký tự!", "warning")
-            return
-            
-        if self.login_service.save_new_user(username, password):
-            show_toast(self, "Đăng ký thành công!", "success")
-            self.login_service.save_auto_login(username, password)
-            self.login_success.emit(username)
-            self.accept()
-        else:
-            QMessageBox.warning(self, "Lỗi", "Tên đăng nhập đã tồn tại!")
+
+        # Fallback chế độ legacy
+        if self.login_service:
+            if not username or not password:
+                self.show_toast("Vui lòng điền đầy đủ thông tin!", "error")
+                return
+            if password != confirm_password:
+                self.show_toast("Mật khẩu xác nhận không khớp!", "error")
+                return
+            if len(password) < 6:
+                self.show_toast("Mật khẩu phải có ít nhất 6 ký tự!", "warning")
+                return
+            if self.login_service.save_new_user(username, password):
+                self.show_toast("Đăng ký thành công!", "success")
+                self.login_service.save_auto_login(username, password)
+                self.login_success.emit(username)
+                self.accept()
+            else:
+                self.show_error_dialog("Lỗi", "Tên đăng nhập đã tồn tại!")
+
+    def set_credentials(self, username: str, password: str = ""):
+        """Controller slot để điền tài khoản/mật khẩu vào form."""
+        if username:
+            self.username_input.setText(username)
+        if password:
+            self.password_input.setText(password)
+
+    def show_toast(self, message: str, toast_type: str = "info"):
+        """Hiển thị toast message trên giao diện login."""
+        show_toast(self, message, toast_type)
+
+    def show_error_dialog(self, title: str, message: str):
+        """Hiển thị hộp thoại thông báo lỗi."""
+        QMessageBox.warning(self, title, message)

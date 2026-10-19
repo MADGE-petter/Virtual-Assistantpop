@@ -1,3 +1,5 @@
+from typing import Any, Optional
+
 from PyQt6.QtCore import QObject, pyqtSignal
 
 from controller.action import ActionHandler
@@ -19,9 +21,9 @@ class PopController(QObject):
     # Signal để wake up từ thread khác (thread-safe)
     wakeUpRequested = pyqtSignal()
     
-    def __init__(self, view=None, model=None, login_username=None):
+    def __init__(self, view: Any = None, model: Any = None, login_username: Optional[str] = None):
         super().__init__()
-        self.view = view
+        self.view: Any = view
         self.login_username = login_username
         
         # State
@@ -105,21 +107,21 @@ class PopController(QObject):
         self.wakeUpRequested.connect(self._do_wake_up)
         
         # Inject controller vào view (view không cần biết services)
-        if view:
+        if self.view is not None:
             self.view.set_controller(self)
             self.conversation.on_permission_requested = self.view.show_confirmation_card
             self.conversation.on_file_preview_requested = self.view.show_file_preview
             
             # Connect View signals
-            view.sendMessage.connect(self._on_send_message)
-            view.voiceToggled.connect(self._on_voice_toggled)
-            view.stopGeneration.connect(self._on_stop_generation)
-            view.newConversation.connect(self._on_new_conversation)
-            view.switchModel.connect(self._on_switch_model)
-            view.openSettings.connect(self._on_open_settings)
-            view.loadConversation.connect(self._on_load_conversation)
-            view.deleteConversation.connect(self._on_delete_conversation)
-            view.viewClosed.connect(self._on_view_closed)
+            self.view.sendMessage.connect(self._on_send_message)
+            self.view.voiceToggled.connect(self._on_voice_toggled)
+            self.view.stopGeneration.connect(self._on_stop_generation)
+            self.view.newConversation.connect(self._on_new_conversation)
+            self.view.switchModel.connect(self._on_switch_model)
+            self.view.openSettings.connect(self._on_open_settings)
+            self.view.loadConversation.connect(self._on_load_conversation)
+            self.view.deleteConversation.connect(self._on_delete_conversation)
+            self.view.viewClosed.connect(self._on_view_closed)
     
     # ============================================================
     # VIEW SIGNAL HANDLERS (Controller slots)
@@ -159,19 +161,39 @@ class PopController(QObject):
     
     def _on_open_settings(self):
         """Handle open settings request."""
-        # TODO: Implement settings dialog
-        if self.view:
-            self.view.show_toast("Settings dialog coming soon", "info")
+        if self.view and hasattr(self.view, 'navigation'):
+            self.view.navigation.open_settings_page(0)
     
     def _on_load_conversation(self, conversation_id: str):
         """Handle load conversation request."""
-        # TODO: Implement conversation loading
-        pass
+        try:
+            if self.view and hasattr(self.view, 'chat_model'):
+                self.view.chat_model.set_active_session(conversation_id)
+                session = self.view.chat_model.get_active_session()
+                if session and hasattr(self.view, 'chat_area'):
+                    self.view.chat_area.load_session(session)
+        except Exception as e:
+            print(f"[PopController] Lỗi tải cuộc trò chuyện: {e}")
     
     def _on_delete_conversation(self, conversation_id: str):
         """Handle delete conversation request."""
-        # TODO: Implement conversation deletion
-        pass
+        try:
+            if self.view and hasattr(self.view, 'chat_model'):
+                self.view.chat_model.delete_session(conversation_id)
+                if hasattr(self.view, 'sidebar'):
+                    self.view.sidebar.reload_conversations()
+                active = self.view.chat_model.get_active_session()
+                if active and hasattr(self.view, 'chat_area'):
+                    self.view.chat_area.load_session(active)
+                elif hasattr(self.view, 'chat_area'):
+                    new_session = self.view.chat_model.create_new_session("Cuộc trò chuyện mới")
+                    if hasattr(self.view, 'sidebar'):
+                        self.view.sidebar.reload_conversations()
+                    self.view.chat_area.load_session(new_session)
+                if hasattr(self.view, 'show_toast'):
+                    self.view.show_toast("Đã xóa cuộc trò chuyện", "info")
+        except Exception as e:
+            print(f"[PopController] Lỗi xóa cuộc trò chuyện: {e}")
     
     def _on_view_closed(self):
         """Handle view closed."""
@@ -245,7 +267,7 @@ class PopController(QObject):
     
     def _on_gesture(self, gesture_type):
         """Callback từ gesture service."""
-        self.handle_gesture(gesture_type)
+        pass
     
     # ============================================================
     # PRIVATE - Conversation management
@@ -278,11 +300,15 @@ class PopController(QObject):
                 status_msg = result.text if isinstance(result, ActionResult) else str(result)
             elif tool_name == "zalo_send":
                 from tools.zalo_tool import ZaloTool
-                res = ZaloTool.send_message(tool_args.get("recipient"), tool_args.get("message"))
+                recipient = str(tool_args.get("recipient", "") or "")
+                msg_content = str(tool_args.get("message", "") or "")
+                res = ZaloTool.send_message(recipient, msg_content)
                 status_msg = res.get("message", "Đã gửi tin nhắn Zalo.")
             elif tool_name == "facebook_send":
                 from tools.facebook_tool import FacebookTool
-                res = FacebookTool.send_message(tool_args.get("recipient"), tool_args.get("message"))
+                recipient = str(tool_args.get("recipient", "") or "")
+                msg_content = str(tool_args.get("message", "") or "")
+                res = FacebookTool.send_message(recipient, msg_content)
                 status_msg = res.get("message", "Đã gửi tin nhắn Facebook.")
         except Exception as e:
             status_msg = f"Đã xảy ra lỗi khi thực thi lệnh: {e}"

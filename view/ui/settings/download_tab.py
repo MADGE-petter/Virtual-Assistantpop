@@ -61,10 +61,12 @@ class DownloadTabWidget(QWidget):
 
         # Search Bar
         search_card = QFrame()
+        search_card.setObjectName("searchCard")
         search_card.setStyleSheet(
-            f"QFrame {{ background: {DesignTokens.SURFACE_1}; border: 1px solid {DesignTokens.BORDER}; "
-            f"border-radius: 9px; }}"
-            f"QFrame:hover {{ border-color: #405366; }}"
+            f"#searchCard {{ background: transparent; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; "
+            f"border-radius: 12px; }}"
+            f"#searchCard:hover {{ background: rgba(255, 255, 255, 0.03); border-color: {DesignTokens.BORDER_GRADIENT_HOVER}; }}"
+            f"#searchCard QLabel {{ border: none; background: transparent; }}"
         )
         sb_layout = QHBoxLayout(search_card)
         sb_layout.setContentsMargins(14, 5, 6, 5)
@@ -97,11 +99,11 @@ class DownloadTabWidget(QWidget):
         self.btn_search.setFixedHeight(34)
         self.btn_search.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_search.setStyleSheet(
-            "QPushButton { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #008EFF, stop:1 #00D69A); "
-            "color: #06131B; font-weight: 700; font-size: 11px; border: 1px solid #21C5A2; "
-            "border-radius: 6px; padding: 0 16px; }"
-            "QPushButton:hover { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #20A4FF, stop:1 #30E3B3); }"
-            "QPushButton:pressed { background: #00B88B; }"
+            f"QPushButton {{ background: {DesignTokens.GRADIENT_BLUE_GREEN}; "
+            f"color: #040812; font-weight: 700; font-size: 11px; border: none; "
+            f"border-radius: 6px; padding: 0 16px; }}"
+            f"QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #0077D6, stop:1 #00E699); }}"
+            f"QPushButton:pressed {{ background: #00B88B; }}"
         )
         self.btn_search.clicked.connect(self._on_search_models_clicked)
 
@@ -112,13 +114,15 @@ class DownloadTabWidget(QWidget):
 
         # Download Progress Card (Hidden by default, shown during download)
         self.progress_frame = QFrame()
+        self.progress_frame.setObjectName("dlProgressFrame")
         self.progress_frame.setStyleSheet(
-            f"QFrame {{ background: rgba(16, 22, 31, 0.9); border: 1px solid rgba(0, 255, 255, 0.35); "
-            f"border-radius: 12px; padding: 14px 18px; }}"
+            f"#dlProgressFrame {{ background: transparent; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; "
+            f"border-radius: 12px; }}"
+            f"#dlProgressFrame QLabel {{ border: none; background: transparent; padding: 0px; }}"
         )
         self.progress_frame.hide()
         pf_layout = QVBoxLayout(self.progress_frame)
-        pf_layout.setContentsMargins(4, 4, 4, 4)
+        pf_layout.setContentsMargins(16, 14, 16, 14)
         pf_layout.setSpacing(8)
 
         self.dl_title_lbl = QLabel("Đang chuẩn bị tải...")
@@ -258,9 +262,10 @@ class DownloadTabWidget(QWidget):
             card = QFrame()
             card.setObjectName("modelResultCard")
             card.setStyleSheet(
-                f"QFrame#modelResultCard {{ background: {DesignTokens.SURFACE_1}; border: 1px solid {DesignTokens.BORDER}; "
-                f"border-radius: 10px; }}"
-                f"QFrame#modelResultCard:hover {{ border-color: #405366; background: {DesignTokens.SURFACE_2}; }}"
+                f"QFrame#modelResultCard {{ background: transparent; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; "
+                f"border-radius: 12px; }}"
+                f"QFrame#modelResultCard:hover {{ border-color: {DesignTokens.BORDER_GRADIENT_HOVER}; background: rgba(255, 255, 255, 0.03); }}"
+                f"QFrame#modelResultCard QLabel {{ border: none; background: transparent; }}"
             )
             cl = QVBoxLayout(card)
             cl.setContentsMargins(16, 14, 16, 14)
@@ -320,8 +325,8 @@ class DownloadTabWidget(QWidget):
             web_btn.setCursor(Qt.CursorShape.PointingHandCursor)
             web_btn.setStyleSheet(
                 f"QPushButton {{ background: transparent; color: {DesignTokens.TEXT_SECONDARY}; "
-                f"border: 1px solid {DesignTokens.BORDER}; border-radius: 3px; padding: 0 12px; font-size: 11px; font-weight: 600; }}"
-                f"QPushButton:hover {{ background: {DesignTokens.SURFACE_3}; border-color: #526577; color: {DesignTokens.TEXT_MAIN}; }}"
+                f"border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; border-radius: 6px; padding: 0 12px; font-size: 11px; font-weight: 600; }}"
+                f"QPushButton:hover {{ background: rgba(255, 255, 255, 0.04); border-color: {DesignTokens.BORDER_GRADIENT_HOVER}; color: {DesignTokens.TEXT_MAIN}; }}"
             )
             web_btn.clicked.connect(lambda _, url=f"https://huggingface.co/{m['id']}": QDesktopServices.openUrl(QUrl(url)))
             
@@ -329,9 +334,9 @@ class DownloadTabWidget(QWidget):
             dl_border.setObjectName("downloadGradientBorder")
             dl_border.setFixedHeight(36)
             dl_border.setStyleSheet(
-                "QFrame#downloadGradientBorder {"
-                "background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #008EFF, stop:1 #00D69A);"
-                "border-radius: 7px; }"
+                f"QFrame#downloadGradientBorder {{"
+                f"background: {DesignTokens.GRADIENT_BLUE_GREEN};"
+                f"border-radius: 7px; }}"
             )
             dl_border_layout = QHBoxLayout(dl_border)
             dl_border_layout.setContentsMargins(1, 1, 1, 1)
@@ -342,9 +347,9 @@ class DownloadTabWidget(QWidget):
             dl_btn.setMinimumWidth(120)
             dl_btn.setCursor(Qt.CursorShape.PointingHandCursor)
             dl_btn.setStyleSheet(
-                f"QPushButton {{ background: {DesignTokens.SURFACE_1}; color: {DesignTokens.TEXT_MAIN}; font-weight: 650; "
+                f"QPushButton {{ background: #070B14; color: {DesignTokens.CYAN_ACCENT}; font-weight: 700; "
                 f"border: none; border-radius: 6px; padding: 0 14px; font-size: 11px; }}"
-                f"QPushButton:hover {{ background: {DesignTokens.SURFACE_2}; color: #FFFFFF; }}"
+                f"QPushButton:hover {{ background: rgba(0, 255, 170, 0.15); color: #FFFFFF; }}"
             )
             dl_btn.clicked.connect(lambda _, repo=m['id'], name=m['name']: self._open_quantization_selector(repo, name))
             dl_border_layout.addWidget(dl_btn)
