@@ -33,6 +33,13 @@ class ResilientStackedWidget(QStackedWidget):
         from PyQt6.QtCore import QSize
         return QSize(280, 200)
 
+    def sizeHint(self):
+        cur = self.currentWidget()
+        if cur:
+            return cur.sizeHint()
+        from PyQt6.QtCore import QSize
+        return QSize(280, 200)
+
 
 class PopView(QMainWindow):
     """Main Application Window for POP AI Assistant adhering strictly to MVC architecture."""
@@ -127,8 +134,8 @@ class PopView(QMainWindow):
         self.center_stack.setMinimumWidth(0)
         self.center_stack.setStyleSheet("QStackedWidget { background: transparent; }")
 
-        self.chat_area = ChatAreaWidget(self.container_box, user_name=self.user_name)
-        self.settings_page = SettingsWidget(self.user_name, initial_tab=0, parent=self.container_box)
+        self.chat_area = ChatAreaWidget(self.center_stack, user_name=self.user_name)
+        self.settings_page = SettingsWidget(self.user_name, initial_tab=0, parent=self.center_stack)
 
         self.center_stack.addWidget(self.chat_area)
         self.center_stack.addWidget(self.settings_page)

@@ -163,7 +163,18 @@ class MessageBubbleWidget(QWidget):
     def __init__(self, msg: ChatMessage, parent=None):
         super().__init__(parent)
         self.msg = msg
+        self.card = None
         self._setup_ui()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if hasattr(self, 'card') and self.card:
+            available_w = self.width() - 36
+            if available_w > 80:
+                is_user = (self.msg.sender == "user")
+                cap = 600 if is_user else 740
+                max_w = max(160, min(cap, int(available_w * 0.88)))
+                self.card.setMaximumWidth(max_w)
 
     def _setup_ui(self):
         main_layout = QHBoxLayout(self)
@@ -176,12 +187,13 @@ class MessageBubbleWidget(QWidget):
             main_layout.addStretch(1)
 
             card = QFrame()
+            self.card = card
             card.setObjectName("userCard")
-            card.setMaximumWidth(620)
+            card.setMaximumWidth(600)
             card.setMinimumWidth(80)
             card.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
             card.setStyleSheet(
-                f"#userCard {{ background: transparent; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; border-radius: 16px; border-top-right-radius: 4px; }}"
+                f"#userCard {{ background-color: rgba(12, 19, 34, 0.94); border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; border-radius: 16px; border-top-right-radius: 4px; }}"
                 f"#userCard QLabel {{ border: none; background: transparent; }}"
             )
             card_layout = QVBoxLayout(card)
@@ -212,12 +224,13 @@ class MessageBubbleWidget(QWidget):
             avatar_lbl.setStyleSheet(f"background: transparent; border-radius: 16px; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT};")
 
             card = QFrame()
+            self.card = card
             card.setObjectName("botCard")
-            card.setMaximumWidth(760)
+            card.setMaximumWidth(740)
             card.setMinimumWidth(100)
             card.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
             card.setStyleSheet(
-                f"#botCard {{ background: transparent; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; border-radius: 16px; border-top-left-radius: 4px; }}"
+                f"#botCard {{ background-color: rgba(12, 19, 34, 0.88); border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; border-radius: 16px; border-top-left-radius: 4px; }}"
                 f"#botCard QLabel {{ border: none; background: transparent; }}"
             )
             card_layout = QVBoxLayout(card)
@@ -310,7 +323,7 @@ class MessageBubbleWidget(QWidget):
 
         for fname in file_names:
             pill = QFrame()
-            pill.setMaximumWidth(280)
+            pill.setMaximumWidth(220)
             pill.setMinimumWidth(0)
             pill.setToolTip(fname)
             pill.setStyleSheet(
@@ -335,7 +348,7 @@ class MessageBubbleWidget(QWidget):
 
             from PyQt6.QtGui import QFontMetrics
             fm = QFontMetrics(self.font())
-            elided_name = fm.elidedText(fname, Qt.TextElideMode.ElideMiddle, 220)
+            elided_name = fm.elidedText(fname, Qt.TextElideMode.ElideMiddle, 160)
             f_lbl = QLabel(elided_name)
             f_lbl.setToolTip(fname)
             f_lbl.setStyleSheet("color: #FFFFFF; font-size: 11px; font-weight: 600; border: none; background: transparent;")
@@ -391,6 +404,12 @@ class MessageBubbleWidget(QWidget):
         self._fade_anim.setStartValue(0.0)
         self._fade_anim.setEndValue(1.0)
         self._fade_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+
+        def _cleanup():
+            # Release graphics effect after fade to restore hardware clipping
+            self.setGraphicsEffect(None)
+
+        self._fade_anim.finished.connect(_cleanup)
         self._fade_anim.start()
 
 
