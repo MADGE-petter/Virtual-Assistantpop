@@ -47,8 +47,10 @@ class SqlService:
         self.db.save_conversation(user_id, sid, user_msg, bot_response)
     
     def get_session_conversations(self, session_id):
-        
         return self.db.get_session_conversations(session_id)
+
+    def get_session_chat_messages(self, session_id):
+        return self.db.get_session_chat_messages(session_id)
     
     def get_all_sessions(self, user_name):
       

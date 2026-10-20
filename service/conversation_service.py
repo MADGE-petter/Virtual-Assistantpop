@@ -259,6 +259,16 @@ class ConversationService:
         should_save = False  
         context = self.get_or_create_context(session_id)
         
+        # Check and summarize every 5 messages (user + bot)
+        if self._memory_service and session_id:
+            try:
+                llm = self._get_llm_service()
+                summary_data = self._memory_service.summarize_session_if_needed(session_id, llm)
+                if summary_data:
+                    context.long_term_summary = summary_data
+            except Exception as sum_err:
+                logger.error(f"[ConversationService] Summarization check error: {sum_err}")
+        
         # Check AgentEngine First
         from service.agent.agent_engine import OpenClawAgentEngine
         agent_engine = getattr(self, '_cached_agent', None)
@@ -347,28 +357,35 @@ class ConversationService:
                         logger.info(f"[ConversationService] Intent unknown, calling LLM for: {user_input[:30]}...")
                         llm = self._get_llm_service()
                         
-                        # 1. Build Context (Lấy 5 lượt hội thoại gần nhất)
+                        # 1. Build Context (Lấy tóm tắt sau mỗi 5 đoạn chat + các tin nhắn gần nhất)
                         history = []
                         if self._memory_service and session_id:
                             try:
-                                # Inject long term memory first
                                 ctx = self.get_or_create_context(session_id)
                                 if hasattr(ctx, 'long_term_summary') and ctx.long_term_summary:
                                     summary_text = (
-                                        f"TÓM TẮT HỘI THOẠI TRƯỚC ĐÓ:\n"
+                                        f"TÓM TẮT HỘI THOẠI TRƯỚC ĐÓ (Ngữ cảnh tổng hợp sau mỗi 5 đoạn chat):\n"
                                         f"- Ý định chính: {ctx.long_term_summary.get('user_intent', '')}\n"
-                                        f"- Sự kiện: {', '.join(ctx.long_term_summary.get('key_facts', []))}\n"
-                                        f"- Tóm tắt: {ctx.long_term_summary.get('summary', '')}"
+                                        f"- Thông tin / Sự kiện quan trọng: {', '.join(ctx.long_term_summary.get('key_facts', []))}\n"
+                                        f"- Tóm tắt diễn biến: {ctx.long_term_summary.get('summary', '')}"
                                     )
                                     history.append({"role": "system", "content": summary_text})
-                                
+
                                 sid_int = int(session_id) if str(session_id).isdigit() else 1
-                                raw_history = self._memory_service.get_session_history(sid_int)
-                                if raw_history:
-                                    # Lấy 5 lượt cuối
-                                    for um, br, _ in raw_history[-5:]:
-                                        history.append({"role": "user", "content": um})
-                                        history.append({"role": "assistant", "content": br})
+                                raw_messages = self._memory_service.get_session_chat_messages(sid_int)
+                                if raw_messages:
+                                    # Lấy các tin nhắn gần nhất, loại bỏ tin nhắn hiện tại nếu đã được lưu vào DB trước đó
+                                    hist_msgs = raw_messages[:-1] if raw_messages and raw_messages[-1][2] == user_input else raw_messages
+                                    for r in hist_msgs[-6:]:
+                                        sender = r[1]
+                                        role = "user" if sender == "user" else "assistant"
+                                        history.append({"role": role, "content": r[2]})
+                                else:
+                                    raw_history = self._memory_service.get_session_history(sid_int)
+                                    if raw_history:
+                                        for um, br, _ in raw_history[-5:]:
+                                            history.append({"role": "user", "content": um})
+                                            history.append({"role": "assistant", "content": br})
                             except Exception as hist_err:
                                 logger.error(f"[ConversationService] Error fetching history: {hist_err}")
                         
