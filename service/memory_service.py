@@ -106,43 +106,61 @@ class MemoryService:
                 # Đã tóm tắt ở mốc này rồi
                 return context.get("long_term_summary")
 
-            print(f"[MemoryService] [Thinking] Phát hiện mốc {current_milestone} đoạn chat (tổng {total_msgs} đoạn). Bắt đầu tóm tắt ngữ cảnh hội thoại...")
+            is_full_overview = (current_milestone % 15 == 0)
 
             # Lấy các tin nhắn trước tin nhắn hiện tại để tóm tắt
             history_to_summarize = all_messages[:total_msgs - 1] if total_msgs > 1 else all_messages
             text_to_summarize = ""
-            for row in history_to_summarize:
+            for idx, row in enumerate(history_to_summarize, 1):
                 sender = row[1] if len(row) > 1 else "user"
                 text = row[2] if len(row) > 2 else ""
                 role = "Người dùng" if sender == "user" else "Trợ lý POP"
-                text_to_summarize += f"{role}: {text}\n"
+                text_to_summarize += f"{idx}. {role}: {text}\n"
 
-            old_summary = context.get("long_term_summary")
-            if old_summary:
+            if is_full_overview:
+                print(f"[MemoryService] [Thinking] Đạt mốc {current_milestone} đoạn chat! Bắt đầu tóm tắt lại TOÀN BỘ TỪ ĐẦU để có cái nhìn tổng quan nhất...")
                 prompt = (
-                    "Bạn là chuyên gia phân tích ngữ cảnh hội thoại. Hãy đọc bản tóm tắt cũ và các đoạn chat mới nhất dưới đây, "
-                    "sau đó tổng hợp gộp lại thành một khối JSON ngắn gọn, súc tích để làm ngữ cảnh chuẩn bị trả lời tin nhắn tiếp theo.\n"
+                    f"Bạn là chuyên gia phân tích ngữ cảnh. Cuộc hội thoại đã đạt đến mốc {current_milestone} đoạn chat quan trọng.\n"
+                    "Hãy đọc TOÀN BỘ lịch sử cuộc trò chuyện từ đầu đến nay dưới đây và TỔNG HỢP LẠI TỪ ĐẦU thành một bản tóm tắt tổng quan toàn diện, "
+                    "nêu bật mục tiêu cốt lõi xuyên suốt, các sự kiện/thông tin quan trọng đã chốt và hướng đi hiện tại của cuộc trò chuyện.\n\n"
                     "Cấu trúc JSON bắt buộc:\n"
                     "{\n"
-                    '  "user_intent": "Mục đích chính / yêu cầu cốt lõi xuyên suốt của người dùng",\n'
-                    '  "key_facts": ["Thông tin / sự kiện quan trọng 1", "Thông tin 2"],\n'
-                    '  "summary": "Tóm tắt ngắn gọn 1-2 câu diễn biến cuộc hội thoại đến hiện tại"\n'
+                    '  "user_intent": "Mục tiêu tổng thể xuyên suốt của người dùng từ đầu đến nay",\n'
+                    '  "key_facts": ["Sự kiện / yêu cầu / quyết định quan trọng 1", "Sự kiện 2", ...],\n'
+                    '  "summary": "Bản tổng quan toàn diện súc tích về toàn bộ diễn biến cuộc trò chuyện từ đầu đến hiện tại"\n'
                     "}\n\n"
-                    f"TÓM TẮT TRƯỚC ĐÓ:\n{json.dumps(old_summary, ensure_ascii=False, indent=2)}\n\n"
-                    f"CÁC ĐOẠN CHAT TIẾP THEO:\n{text_to_summarize}"
+                    f"TOÀN BỘ LỊCH SỬ HỘI THOẠI TỪ ĐẦU:\n{text_to_summarize}"
                 )
+                max_tokens = 500
             else:
-                prompt = (
-                    "Bạn là chuyên gia phân tích ngữ cảnh hội thoại. Hãy đọc các đoạn chat dưới đây "
-                    "và tổng hợp thành một khối JSON ngắn gọn, súc tích để làm ngữ cảnh chuẩn bị trả lời tin nhắn tiếp theo.\n"
-                    "Cấu trúc JSON bắt buộc:\n"
-                    "{\n"
-                    '  "user_intent": "Mục đích chính / yêu cầu cốt lõi của người dùng",\n'
-                    '  "key_facts": ["Thông tin / sự kiện quan trọng 1", "Thông tin 2"],\n'
-                    '  "summary": "Tóm tắt ngắn gọn 1-2 câu diễn biến cuộc hội thoại"\n'
-                    "}\n\n"
-                    f"CÁC ĐOẠN CHAT:\n{text_to_summarize}"
-                )
+                print(f"[MemoryService] [Thinking] Phát hiện mốc {current_milestone} đoạn chat (tổng {total_msgs} đoạn). Bắt đầu tóm tắt ngữ cảnh hội thoại...")
+                old_summary = context.get("long_term_summary")
+                if old_summary:
+                    prompt = (
+                        "Bạn là chuyên gia phân tích ngữ cảnh hội thoại. Hãy đọc bản tóm tắt cũ và các đoạn chat mới nhất dưới đây, "
+                        "sau đó tổng hợp gộp lại thành một khối JSON ngắn gọn, súc tích để làm ngữ cảnh chuẩn bị trả lời tin nhắn tiếp theo.\n"
+                        "Cấu trúc JSON bắt buộc:\n"
+                        "{\n"
+                        '  "user_intent": "Mục đích chính / yêu cầu cốt lõi xuyên suốt của người dùng",\n'
+                        '  "key_facts": ["Thông tin / sự kiện quan trọng 1", "Thông tin 2"],\n'
+                        '  "summary": "Tóm tắt ngắn gọn 1-2 câu diễn biến cuộc hội thoại đến hiện tại"\n'
+                        "}\n\n"
+                        f"TÓM TẮT TRƯỚC ĐÓ:\n{json.dumps(old_summary, ensure_ascii=False, indent=2)}\n\n"
+                        f"CÁC ĐOẠN CHAT TIẾP THEO:\n{text_to_summarize}"
+                    )
+                else:
+                    prompt = (
+                        "Bạn là chuyên gia phân tích ngữ cảnh hội thoại. Hãy đọc các đoạn chat dưới đây "
+                        "và tổng hợp thành một khối JSON ngắn gọn, súc tích để làm ngữ cảnh chuẩn bị trả lời tin nhắn tiếp theo.\n"
+                        "Cấu trúc JSON bắt buộc:\n"
+                        "{\n"
+                        '  "user_intent": "Mục đích chính / yêu cầu cốt lõi của người dùng",\n'
+                        '  "key_facts": ["Thông tin / sự kiện quan trọng 1", "Thông tin 2"],\n'
+                        '  "summary": "Tóm tắt ngắn gọn 1-2 câu diễn biến cuộc hội thoại"\n'
+                        "}\n\n"
+                        f"CÁC ĐOẠN CHAT:\n{text_to_summarize}"
+                    )
+                max_tokens = 350
 
             parsed_summary = None
             if llm_service:
@@ -150,7 +168,7 @@ class MemoryService:
                     result_json = llm_service.chat(
                         messages=[{"role": "user", "content": prompt}],
                         system_prompt="LUÔN LUÔN TRẢ VỀ ĐỊNH DẠNG JSON HỢP LỆ. KHÔNG KÈM TEXT GIẢI THÍCH NÀO KHÁC.",
-                        max_tokens=350,
+                        max_tokens=max_tokens,
                         temperature=0.2
                     )
                     json_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', result_json, re.DOTALL)
