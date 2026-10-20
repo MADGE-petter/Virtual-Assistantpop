@@ -11,6 +11,7 @@ import os
 import threading
 import time
 import tempfile
+import urllib.request
 import zipfile
 from typing import Optional
 
@@ -37,6 +38,15 @@ try:
     PLAYSOUND_AVAILABLE = True
 except ImportError:
     PLAYSOUND_AVAILABLE = False
+
+# Speech recognition for microphone capture
+try:
+    import speech_recognition as sr
+    SR_AVAILABLE = True
+except ImportError:
+    sr = None
+    SR_AVAILABLE = False
+
 
 
 class AudioService:
@@ -74,7 +84,7 @@ class AudioService:
         
         # Cooldown after speaking
         self.post_speak_cooldown = 0.3
-        self.last_speak_end_time = 0
+        self.last_speak_end_time: float = 0.0
         
         # Models directory
         try:
@@ -175,7 +185,7 @@ class AudioService:
         if self._asr_recognizer is not None:
             return
             
-        if not SHERPA_AVAILABLE:
+        if not SHERPA_AVAILABLE or sherpa_onnx is None:
             raise RuntimeError("sherpa-onnx not installed")
         
         # Ensure model is downloaded
@@ -209,7 +219,7 @@ class AudioService:
         if self._tts_engine is not None:
             return
             
-        if not SHERPA_AVAILABLE:
+        if not SHERPA_AVAILABLE or sherpa_onnx is None:
             raise RuntimeError("sherpa-onnx not installed")
         
         # Ensure model is downloaded
@@ -308,6 +318,8 @@ class AudioService:
         """Synthesize with sherpa-onnx Piper TTS and play."""
         # Load TTS model if needed
         self._load_tts_model()
+        if self._tts_engine is None:
+            raise RuntimeError("TTS engine not initialized")
         
         # Generate audio using sherpa-onnx OfflineTts
         # Returns GeneratedAudio object with samples and sample_rate
@@ -324,6 +336,8 @@ class AudioService:
         if hasattr(audio, 'ndim') and audio.ndim > 1:
             audio = audio.squeeze()
         
+        if sf is None:
+            raise RuntimeError("soundfile not installed")
         sf.write(temp_path, audio, sr)
         
         # Play directly with sounddevice (cleaner & no file lock on Windows)
@@ -374,8 +388,12 @@ class AudioService:
             if self.view:
                 self.view.update_user_text("Đang lắng nghe...")
             
+            # Check if speech_recognition is installed
+            if not SR_AVAILABLE or sr is None:
+                print("[AudioService] speech_recognition not installed, using sherpa-onnx ASR directly")
+                return self._listen_with_sherpa(timeout, phrase_time_limit)
+
             try:
-                import speech_recognition as sr
                 r = sr.Recognizer()
                 with sr.Microphone() as source:
                     r.pause_threshold = 0.8
@@ -387,7 +405,7 @@ class AudioService:
                 with open(temp_path, "wb") as f:
                     f.write(audio.get_wav_data())
                 
-                # Transcribe with Gipformer
+                # Transcribe with Zipformer
                 text = self._transcribe_audio(temp_path)
                 
                 # Cleanup
@@ -397,21 +415,25 @@ class AudioService:
                 # Update UI
                 if self.view and text:
                     self.view.update_user_text(text)
+                elif self.view and not text:
+                    self.view.update_user_text("Pop không nghe rõ...")
                 
                 print(f"[USER] {text}")
-                return text
+                return text if text else "..."
                 
-            except ImportError:
-                print("[AudioService] speech_recognition not installed, using sherpa-onnx ASR directly")
-                # Fallback to sherpa-onnx ASR directly
-                return self._listen_with_sherpa(timeout, phrase_time_limit)
-            except sr.UnknownValueError:
-                if self.view:
-                    self.view.update_user_text("Pop không nghe rõ...")
-                return "..."
-            except sr.RequestError as e:
-                return "..."
             except Exception as e:
+                # Handle timeout (no speech detected) or recognition errors gracefully
+                ignored_errors = tuple(
+                    err for err in (
+                        getattr(sr, "WaitTimeoutError", None),
+                        getattr(sr, "UnknownValueError", None),
+                        getattr(sr, "RequestError", None),
+                    ) if err is not None
+                )
+                if ignored_errors and isinstance(e, ignored_errors):
+                    if self.view:
+                        self.view.update_user_text("Pop không nghe rõ...")
+                    return "..."
                 print(f"[AudioService] Listen error: {e}")
                 return "..."
                 
@@ -423,6 +445,8 @@ class AudioService:
         """Transcribe audio file using Vietnamese Zipformer via sherpa-onnx (offline)."""
         if self._asr_recognizer is None:
             self._load_asr_model()
+        if self._asr_recognizer is None:
+            return None
         
         # Read audio file
         import soundfile as sf
@@ -434,7 +458,7 @@ class AudioService:
             audio_data = librosa.resample(audio_data, orig_sr=sample_rate, target_sr=16000)
         
         # Convert to float32
-        if audio_data.dtype != np.float32:
+        if np is not None and audio_data.dtype != np.float32:
             audio_data = audio_data.astype(np.float32)
         
         # Use offline recognizer - simpler API
@@ -458,12 +482,14 @@ class AudioService:
             duration = phrase_time_limit
             print(f"[AudioService] Recording for {duration}s...")
             
-            audio_data = sd.rec(int(duration * sample_rate), samplerate=sample_rate, channels=1, dtype='float32')
+            audio_data = sd.rec(duration * sample_rate, samplerate=sample_rate, channels=1, dtype='float32')
             sd.wait()
             audio_data = audio_data.flatten()
             
             # Save to temp file
             temp_path = os.path.join(tempfile.gettempdir(), f"asr_input_{int(time.time()*1000)}.wav")
+            if sf is None:
+                raise RuntimeError("soundfile not installed")
             sf.write(temp_path, audio_data, sample_rate)
             
             # Transcribe
@@ -484,7 +510,7 @@ class AudioService:
             print(f"[AudioService] Sherpa listen error: {e}")
             return "..."
     
-    def get_text_with_retry(self, max_retries: int = 3, retry_message: str = None) -> str:
+    def get_text_with_retry(self, max_retries: int = 3, retry_message: Optional[str] = None) -> str:
         """Get text with retry mechanism."""
         if retry_message is None:
             retry_message = f"{self.assistant_name} không nghe rõ, bạn có thể nói lại không?"

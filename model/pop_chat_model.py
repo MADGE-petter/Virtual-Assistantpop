@@ -93,10 +93,22 @@ class PopChatModel:
         else:
             self._init_empty_session()
 
+    def _get_current_user_id(self) -> int:
+        """Get or create user ID from DB, falling back to 1 if None."""
+        user_id = self.db.get_or_create_user(self.username or "user")
+        return user_id if user_id is not None else 1
+
     def _init_empty_session(self):
-        """Start with a clean initial conversation session (unpersisted until first message)."""
+        """Start with a clean initial conversation session."""
+        try:
+            user_id = self._get_current_user_id()
+            s_id = self.db.create_chat_session(user_id, title="Cuộc trò chuyện mới")
+            session_id_str = str(s_id)
+        except Exception:
+            session_id_str = "1"
+
         initial_session = ConversationSession(
-            id=str(uuid.uuid4()),
+            id=session_id_str,
             title="Cuộc trò chuyện mới",
             timestamp=datetime.now().strftime("%H:%M"),
             category="Hôm nay",
@@ -187,7 +199,7 @@ class PopChatModel:
             return active
 
         try:
-            user_id = self.db.get_or_create_user(self.username or "user")
+            user_id = self._get_current_user_id()
             s_id = self.db.create_chat_session(user_id, title=title)
             session_id_str = str(s_id)
         except Exception as e:
@@ -233,7 +245,7 @@ class PopChatModel:
     def _ensure_persisted_session(self, session: ConversationSession) -> int:
         """Ensure session has a real integer database ID."""
         if not session.id.isdigit():
-            user_id = self.db.get_or_create_user(self.username or "user")
+            user_id = self._get_current_user_id()
             real_id = self.db.create_chat_session(user_id, title=session.title)
             session.id = str(real_id)
             self.active_session_id = session.id
@@ -293,7 +305,7 @@ class PopChatModel:
                     user_msg = m.text
                     break
             if user_msg:
-                user_id = self.db.get_or_create_user(self.username or "user")
+                user_id = self._get_current_user_id()
                 self.db.save_conversation(user_id, s_id, user_msg, text)
         except Exception as e:
             logger.error("Error persisting bot message: %s", e)

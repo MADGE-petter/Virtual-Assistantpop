@@ -1,6 +1,7 @@
 import os
 import sqlite3
 from datetime import datetime
+from typing import Optional
 
 from utils.logger import get_logger
 from utils.paths import get_database_path
@@ -12,7 +13,7 @@ logger = get_logger(__name__)
 class ConversationDB(BaseRepository):
     """Database operations for conversations"""
 
-    def __init__(self, db_path: str = None):
+    def __init__(self, db_path: Optional[str] = None):
         if db_path:
             resolved = db_path
         else:
@@ -176,9 +177,11 @@ class ConversationDB(BaseRepository):
             END
         """)
 
-    def create_chat_session(self, user_id: int, title: str = "Cuộc trò chuyện mới") -> int:
+    def create_chat_session(self, user_id: Optional[int] = None, title: str = "Cuộc trò chuyện mới") -> int:
         """Create a new chat session with a title and return its session ID."""
         try:
+            if user_id is None:
+                user_id = 1
             conn = self._get_connection()
             cursor = conn.cursor()
             import uuid
@@ -190,6 +193,8 @@ class ConversationDB(BaseRepository):
             session_id = cursor.lastrowid
             conn.commit()
             conn.close()
+            if session_id is None:
+                return 1
             return session_id
         except Exception as e:
             logger.error("Error creating chat session: %s", e, exc_info=True)
@@ -206,7 +211,7 @@ class ConversationDB(BaseRepository):
         except Exception as e:
             logger.error("Error updating session title: %s", e, exc_info=True)
 
-    def add_chat_message(self, session_id: int, sender: str, text: str, timestamp: str = None) -> int:
+    def add_chat_message(self, session_id: int, sender: str, text: str, timestamp: Optional[str] = None) -> int:
         """Add a single message (user or bot) to chat_messages."""
         try:
             conn = self._get_connection()
@@ -220,6 +225,8 @@ class ConversationDB(BaseRepository):
             msg_id = cursor.lastrowid
             conn.commit()
             conn.close()
+            if msg_id is None:
+                return -1
             return msg_id
         except Exception as e:
             logger.error("Error adding chat message: %s", e, exc_info=True)
@@ -302,7 +309,7 @@ class ConversationDB(BaseRepository):
         except Exception as e:
             logger.error("Error deleting session: %s", e, exc_info=True)
 
-    def cleanup_empty_sessions(self, user_id: int = None):
+    def cleanup_empty_sessions(self, user_id: Optional[int] = None):
         """Clean up sessions that have 0 messages in both chat_messages and conversations."""
         try:
             conn = self._get_connection()
@@ -427,7 +434,7 @@ class ConversationDB(BaseRepository):
         else:
             return self.create_user(username)
     
-    def start_session(self, user_id: int = None) -> int:
+    def start_session(self, user_id: Optional[int] = None) -> int:
         """Bắt đầu session mới và trả về session ID (integer)."""
         try:
             conn = self._get_connection()
@@ -452,6 +459,8 @@ class ConversationDB(BaseRepository):
             conn.commit()
             conn.close()
             
+            if session_id is None:
+                return 1
             return session_id
             
         except Exception as e:

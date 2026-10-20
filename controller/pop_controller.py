@@ -124,13 +124,27 @@ class PopController(QObject):
             self.view.viewClosed.connect(self._on_view_closed)
 
             # Sync active session ID with ConversationService
-            if hasattr(self.view, 'chat_model'):
-                active = self.view.chat_model.get_active_session()
-                if active and hasattr(self, 'conversation') and hasattr(self.conversation, 'service'):
-                    try:
-                        self.conversation.service._session_id = int(active.id)
-                    except (ValueError, TypeError):
-                        self.conversation.service._session_id = active.id
+            self._sync_conversation_session()
+
+    def _sync_conversation_session(self, conversation_id: Optional[str] = None):
+        """Đồng bộ session ID hợp lệ (integer) sang ConversationService."""
+        try:
+            if not hasattr(self, 'conversation') or not hasattr(self.conversation, 'service'):
+                return
+
+            valid_id: Optional[int] = None
+
+            if conversation_id and conversation_id.isdigit():
+                valid_id = int(conversation_id)
+            elif self.view and hasattr(self.view, 'chat_model'):
+                session = self.view.chat_model.get_active_session()
+                if session:
+                    valid_id = self.view.chat_model._ensure_persisted_session(session)
+
+            if valid_id is not None:
+                self.conversation.service._session_id = valid_id
+        except Exception as e:
+            print(f"[PopController] Lỗi đồng bộ session ID: {e}")
 
     # ============================================================
     # VIEW SIGNAL HANDLERS (Controller slots)
@@ -151,15 +165,7 @@ class PopController(QObject):
 
     def _on_new_conversation(self):
         """Handle new conversation request."""
-        if self.view and hasattr(self.view, 'chat_model'):
-            active = self.view.chat_model.get_active_session()
-            if active and hasattr(self, 'conversation') and hasattr(self.conversation, 'service'):
-                try:
-                    self.conversation.service._session_id = int(active.id)
-                except (ValueError, TypeError):
-                    self.conversation.service._session_id = active.id
-        elif hasattr(self, 'conversation'):
-            self.conversation.start_new_conversation()
+        self._sync_conversation_session()
 
     def _on_switch_model(self, model_name: str = ""):
         """Handle model switch request."""
@@ -187,11 +193,7 @@ class PopController(QObject):
                 session = self.view.chat_model.get_active_session()
                 if session and hasattr(self.view, 'chat_area'):
                     self.view.chat_area.load_session(session)
-            if hasattr(self, 'conversation') and hasattr(self.conversation, 'service'):
-                try:
-                    self.conversation.service._session_id = int(conversation_id)
-                except (ValueError, TypeError):
-                    self.conversation.service._session_id = conversation_id
+            self._sync_conversation_session(conversation_id)
         except Exception as e:
             print(f"[PopController] Lỗi tải cuộc trò chuyện: {e}")
     
