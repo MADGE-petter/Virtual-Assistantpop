@@ -71,8 +71,8 @@ class PopView(QMainWindow):
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Window)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
-        # Chat Data Model
-        self.chat_model = PopChatModel()
+        # Chat Data Model (loaded with user history from SQLite)
+        self.chat_model = PopChatModel(self.user_name)
 
         # Build UI Components
         self._setup_ui()
@@ -265,6 +265,7 @@ class PopView(QMainWindow):
             self.right_panel.add_activity_log("AI Response", "chat")
         else:
             msg = self.chat_model.add_user_message(text)
+            self.sidebar.reload_conversations()
             self.right_panel.add_activity_log("User Message", "chat")
         self.chat_area.append_message(msg)
 
@@ -309,6 +310,7 @@ class PopView(QMainWindow):
 
     def _on_user_send_message(self, text: str):
         msg = self.chat_model.add_user_message(text)
+        self.sidebar.reload_conversations()
         self.chat_area.append_message(msg)
         self.right_panel.add_activity_log("User Message", "chat")
         self.chat_area.set_thinking(True)
@@ -328,6 +330,7 @@ class PopView(QMainWindow):
 
     def _on_conversation_selected(self, session_id: str):
         self.navigation.show_chat_view()
+        self.chat_model.set_active_session(session_id)
         session = self.chat_model.get_active_session()
         if session:
             self.chat_area.load_session(session)

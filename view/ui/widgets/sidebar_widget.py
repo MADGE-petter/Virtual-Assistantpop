@@ -44,9 +44,13 @@ class ConversationItemWidget(QFrame):
         self.icon_lbl.setFixedSize(16, 16)
         self.icon_lbl.setStyleSheet("border: none; background: transparent; padding: 0px;")
 
-        self.title_lbl = QLabel(self.session.title)
+        self.title_lbl = QLabel()
         self.title_lbl.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self.title_lbl.setStyleSheet("border: none; background: transparent; padding: 0px;")
+        fm = self.title_lbl.fontMetrics()
+        elided = fm.elidedText(self.session.title, Qt.TextElideMode.ElideRight, 130)
+        self.title_lbl.setText(elided)
+        self.title_lbl.setToolTip(self.session.title)
 
         self.time_lbl = QLabel(self.session.timestamp)
         self.time_lbl.setStyleSheet("border: none; background: transparent; padding: 0px;")

@@ -122,30 +122,45 @@ class PopController(QObject):
             self.view.loadConversation.connect(self._on_load_conversation)
             self.view.deleteConversation.connect(self._on_delete_conversation)
             self.view.viewClosed.connect(self._on_view_closed)
-    
+
+            # Sync active session ID with ConversationService
+            if hasattr(self.view, 'chat_model'):
+                active = self.view.chat_model.get_active_session()
+                if active and hasattr(self, 'conversation') and hasattr(self.conversation, 'service'):
+                    try:
+                        self.conversation.service._session_id = int(active.id)
+                    except (ValueError, TypeError):
+                        self.conversation.service._session_id = active.id
+
     # ============================================================
     # VIEW SIGNAL HANDLERS (Controller slots)
     # ============================================================
-    
+
     def _on_send_message(self, text: str):
         """Handle user sending a message from chat."""
         # Delegate to conversation controller
         self.conversation.handle_user_message(text)
-    
+
     def _on_voice_toggled(self):
         """Handle voice input toggle."""
         self.voice.toggle_voice_input()
-    
+
     def _on_stop_generation(self):
         """Handle stop generation request."""
         self.conversation.stop_generation()
-    
+
     def _on_new_conversation(self):
         """Handle new conversation request."""
-        self.conversation.start_new_conversation()
-        if self.view:
-            self.view.show_welcome()
-    
+        if self.view and hasattr(self.view, 'chat_model'):
+            active = self.view.chat_model.get_active_session()
+            if active and hasattr(self, 'conversation') and hasattr(self.conversation, 'service'):
+                try:
+                    self.conversation.service._session_id = int(active.id)
+                except (ValueError, TypeError):
+                    self.conversation.service._session_id = active.id
+        elif hasattr(self, 'conversation'):
+            self.conversation.start_new_conversation()
+
     def _on_switch_model(self, model_name: str = ""):
         """Handle model switch request."""
         try:
@@ -158,12 +173,12 @@ class PopController(QObject):
         except Exception as e:
             if self.view:
                 self.view.show_toast(f"Lỗi chuyển model: {str(e)}", "error")
-    
+
     def _on_open_settings(self):
         """Handle open settings request."""
         if self.view and hasattr(self.view, 'navigation'):
             self.view.navigation.open_settings_page(0)
-    
+
     def _on_load_conversation(self, conversation_id: str):
         """Handle load conversation request."""
         try:
@@ -172,6 +187,11 @@ class PopController(QObject):
                 session = self.view.chat_model.get_active_session()
                 if session and hasattr(self.view, 'chat_area'):
                     self.view.chat_area.load_session(session)
+            if hasattr(self, 'conversation') and hasattr(self.conversation, 'service'):
+                try:
+                    self.conversation.service._session_id = int(conversation_id)
+                except (ValueError, TypeError):
+                    self.conversation.service._session_id = conversation_id
         except Exception as e:
             print(f"[PopController] Lỗi tải cuộc trò chuyện: {e}")
     

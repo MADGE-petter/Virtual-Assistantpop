@@ -143,6 +143,31 @@ class ConversationDB(BaseRepository):
                 pass
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_health_snapshots_user ON health_snapshots(username)")
 
+        # Check and add title column to sessions if not present
+        try:
+            cursor.execute("PRAGMA table_info(sessions)")
+            cols = [col[1] for col in cursor.fetchall()]
+            if 'title' not in cols:
+                cursor.execute("ALTER TABLE sessions ADD COLUMN title TEXT DEFAULT 'Cuộc trò chuyện mới'")
+        except Exception as e:
+            logger.warning("Could not add title column to sessions: %s", e)
+
+        # Create chat_messages table for storing individual user and bot messages
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS chat_messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id INTEGER NOT NULL,
+                sender TEXT NOT NULL,
+                text TEXT NOT NULL,
+                timestamp TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                status TEXT DEFAULT 'sent',
+                FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_chat_messages_session_id ON chat_messages(session_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_chat_messages_created_at ON chat_messages(created_at)")
+
         cursor.execute("""
             CREATE TRIGGER IF NOT EXISTS update_users_timestamp 
             AFTER UPDATE ON users
@@ -150,6 +175,158 @@ class ConversationDB(BaseRepository):
                 UPDATE users SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
             END
         """)
+
+    def create_chat_session(self, user_id: int, title: str = "Cuộc trò chuyện mới") -> int:
+        """Create a new chat session with a title and return its session ID."""
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            import uuid
+            session_token = str(uuid.uuid4())
+            cursor.execute("""
+                INSERT INTO sessions (user_id, session_token, title, created_at, is_active)
+                VALUES (?, ?, ?, ?, 1)
+            """, (user_id, session_token, title, datetime.now()))
+            session_id = cursor.lastrowid
+            conn.commit()
+            conn.close()
+            return session_id
+        except Exception as e:
+            logger.error("Error creating chat session: %s", e, exc_info=True)
+            return 1
+
+    def update_session_title(self, session_id: int, title: str):
+        """Update session title."""
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE sessions SET title = ? WHERE id = ?", (title, session_id))
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.error("Error updating session title: %s", e, exc_info=True)
+
+    def add_chat_message(self, session_id: int, sender: str, text: str, timestamp: str = None) -> int:
+        """Add a single message (user or bot) to chat_messages."""
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            if not timestamp:
+                timestamp = datetime.now().strftime("%I:%M %p")
+            cursor.execute("""
+                INSERT INTO chat_messages (session_id, sender, text, timestamp, created_at)
+                VALUES (?, ?, ?, ?, ?)
+            """, (session_id, sender, text, timestamp, datetime.now()))
+            msg_id = cursor.lastrowid
+            conn.commit()
+            conn.close()
+            return msg_id
+        except Exception as e:
+            logger.error("Error adding chat message: %s", e, exc_info=True)
+            return -1
+
+    def get_session_chat_messages(self, session_id: int) -> list:
+        """Fetch all messages for a session in chronological order."""
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id, sender, text, timestamp, created_at
+                FROM chat_messages
+                WHERE session_id = ?
+                ORDER BY id ASC
+            """, (session_id,))
+            rows = cursor.fetchall()
+            conn.close()
+
+            if not rows:
+                # Check legacy conversations table as fallback
+                conn = self._get_connection()
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT user_message, bot_response, created_at
+                    FROM conversations
+                    WHERE session_id = ?
+                    ORDER BY id ASC
+                """, (session_id,))
+                legacy = cursor.fetchall()
+                conn.close()
+                converted = []
+                for u_msg, b_msg, c_at in legacy:
+                    time_str = str(c_at)[11:16] if c_at and len(str(c_at)) >= 16 else ""
+                    if u_msg:
+                        converted.append((0, 'user', u_msg, time_str, c_at))
+                    if b_msg:
+                        converted.append((0, 'bot', b_msg, time_str, c_at))
+                return converted
+            return rows
+        except Exception as e:
+            logger.error("Error getting session chat messages: %s", e, exc_info=True)
+            return []
+
+    def get_user_chat_sessions(self, username: str, limit: int = 50) -> list:
+        """Get all sessions for a user with title and created_at that have messages."""
+        try:
+            user_id = self.get_or_create_user(username)
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT s.id, COALESCE(s.title, 'Cuộc trò chuyện mới') as title, s.created_at
+                FROM sessions s
+                WHERE s.user_id = ?
+                  AND (
+                    EXISTS (SELECT 1 FROM chat_messages cm WHERE cm.session_id = s.id)
+                    OR EXISTS (SELECT 1 FROM conversations c WHERE c.session_id = s.id)
+                  )
+                ORDER BY s.id DESC
+                LIMIT ?
+            """, (user_id, limit))
+            rows = cursor.fetchall()
+            conn.close()
+            return rows
+        except Exception as e:
+            logger.error("Error getting user chat sessions: %s", e, exc_info=True)
+            return []
+
+    def delete_session(self, session_id: int):
+        """Delete session and all its messages."""
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM chat_messages WHERE session_id = ?", (session_id,))
+            cursor.execute("DELETE FROM conversations WHERE session_id = ?", (session_id,))
+            cursor.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
+            conn.commit()
+            conn.close()
+            logger.info("Deleted session %s and associated messages", session_id)
+        except Exception as e:
+            logger.error("Error deleting session: %s", e, exc_info=True)
+
+    def cleanup_empty_sessions(self, user_id: int = None):
+        """Clean up sessions that have 0 messages in both chat_messages and conversations."""
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            if user_id:
+                cursor.execute("""
+                    DELETE FROM sessions
+                    WHERE user_id = ?
+                      AND id NOT IN (SELECT DISTINCT session_id FROM chat_messages)
+                      AND id NOT IN (SELECT DISTINCT session_id FROM conversations)
+                """, (user_id,))
+            else:
+                cursor.execute("""
+                    DELETE FROM sessions
+                    WHERE id NOT IN (SELECT DISTINCT session_id FROM chat_messages)
+                      AND id NOT IN (SELECT DISTINCT session_id FROM conversations)
+                """)
+            deleted = cursor.rowcount
+            conn.commit()
+            conn.close()
+            if deleted > 0:
+                logger.info("Cleaned up %s empty sessions", deleted)
+        except Exception as e:
+            logger.error("Error cleaning up empty sessions: %s", e)
     
     def save_conversation(self, user_id, session_id, user_message, bot_response, intent_type=None):
         """Save a conversation to database"""
