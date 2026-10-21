@@ -273,7 +273,9 @@ class PopController(QObject):
             self.view.show_window()
     
     def _do_wake_up(self):
-        """Thực hiện wake up trên main thread."""
+        """Thực hiện wake up trên main thread khi người dùng gọi wake word."""
+        if self.view and hasattr(self.view, 'mini_mascot') and self.view.mini_mascot:
+            self.view.mini_mascot.wake_up()
         if hasattr(self, 'voice_coordinator') and self.voice_coordinator.is_sleeping:
             self.voice_coordinator.wake()
         else:

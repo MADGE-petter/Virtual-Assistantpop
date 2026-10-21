@@ -226,6 +226,11 @@ class PopView(QMainWindow):
     def set_controller(self, controller):
         self.controller = controller
 
+    def wake_up(self):
+        """Wake up the assistant and mascot."""
+        if hasattr(self, 'mini_mascot') and self.mini_mascot:
+            self.mini_mascot.wake_up()
+
     def show_window(self):
         self.dispatcher.showWindowSignal.emit()
 

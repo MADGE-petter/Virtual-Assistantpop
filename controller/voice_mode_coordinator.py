@@ -31,8 +31,10 @@ class VoiceModeCoordinator:
         # Activate voice mode
         self.voice.handle_wake_up()
         
-        # Show view
+        # Show view & wake up mascot
         if self.view:
+            if hasattr(self.view, 'mini_mascot') and self.view.mini_mascot:
+                self.view.mini_mascot.wake_up()
             self.view.show()
             self.view.raise_()
             self.view.activateWindow()

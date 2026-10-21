@@ -144,6 +144,10 @@ class MiniMascotWidget(QWidget):
         # Note: Background ambient LISTENING or READY does NOT force wake up!
         self.update()
 
+    def wake_up(self):
+        """Public wake up method (called when user says wake word 'Pop ơi' or triggers wake action)."""
+        self._trigger_wake_up()
+
     def _trigger_wake_up(self):
         """Immediately wake up from sleep/drowsiness with max performance mode."""
         now = time.time()
@@ -185,19 +189,23 @@ class MiniMascotWidget(QWidget):
         dist_to_cursor = math.hypot(dx, dy)
 
         # Active interaction detection:
-        # - User dragging mascot
-        # - User actively moving cursor near mascot (< 90px and moving > 5px)
-        # - AI bot actively speaking or thinking
-        # (Ambient VoiceState.LISTENING or READY does NOT block idle sleep!)
         is_bot_active = self.voice_state in (VoiceState.SPEAKING, VoiceState.THINKING)
         is_cursor_moving_near = (dist_to_cursor < 90.0 and cursor_moved > 5.0)
-        is_interacting = self._is_dragging or is_bot_active or is_cursor_moving_near
 
-        if is_interacting:
-            if self._is_sleeping or self._is_drowsy:
+        # WAKEUP & SLEEP LOGIC:
+        # - When sleeping: moving mouse nearby DOES NOT wake it up!
+        #   User must explicitly CALL IT ("Pop ơi") or CLICK/DRAG directly on it.
+        # - When awake: moving mouse nearby keeps it active and resets idle timer.
+        if not self._is_sleeping:
+            if self._is_dragging or is_bot_active or is_cursor_moving_near:
+                if self._is_drowsy:
+                    self._trigger_wake_up()
+                else:
+                    self._last_user_activity = now
+        else:
+            # While deep asleep: only direct dragging/clicking, bot speech, or wake_up() can wake it!
+            if self._is_dragging or is_bot_active:
                 self._trigger_wake_up()
-            else:
-                self._last_user_activity = now
 
         # 2. Idle & Sleep State Machine
         idle_time = now - self._last_user_activity
@@ -207,10 +215,13 @@ class MiniMascotWidget(QWidget):
             self._is_sleeping = True
             self._is_drowsy = False
             self._drowsy_ratio = 1.0
-        elif is_waking_up or is_interacting:
+        elif is_waking_up:
             self._is_sleeping = False
             self._is_drowsy = False
             self._drowsy_ratio = max(0.0, self._drowsy_ratio - 0.2)
+        elif self._is_sleeping:
+            # Remains sleeping peacefully until called or clicked!
+            pass
         elif idle_time >= self._sleep_timeout_sec:
             # Deep Sleep after configured timeout (default: 3 minutes = 180s)
             self._is_sleeping = True
