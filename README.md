@@ -173,11 +173,11 @@ Virtual-Assistantpop/
 │   │   ├── pop_view.py         # Cửa sổ chính POP View
 │   │   ├── icons.py            # Vector icons & logo rendering
 │   │   ├── styles.py           # Design tokens, màu sắc, QSS
+│   │   ├── mascot/             # Module Desktop Mascot chuẩn MVC (Model, View, Controller)
 │   │   ├── settings/           # Các tab trong cửa sổ Cài đặt
 │   │   └── widgets/
 │   │       ├── chat_area_widget.py       # Khu vực chat trung tâm & animation
 │   │       ├── input_bar_widget.py       # Thanh chat viền phát sáng
-│   │       ├── mini_mascot_widget.py     # Mascot lơ lửng ngoài desktop
 │   │       ├── right_panel_widget.py     # Giám sát phần cứng & telemetry
 │   │       ├── sidebar_widget.py         # Danh sách hội thoại & chuyển tab
 │   │       └── starfield_widget.py       # Nền bầu trời sao chuyển động
