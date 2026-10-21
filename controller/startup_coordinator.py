@@ -50,11 +50,11 @@ class StartupCoordinator:
                 # 2. Start monitoring services (Analytics only)
                 self.analytics.start()
                 
-                # 3. Set user name for app handler
+                # 3. Set user name for action handlers
                 if login_username:
                     try:
                         if hasattr(self.conversation, 'service') and hasattr(self.conversation.service, 'actions'):
-                            self.conversation.service.actions.app_handler.set_login_name(login_username)
+                            self.conversation.service.actions.set_login_name(login_username)
                     except Exception:
                         pass
                         

@@ -44,7 +44,9 @@ class ActionHandler:
     def _update_handlers(self, method, value):
         """Helper để cập nhật tất cả handlers."""
         for handler in self._handlers:
-            getattr(handler, method)(value)
+            func = getattr(handler, method, None)
+            if callable(func):
+                func(value)
     
     def set_audio_service(self, audio_service):
         """Set audio service cho tất cả handlers."""
@@ -60,6 +62,10 @@ class ActionHandler:
         """Set user name cho tất cả handlers."""
         self.user_name = name
         self._update_handlers('set_user_name', name)
+    
+    def set_login_name(self, name):
+        """Set login username cho tất cả handlers."""
+        self._update_handlers('set_login_name', name)
     
     def handle(self, intent, text, user_name=None, context=None, execute=False):
         if user_name:

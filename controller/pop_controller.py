@@ -49,7 +49,7 @@ class PopController(QObject):
 
         if login_username:
             try:
-                self.actions.app_handler.set_login_name(login_username)
+                self.actions.set_login_name(login_username)
             except Exception:
                 pass
 
