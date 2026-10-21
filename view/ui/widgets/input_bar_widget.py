@@ -75,7 +75,7 @@ class ModelItemDelegate(QStyledItemDelegate):
         # 3. Text rendering
         text = index.data(Qt.ItemDataRole.DisplayRole) or ""
         font = painter.font()
-        font.setFamily("Plus Jakarta Sans")
+        font.setFamily("Arial")
         if is_hovered:
             font.setBold(True)
             painter.setFont(font)
@@ -556,11 +556,35 @@ class InputBarWidget(QWidget):
         previous_signal_state = self.model_combo.blockSignals(True)
         self.model_combo.clear()
         models = []
+        MIN_MODEL_SIZE = 10 * 1024 * 1024  # At least 10MB to avoid 0MB or empty cache files
         if os.path.exists(agent_dir):
             for item in os.listdir(agent_dir):
-                if item.startswith('.'): continue
-                if os.path.isdir(os.path.join(agent_dir, item)) or item.endswith(".gguf"):
-                    models.append(self._format_model_name(item))
+                if item.startswith('.'):
+                    continue
+                item_path = os.path.join(agent_dir, item)
+                if os.path.isdir(item_path):
+                    # Check if directory contains at least one valid .gguf model file > 10MB
+                    has_valid_gguf = False
+                    for root, _, files in os.walk(item_path):
+                        for f in files:
+                            if f.endswith(".gguf"):
+                                fp = os.path.join(root, f)
+                                try:
+                                    if os.path.getsize(fp) >= MIN_MODEL_SIZE:
+                                        has_valid_gguf = True
+                                        break
+                                except OSError:
+                                    pass
+                        if has_valid_gguf:
+                            break
+                    if has_valid_gguf:
+                        models.append(self._format_model_name(item))
+                elif item.endswith(".gguf"):
+                    try:
+                        if os.path.getsize(item_path) >= MIN_MODEL_SIZE:
+                            models.append(self._format_model_name(item))
+                    except OSError:
+                        pass
 
         self.model_combo.addItem("Auto")
         self.model_combo.setItemData(0, "Tự động chọn mô hình phù hợp", Qt.ItemDataRole.ToolTipRole)

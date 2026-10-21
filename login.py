@@ -42,7 +42,7 @@ def main():
         except Exception as e:
             print(f"[Login] Could not set icon: {e}")
 
-        # Load embedded modern typography (Plus Jakarta Sans)
+        # Apply global typography (Arial)
         from view.ui.styles import init_fonts
         init_fonts()
 

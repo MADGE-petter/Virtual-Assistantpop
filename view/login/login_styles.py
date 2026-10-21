@@ -19,7 +19,7 @@ MAIN_WINDOW_STYLE = """
         padding: 0px 14px;
         color: #FFFFFF;
         font-size: 12px;
-        font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        font-family: Arial, sans-serif;
         selection-background-color: rgba(0, 142, 255, 0.35);
     }
     QLineEdit:focus {
@@ -42,7 +42,7 @@ MAIN_WINDOW_STYLE = """
         color: #040812;
         font-size: 13px;
         font-weight: 700;
-        font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        font-family: Arial, sans-serif;
         letter-spacing: 0.5px;
         padding: 6px 20px;
     }
@@ -58,7 +58,7 @@ MAIN_WINDOW_STYLE = """
     QLabel {
         color: rgba(240, 245, 250, 220);
         font-size: 12px;
-        font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        font-family: Arial, sans-serif;
         padding: 0px;
     }
 """
@@ -69,7 +69,7 @@ TITLE_STYLE = """
                            stop:0 #008EFF, stop:1 #00FFAA);
         font-size: 20px;
         font-weight: 800;
-        font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        font-family: Arial, sans-serif;
         text-align: center;
         letter-spacing: 1.2px;
         padding: 2px;
@@ -80,7 +80,7 @@ REGISTER_LABEL_STYLE = """
     QLabel {
         color: #00FFAA;
         font-size: 12px;
-        font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        font-family: Arial, sans-serif;
         padding: 6px;
         font-weight: 600;
     }

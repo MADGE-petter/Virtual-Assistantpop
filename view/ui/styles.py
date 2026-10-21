@@ -45,7 +45,7 @@ class DesignTokens:
     BORDER_GLOW = "rgba(0, 255, 170, 0.28)"
 
     # Fonts
-    FONT_FAMILY = "'Plus Jakarta Sans', 'Inter', 'Be Vietnam Pro', 'Segoe UI Variable Display', 'Segoe UI', -apple-system, sans-serif"
+    FONT_FAMILY = "Arial, Helvetica, sans-serif"
 
 
 STYLE_SHEET = f"""
@@ -182,23 +182,17 @@ QComboBox QAbstractItemView {{
 
 
 def init_fonts():
-    """Load embedded fonts (Plus Jakarta Sans) into QFontDatabase and apply globally."""
+    """Apply global font (Arial) to QApplication."""
     try:
-        import os
-        from PyQt6.QtGui import QFontDatabase, QFont
+        from PyQt6.QtGui import QFont
         from PyQt6.QtWidgets import QApplication
-        from utils.paths import resource_path
 
-        font_path = resource_path('assets', 'fonts', 'PlusJakartaSans.ttf')
-        if os.path.exists(font_path):
-            font_id = QFontDatabase.addApplicationFont(font_path)
-            if font_id >= 0:
-                app = QApplication.instance()
-                if app:
-                    app.setFont(QFont("Plus Jakarta Sans", 10))
-                return True
+        app = QApplication.instance()
+        if app:
+            app.setFont(QFont("Arial", 10))
+            return True
         return False
     except Exception as e:
-        print(f"[Styles] Failed to load custom font: {e}")
+        print(f"[Styles] Failed to set font: {e}")
         return False
 

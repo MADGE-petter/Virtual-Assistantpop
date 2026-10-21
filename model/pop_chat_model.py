@@ -161,8 +161,8 @@ class PopChatModel:
 
             if loaded_sessions:
                 self.sessions = loaded_sessions
-                self.active_session_id = self.sessions[0].id
-                self.sessions[0].is_active = True
+                # Luôn tạo một cuộc trò chuyện mới khi khởi động, giữ nguyên toàn bộ lịch sử cũ
+                self.create_new_session("Cuộc trò chuyện mới")
             else:
                 self._init_empty_session()
 
@@ -191,12 +191,19 @@ class PopChatModel:
         return {k: v for k, v in categorized.items() if v}
 
     def create_new_session(self, title: str = "Cuộc trò chuyện mới") -> ConversationSession:
-        """Create a new session or reuse existing empty active session."""
-        active = self.get_active_session()
-        if active and len(active.messages) == 0:
-            active.title = title
-            self.set_active_session(active.id)
-            return active
+        """Create a new session or reuse existing empty session."""
+        # 1. Nếu session đang chọn đã là session trống thì tái sử dụng
+        for s in self.sessions:
+            if s.id == self.active_session_id and len(s.messages) == 0:
+                s.title = title
+                return s
+
+        # 2. Nếu đã có bất kỳ session trống nào trước đó thì chuyển sang session đó
+        for s in self.sessions:
+            if len(s.messages) == 0:
+                s.title = title
+                self.set_active_session(s.id)
+                return s
 
         try:
             user_id = self._get_current_user_id()

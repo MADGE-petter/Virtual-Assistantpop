@@ -29,6 +29,7 @@ class ConversationController:
         )
         self.on_permission_requested: Optional[Callable] = None
         self.on_file_preview_requested: Optional[Callable] = None
+        self.on_error: Optional[Callable[[str], None]] = None
 
     def init_intent_service(self):
         self.service.init_intent_service()
@@ -106,6 +107,11 @@ class ConversationController:
             print(f"[ConversationController] Error processing message: {e}")
             import traceback
             traceback.print_exc()
+            error_msg = f"⚠️ Lỗi xử lý: {e}"
+            if hasattr(self, 'on_error') and callable(self.on_error):
+                self.on_error(error_msg)
+            elif hasattr(self.service, 'audio') and hasattr(self.service.audio, 'view') and self.service.audio.view:
+                self.service.audio.view.update_bot_text(error_msg)
     
     def stop_generation(self):
         """Stop current generation."""

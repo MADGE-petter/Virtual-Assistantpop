@@ -424,8 +424,8 @@ class ConversationService:
                             should_save = True
                 except Exception as e:
                     logger.error(f"[ConversationService] LLM failed: {e}")
-                    if not config.fallback_to_rules:
-                        result_action = ActionResult(text="Xin lỗi, mình đang gặp chút sự cố với bộ não AI. Bạn nói lại được không?")
+                    result_action = ActionResult(text=f"⚠️ {e}")
+                    should_save = False
             else:
                 # Normal action handling
                 result = self.actions.handle(intent, user_input, user_name, context)

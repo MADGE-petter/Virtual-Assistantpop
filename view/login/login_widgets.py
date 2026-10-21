@@ -39,7 +39,7 @@ class ToastWidget(QWidget):
         
         # Message only - single frame
         msg_label = QLabel(message)
-        msg_label.setStyleSheet(f"color: {text_color}; font-size: 14px; font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;")
+        msg_label.setStyleSheet(f"color: {text_color}; font-size: 14px; font-family: Arial, sans-serif;")
         msg_label.setWordWrap(False)
         layout.addWidget(msg_label, 1)
         

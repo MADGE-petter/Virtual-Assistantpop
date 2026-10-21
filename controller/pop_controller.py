@@ -111,6 +111,7 @@ class PopController(QObject):
             self.view.set_controller(self)
             self.conversation.on_permission_requested = self.view.show_confirmation_card
             self.conversation.on_file_preview_requested = self.view.show_file_preview
+            self.conversation.on_error = lambda err: self.view.update_chat(err, sender="bot")
             
             # Connect View signals
             self.view.sendMessage.connect(self._on_send_message)

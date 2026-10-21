@@ -80,25 +80,39 @@ class LLMService:
         self, model_path: Optional[str], models_dir: Optional[str]
     ) -> str:
         """Resolve model path from explicit arg, env var, or default location."""
-        # 1. Explicit arg wins
-        if model_path:
-            return str(Path(model_path).expanduser().resolve())
-
-        # 2. Env var
         env_path = os.environ.get("POP_LLM_MODEL_PATH")
-        if env_path:
+        if env_path and not model_path:
             return str(Path(env_path).expanduser().resolve())
 
-        # 3. Default: <project_root>/models/<DEFAULT_MODEL_FILENAME>
         if models_dir is None:
-            # project_root = service/../
             project_root = Path(__file__).resolve().parent.parent
-            # Updated folder name to "LLM-agents"
             models_dir = project_root / "LLM-agents"
         else:
             models_dir = Path(models_dir).expanduser().resolve()
 
-        candidate = models_dir / DEFAULT_MODEL_FILENAME
+        if not model_path:
+            return str(models_dir / DEFAULT_MODEL_FILENAME)
+
+        p = Path(model_path).expanduser()
+        if p.is_absolute() and p.exists():
+            return str(p.resolve())
+
+        candidate = models_dir / model_path
+        if candidate.exists():
+            return str(candidate)
+
+        if not model_path.endswith(".gguf"):
+            candidate_gguf = models_dir / f"{model_path}.gguf"
+            if candidate_gguf.exists():
+                return str(candidate_gguf)
+
+        if models_dir.exists():
+            clean_search = model_path.lower().replace(" ", "").replace("-", "").replace("_", "")
+            for item in models_dir.iterdir():
+                clean_item = item.name.lower().replace(" ", "").replace("-", "").replace("_", "")
+                if clean_search in clean_item or clean_item in clean_search:
+                    return str(item)
+
         return str(candidate)
 
     # ------------------------------------------------------------------ #
@@ -113,24 +127,38 @@ class LLMService:
             if self._llm is not None:
                 return self._llm
 
-            if not Path(self.model_path).exists():
-                # Try to auto‑download the model via huggingface_hub if it is missing.
-                try:
-                    from huggingface_hub import hf_hub_download
-                    cache_dir = Path(self.model_path).parent
-                    downloaded_path = hf_hub_download(
-                        repo_id="LiquidAI/LFM2.5-2.6B-GGUF",
-                        filename=Path(self.model_path).name,
-                        cache_dir=str(cache_dir),
-                    )
-                    logger.info(f"[LLMService] Auto‑downloaded model to {downloaded_path}")
-                    self.model_path = str(downloaded_path)
-                except Exception as e:
-                    raise FileNotFoundError(
-                        f"[LLMService] Model file not found and auto‑download failed: {e}\n"
-                        f"Please download the GGUF model manually and place it at {self.model_path} "
-                        f"or set POP_LLM_MODEL_PATH env var."
-                    )
+            model_p = Path(self.model_path)
+            # If directory, find any valid .gguf inside
+            if model_p.is_dir():
+                found_gguf = None
+                for root, _, files in os.walk(str(model_p)):
+                    for f in files:
+                        if f.endswith(".gguf"):
+                            fp = Path(root) / f
+                            try:
+                                if fp.stat().st_size >= 10 * 1024 * 1024:
+                                    found_gguf = fp
+                                    break
+                            except OSError:
+                                pass
+                    if found_gguf:
+                        break
+                if found_gguf:
+                    self.model_path = str(found_gguf)
+                    model_p = found_gguf
+
+            # Fail-fast if model file doesn't exist or is empty (0MB)
+            if not model_p.exists() or not model_p.is_file() or model_p.stat().st_size < 10 * 1024 * 1024:
+                file_size_mb = 0
+                if model_p.exists() and model_p.is_file():
+                    try:
+                        file_size_mb = round(model_p.stat().st_size / (1024 * 1024), 2)
+                    except OSError:
+                        pass
+                raise FileNotFoundError(
+                    f"Mô hình AI chưa được tải về máy hoặc tệp không hợp lệ ({file_size_mb} MB tại '{model_p.name}'). "
+                    f"Vui lòng vào 'Model++' để tải mô hình hoặc copy tệp .gguf vào thư mục LLM-agents."
+                )
 
             try:
                 from llama_cpp import Llama  # type: ignore
