@@ -88,14 +88,38 @@ class MiniMascotWidget(QWidget):
         self._zzz_particles: list = []
         self._next_zzz_time: float = 0.0
 
+        # Eco Power Saving Mode State
+        self._is_power_saving: bool = False
+        self._sleep_timeout_minutes: float = 3.0
+        self._sleep_timeout_sec: float = 180.0
+        self._drowsy_timeout_sec: float = 155.0
+        self.reload_settings()
+
         # Load saved desktop position
         saved_pos = self._settings.value("position", None)
         if saved_pos and isinstance(saved_pos, QPoint):
             self.move(saved_pos)
 
-        # 45 FPS Animation Timer
+        # 45 FPS Animation Timer (Auto drops to 10 FPS during sleep to save resources)
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._animate)
+
+    def reload_settings(self):
+        """Reload sleep timeout settings from user configuration & QSettings."""
+        try:
+            from view.ui.settings.settings_config import load_user_settings
+            cfg = load_user_settings()
+            minutes = float(self._settings.value("sleep_timeout_minutes", cfg.get("mascot_sleep_timeout_minutes", 3)))
+        except Exception:
+            minutes = 3.0
+
+        self._sleep_timeout_minutes = max(0.5, minutes)
+        self._sleep_timeout_sec = self._sleep_timeout_minutes * 60.0
+        # Lim dim (drowsy) starts ~25 seconds before deep sleep (or at 75% for short timeouts)
+        if self._sleep_timeout_sec > 60.0:
+            self._drowsy_timeout_sec = self._sleep_timeout_sec - 25.0
+        else:
+            self._drowsy_timeout_sec = self._sleep_timeout_sec * 0.75
 
     def showEvent(self, event):
         super().showEvent(event)
@@ -121,7 +145,7 @@ class MiniMascotWidget(QWidget):
         self.update()
 
     def _trigger_wake_up(self):
-        """Immediately wake up from sleep/drowsiness with a happy reaction."""
+        """Immediately wake up from sleep/drowsiness with max performance mode."""
         now = time.time()
         if self._is_sleeping or self._is_drowsy:
             self._wake_up_until = now + 1.2
@@ -130,6 +154,12 @@ class MiniMascotWidget(QWidget):
             self._drowsy_ratio = 0.0
             self._peek_eye = 0
             self._zzz_particles.clear()
+
+        # Restore max performance (45 FPS)
+        if self._is_power_saving:
+            self._is_power_saving = False
+            self.timer.setInterval(22)
+
         self._last_user_activity = now
 
     # ============================================================
@@ -181,20 +211,31 @@ class MiniMascotWidget(QWidget):
             self._is_sleeping = False
             self._is_drowsy = False
             self._drowsy_ratio = max(0.0, self._drowsy_ratio - 0.2)
-        elif idle_time >= 6.0:
-            # Deep Sleep after 6.0 seconds of idle
+        elif idle_time >= self._sleep_timeout_sec:
+            # Deep Sleep after configured timeout (default: 3 minutes = 180s)
             self._is_sleeping = True
             self._is_drowsy = False
             self._drowsy_ratio = 1.0
-        elif idle_time >= 3.0:
-            # Drowsy / Lim dim after 3.0 seconds of idle
+        elif idle_time >= self._drowsy_timeout_sec:
+            # Drowsy / Lim dim before deep sleep
             self._is_drowsy = True
             self._is_sleeping = False
-            self._drowsy_ratio = min(1.0, (idle_time - 3.0) / 3.0)
+            window = max(1.0, self._sleep_timeout_sec - self._drowsy_timeout_sec)
+            self._drowsy_ratio = min(1.0, (idle_time - self._drowsy_timeout_sec) / window)
         else:
             self._is_sleeping = False
             self._is_drowsy = False
             self._drowsy_ratio = 0.0
+
+        # Eco Power Saving Mode Management:
+        # Sleeping -> 10 FPS (100ms interval, saves ~80% CPU/GPU resources)
+        # Awake -> 45 FPS (22ms interval, max performance and fluid responsiveness)
+        if self._is_sleeping and not self._is_power_saving:
+            self._is_power_saving = True
+            self.timer.setInterval(100)
+        elif not self._is_sleeping and self._is_power_saving:
+            self._is_power_saving = False
+            self.timer.setInterval(22)
 
         # Adjust breathing speed based on state
         if self._is_sleeping:
@@ -256,20 +297,21 @@ class MiniMascotWidget(QWidget):
                     self._blink_phase = 0.0
                     self._next_blink_time = now + random.uniform(2.5, 5.0)
 
-        # 6. Smooth Eye Tracking toward Global Mouse Cursor
-        try:
-            angle = math.atan2(dy, dx)
-            max_offset = 4.2
-            sensitivity = 45.0
-            target_x = math.cos(angle) * min(max_offset, dist_to_cursor / sensitivity)
-            target_y = math.sin(angle) * min(max_offset, dist_to_cursor / sensitivity)
+        # 6. Smooth Eye Tracking toward Global Mouse Cursor (Skipped in sleep mode to save CPU)
+        if not self._is_sleeping:
+            try:
+                angle = math.atan2(dy, dx)
+                max_offset = 4.2
+                sensitivity = 45.0
+                target_x = math.cos(angle) * min(max_offset, dist_to_cursor / sensitivity)
+                target_y = math.sin(angle) * min(max_offset, dist_to_cursor / sensitivity)
 
-            # Slower pupil tracking when drowsy
-            lerp_speed = 0.06 if self._is_drowsy else 0.22
-            self._current_eye_x += (target_x - self._current_eye_x) * lerp_speed
-            self._current_eye_y += (target_y - self._current_eye_y) * lerp_speed
-        except Exception:
-            pass
+                # Slower pupil tracking when drowsy
+                lerp_speed = 0.06 if self._is_drowsy else 0.22
+                self._current_eye_x += (target_x - self._current_eye_x) * lerp_speed
+                self._current_eye_y += (target_y - self._current_eye_y) * lerp_speed
+            except Exception:
+                pass
 
         # 7. Dynamic Mouth & Ear State
         if self.voice_state == VoiceState.SPEAKING:

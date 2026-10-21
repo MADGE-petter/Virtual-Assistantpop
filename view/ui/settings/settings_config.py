@@ -14,7 +14,8 @@ DEFAULT_SETTINGS = {
     "model_dir": os.path.join(os.getcwd(), "LLM-agents"),
     "max_tokens": 2048,
     "temperature": 0.7,
-    "context_rules": "Bạn là POP AI Assistant, trợ lý thông minh thân thiện bằng tiếng Việt."
+    "context_rules": "Bạn là POP AI Assistant, trợ lý thông minh thân thiện bằng tiếng Việt.",
+    "mascot_sleep_timeout_minutes": 3
 }
 
 

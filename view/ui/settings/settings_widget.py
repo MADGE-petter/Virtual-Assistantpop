@@ -46,6 +46,7 @@ class SettingsWidget(QWidget):
         self.stacked_widget.setStyleSheet("QStackedWidget { background: transparent; }")
         
         self.general_tab = GeneralTabWidget(self.user_settings)
+        self.general_tab.settingsChanged.connect(lambda: self.settingsChanged.emit())
         self.models_tab = ModelsTabWidget(self.user_settings)
         self.models_tab.modelDownloaded.connect(lambda: self.modelDownloaded.emit())
         self.models_tab.requestOpenDownloadTab.connect(lambda: self.requestOpenDownloadTab.emit())

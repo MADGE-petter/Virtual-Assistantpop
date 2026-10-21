@@ -212,6 +212,12 @@ class PopView(QMainWindow):
         if hasattr(self.settings_page, 'requestOpenDownloadTab'):
             self.settings_page.requestOpenDownloadTab.connect(lambda: self.navigation.open_settings_page(2))
         self.settings_page.modelDownloaded.connect(lambda: self.chat_area.input_bar._load_local_models())
+        if hasattr(self.settings_page, 'settingsChanged'):
+            self.settings_page.settingsChanged.connect(self._handle_settings_changed)
+
+    def _handle_settings_changed(self):
+        if hasattr(self, 'mini_mascot') and self.mini_mascot:
+            self.mini_mascot.reload_settings()
 
     # ============================================================
     # PUBLIC MVC INTERFACE (Called by Controller & Services)

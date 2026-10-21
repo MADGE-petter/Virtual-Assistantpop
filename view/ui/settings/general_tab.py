@@ -1,8 +1,8 @@
-from PyQt6.QtCore import Qt, pyqtSignal, QRectF, QTimer
+from PyQt6.QtCore import Qt, pyqtSignal, QRectF, QTimer, QSettings
 from PyQt6.QtGui import QPainter, QColor, QBrush, QPen
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QFrame
+    QFrame, QComboBox
 )
 from view.ui.styles import DesignTokens
 from view.ui.icons import create_vector_icon
@@ -65,6 +65,8 @@ class ToggleSwitch(QWidget):
 
 class GeneralTabWidget(QWidget):
     """Tab 1: Cài đặt chung phong cách Glassmorphism Cyberpunk thanh lịch, màu sắc hài hòa."""
+
+    settingsChanged = pyqtSignal()
 
     def __init__(self, user_settings: dict, parent=None):
         super().__init__(parent)
@@ -144,6 +146,17 @@ class GeneralTabWidget(QWidget):
         self.sw_tts = s3[1]
         card_layout.addLayout(s3[0])
 
+        card_layout.addWidget(self._create_separator())
+
+        # Setting 4: Mascot Sleep Timeout
+        s4 = self._create_combo_setting_row(
+            "Thời gian chờ tự động ngủ (Mascot Sleep)",
+            "Chuyển linh vật sang trạng thái ngủ tiết kiệm tài nguyên khi không tương tác chuột",
+            current_minutes=self.user_settings.get("mascot_sleep_timeout_minutes", 3)
+        )
+        self.combo_sleep = s4[1]
+        card_layout.addLayout(s4[0])
+
         layout.addWidget(card)
         layout.addStretch()
 
@@ -195,6 +208,52 @@ class GeneralTabWidget(QWidget):
 
         return row, switch
 
+    def _create_combo_setting_row(self, title: str, subtitle: str, current_minutes: int = 3):
+        row = QHBoxLayout()
+        row.setSpacing(14)
+
+        text_box = QVBoxLayout()
+        text_box.setSpacing(3)
+
+        lbl_title = QLabel(title)
+        lbl_title.setStyleSheet(f"font-size: 14px; font-weight: 600; color: {DesignTokens.TEXT_MAIN};")
+
+        lbl_sub = QLabel(subtitle)
+        lbl_sub.setStyleSheet(f"font-size: 12px; color: {DesignTokens.TEXT_MUTED};")
+
+        text_box.addWidget(lbl_title)
+        text_box.addWidget(lbl_sub)
+        row.addLayout(text_box, stretch=1)
+
+        combo = QComboBox()
+        combo.setFixedHeight(34)
+        combo.setCursor(Qt.CursorShape.PointingHandCursor)
+        combo.setStyleSheet(
+            f"QComboBox {{ background: rgba(20, 28, 44, 0.85); border: 1px solid rgba(0, 255, 170, 0.3); "
+            f"border-radius: 8px; padding: 4px 12px; color: {DesignTokens.TEXT_MAIN}; font-size: 13px; font-weight: 600; min-width: 140px; }}"
+            f"QComboBox:hover {{ border-color: {DesignTokens.CYAN_ACCENT}; background: rgba(28, 40, 62, 0.95); }}"
+            f"QComboBox::drop-down {{ border: none; width: 22px; }}"
+            f"QComboBox QAbstractItemView {{ background: #0B111E; border: 1px solid #1E293B; "
+            f"border-radius: 8px; color: {DesignTokens.TEXT_MAIN}; selection-background-color: rgba(0, 255, 170, 0.2); selection-color: #00FFAA; padding: 4px; }}"
+        )
+        options = [
+            ("1 phút", 1),
+            ("2 phút", 2),
+            ("3 phút (Mặc định)", 3),
+            ("5 phút", 5),
+            ("10 phút", 10),
+            ("15 phút", 15)
+        ]
+        selected_index = 2  # Default to 3 minutes
+        for i, (text, val) in enumerate(options):
+            combo.addItem(text, val)
+            if val == current_minutes:
+                selected_index = i
+        combo.setCurrentIndex(selected_index)
+
+        row.addWidget(combo, alignment=Qt.AlignmentFlag.AlignVCenter)
+        return row, combo
+
     def _create_separator(self):
         sep = QFrame()
         sep.setFrameShape(QFrame.Shape.HLine)
@@ -205,9 +264,15 @@ class GeneralTabWidget(QWidget):
         self.user_settings["autostart"] = self.sw_autostart.isChecked()
         self.user_settings["mascot_top"] = self.sw_mascot.isChecked()
         self.user_settings["tts_enabled"] = self.sw_tts.isChecked()
+        sleep_minutes = int(self.combo_sleep.currentData())
+        self.user_settings["mascot_sleep_timeout_minutes"] = sleep_minutes
         save_user_settings(self.user_settings)
 
+        # Sync to persistent QSettings & emit update
+        QSettings("PopAI", "MiniMascot").setValue("sleep_timeout_minutes", sleep_minutes)
+        self.settingsChanged.emit()
+
         # Elegant in-app feedback pill instead of jarring native QMessageBox
-        self.status_feedback.setText("Đã lưu cài đặt chung thành công.")
+        self.status_feedback.setText(f"Đã lưu: Thời gian chờ ngủ Mascot = {sleep_minutes} phút.")
         self.status_feedback.show()
         QTimer.singleShot(2600, lambda: self.status_feedback.hide())
