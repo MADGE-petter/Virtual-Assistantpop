@@ -162,7 +162,8 @@ class PopView(QMainWindow):
 
         # Desktop Floating Mini Mascot
         self.mini_mascot = MiniMascotWidget()
-        self.mini_mascot.move(100, 100)
+        if not self.mini_mascot._settings.value("position", None):
+            self.mini_mascot.move(100, 100)
         self.mini_mascot.show()
 
     # ============================================================

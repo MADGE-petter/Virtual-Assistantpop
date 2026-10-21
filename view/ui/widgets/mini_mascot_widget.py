@@ -21,10 +21,11 @@ Features:
 import math
 import random
 import time
+from typing import Optional
 from PyQt6.QtCore import Qt, QPoint, QPointF, QTimer, pyqtSignal, QRectF, QSettings
 from PyQt6.QtGui import (
     QPainter, QColor, QBrush, QPen, QRadialGradient, QLinearGradient,
-    QMouseEvent, QCursor, QPainterPath, QPolygonF, QFont
+    QMouseEvent, QCursor, QPainterPath, QPolygonF, QFont, QGuiApplication
 )
 from PyQt6.QtWidgets import QWidget
 
@@ -51,7 +52,7 @@ class MiniMascotWidget(QWidget):
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setToolTip("POP AI Chibi Mascot\n• Click đơn: Bật/Tắt Micro\n• Kéo thả: Di chuyển trên màn hình\n• Bấm đúp: Mở/Ẩn cửa sổ Chat chính")
+        self.setToolTip("POP AI Chibi Mascot\n• Click đơn: Bật/Tắt Micro\n• Kéo thả: Di chuyển & Bám viền màn hình\n• Bấm đúp: Mở/Ẩn cửa sổ Chat chính")
 
         # Physics & Animation State
         self._pulse_phase: float = 0.0
@@ -59,6 +60,14 @@ class MiniMascotWidget(QWidget):
         self._is_dragging: bool = False
         self._drag_distance: float = 0.0
         self._dizzy_end_time: float = 0.0
+
+        # Screen Edge Clinging System (Left, Right, Top, Bottom)
+        self._cling_edge: Optional[str] = None  # None, "left", "right", "top", "bottom"
+        self._cling_ratio: float = 0.0  # 0.0 = free floating, 1.0 = fully clinging
+        saved_cling = self._settings.value("cling_edge", None)
+        if saved_cling and isinstance(saved_cling, str) and saved_cling in ("left", "right", "top", "bottom"):
+            self._cling_edge = saved_cling
+            self._cling_ratio = 1.0
 
         # Eye Tracking & Blinking State
         self._current_eye_x: float = 0.0
@@ -99,6 +108,7 @@ class MiniMascotWidget(QWidget):
         saved_pos = self._settings.value("position", None)
         if saved_pos and isinstance(saved_pos, QPoint):
             self.move(saved_pos)
+            self._snap_to_edge_if_near()
 
         # 45 FPS Animation Timer (Auto drops to 10 FPS during sleep to save resources)
         self.timer = QTimer(self)
@@ -241,6 +251,10 @@ class MiniMascotWidget(QWidget):
             self._is_power_saving = False
             self.timer.setInterval(22)
 
+        # Smoothly interpolate edge clinging ratio
+        target_cling = 1.0 if self._cling_edge else 0.0
+        self._cling_ratio += (target_cling - self._cling_ratio) * 0.18
+
         # Adjust breathing speed based on state
         if self._is_sleeping:
             self._pulse_phase += 0.026  # Slow, deep relaxed breath
@@ -268,14 +282,34 @@ class MiniMascotWidget(QWidget):
                 self._next_zzz_time = now + random.uniform(1.2, 1.8)
                 head_cx = self.width() / 2.0
                 head_cy = (self.height() / 2.0) - 8.0
+
+                vx = random.uniform(0.35, 0.7)
+                vy = random.uniform(-0.65, -1.0)
+                spawn_x = head_cx + random.uniform(6.0, 15.0)
+                spawn_y = head_cy - 12.0
+
+                # Direct particles inwards when clinging to screen border
+                if self._cling_edge == "left":
+                    vx = random.uniform(0.7, 1.2)
+                    vy = random.uniform(-0.35, -0.7)
+                    spawn_x = head_cx + 10.0
+                elif self._cling_edge == "right":
+                    vx = random.uniform(-1.2, -0.7)
+                    vy = random.uniform(-0.35, -0.7)
+                    spawn_x = head_cx - 10.0
+                elif self._cling_edge == "top":
+                    vx = random.uniform(-0.25, 0.25)
+                    vy = random.uniform(0.5, 0.9)
+                    spawn_y = head_cy + 8.0
+
                 self._zzz_particles.append({
-                    "x": head_cx + random.uniform(6.0, 15.0),
-                    "y": head_cy - 12.0,
+                    "x": spawn_x,
+                    "y": spawn_y,
                     "alpha": 230,
                     "char": random.choice(["z", "Z"]),
                     "size": random.uniform(11.0, 15.0),
-                    "vx": random.uniform(0.35, 0.7),
-                    "vy": random.uniform(-0.65, -1.0)
+                    "vx": vx,
+                    "vy": vy
                 })
 
         # Update zZz particles
@@ -309,6 +343,16 @@ class MiniMascotWidget(QWidget):
                 sensitivity = 45.0
                 target_x = math.cos(angle) * min(max_offset, dist_to_cursor / sensitivity)
                 target_y = math.sin(angle) * min(max_offset, dist_to_cursor / sensitivity)
+
+                # Add edge cling gaze bias so mascot looks naturally inward into the workspace
+                if self._cling_edge == "left":
+                    target_x = max(target_x, 1.0)
+                elif self._cling_edge == "right":
+                    target_x = min(target_x, -1.0)
+                elif self._cling_edge == "top":
+                    target_y = max(target_y, 1.0)
+                elif self._cling_edge == "bottom":
+                    target_y = min(target_y, -0.6)
 
                 # Slower pupil tracking when drowsy
                 lerp_speed = 0.06 if self._is_drowsy else 0.22
@@ -358,6 +402,25 @@ class MiniMascotWidget(QWidget):
             self._drag_distance += delta
             if self._drag_distance > 5:
                 self._is_dragging = True
+
+            # If currently clinging, check if user dragged mascot away from that edge
+            if self._cling_edge:
+                screen = self.screen() or QGuiApplication.primaryScreen()
+                if screen:
+                    geom = screen.availableGeometry()
+                    pulled_away = False
+                    if self._cling_edge == "left" and new_pos.x() - geom.left() > 45:
+                        pulled_away = True
+                    elif self._cling_edge == "right" and (geom.x() + geom.width()) - (new_pos.x() + self.width()) > 45:
+                        pulled_away = True
+                    elif self._cling_edge == "top" and new_pos.y() - geom.top() > 45:
+                        pulled_away = True
+                    elif self._cling_edge == "bottom" and (geom.y() + geom.height()) - (new_pos.y() + self.height()) > 45:
+                        pulled_away = True
+
+                    if pulled_away:
+                        self._cling_edge = None
+
             self.move(new_pos)
             self._trigger_wake_up()
             event.accept()
@@ -367,7 +430,9 @@ class MiniMascotWidget(QWidget):
             if self._is_dragging:
                 self._dizzy_end_time = time.time() + 1.2
                 self._is_dragging = False
+                self._snap_to_edge_if_near()
                 self._settings.setValue("position", self.pos())
+                self._settings.setValue("cling_edge", self._cling_edge or "")
             elif self._drag_distance <= 5:
                 self.toggleVoiceRequested.emit()
             self._trigger_wake_up()
@@ -378,6 +443,48 @@ class MiniMascotWidget(QWidget):
             self.toggleMainWindowRequested.emit()
             self._trigger_wake_up()
             event.accept()
+
+    def _snap_to_edge_if_near(self):
+        """Snap to nearest screen boundary if within snap margin, activating cling mode."""
+        screen = self.screen() or QGuiApplication.primaryScreen()
+        if not screen:
+            return
+
+        geom = screen.availableGeometry()
+        cur_x = self.x()
+        cur_y = self.y()
+        w = self.width()
+        h = self.height()
+
+        dist_left = abs(cur_x - geom.left())
+        dist_right = abs((geom.x() + geom.width()) - (cur_x + w))
+        dist_top = abs(cur_y - geom.top())
+        dist_bottom = abs((geom.y() + geom.height()) - (cur_y + h))
+
+        SNAP_THRESHOLD = 50
+        min_dist = min(dist_left, dist_right, dist_top, dist_bottom)
+
+        if min_dist <= SNAP_THRESHOLD:
+            if min_dist == dist_left:
+                self._cling_edge = "left"
+                target_x = geom.left()
+                target_y = max(geom.top(), min(geom.y() + geom.height() - h, cur_y))
+            elif min_dist == dist_right:
+                self._cling_edge = "right"
+                target_x = geom.x() + geom.width() - w
+                target_y = max(geom.top(), min(geom.y() + geom.height() - h, cur_y))
+            elif min_dist == dist_top:
+                self._cling_edge = "top"
+                target_x = max(geom.left(), min(geom.x() + geom.width() - w, cur_x))
+                target_y = geom.top()
+            else:
+                self._cling_edge = "bottom"
+                target_x = max(geom.left(), min(geom.x() + geom.width() - w, cur_x))
+                target_y = geom.y() + geom.height() - h
+
+            self.move(target_x, target_y)
+        else:
+            self._cling_edge = None
 
     # ============================================================
     # PROCEDURAL CHIBI VECTOR RENDERING
@@ -390,12 +497,43 @@ class MiniMascotWidget(QWidget):
 
         w = self.width()
         h = self.height()
-        cx = w / 2.0
+        base_cx = w / 2.0
 
-        # Hover float breath offset (sin wave floating)
-        float_speed = 1.0 if self._is_sleeping else 2.2
-        float_y = math.sin(self._pulse_phase) * float_speed
-        cy = (h / 2.0) + float_y
+        # Cling offsets & rotations
+        cling_dx = 0.0
+        cling_dy = 0.0
+        cling_rot = 0.0
+
+        if self._cling_edge == "left":
+            cling_dx = -12.0 * self._cling_ratio
+            cling_rot = -7.0 * self._cling_ratio
+        elif self._cling_edge == "right":
+            cling_dx = 12.0 * self._cling_ratio
+            cling_rot = 7.0 * self._cling_ratio
+        elif self._cling_edge == "top":
+            cling_dy = -14.0 * self._cling_ratio
+            pendulum = math.sin(self._pulse_phase * 1.3) * 4.5
+            cling_rot = pendulum * self._cling_ratio
+        elif self._cling_edge == "bottom":
+            cling_dy = 8.0 * self._cling_ratio
+
+        # Hover float breath offset (sin wave floating - dampened when clinging)
+        if self._cling_edge in ("left", "right", "bottom"):
+            float_speed = 0.4 if self._is_sleeping else 0.8
+            float_y = math.sin(self._pulse_phase) * float_speed
+        else:
+            float_speed = 1.0 if self._is_sleeping else 2.2
+            float_y = math.sin(self._pulse_phase) * float_speed
+
+        cx = base_cx + cling_dx
+        cy = (h / 2.0) + float_y + cling_dy
+
+        # Apply cling posture rotation
+        painter.save()
+        if abs(cling_rot) > 0.01:
+            painter.translate(cx, cy)
+            painter.rotate(cling_rot)
+            painter.translate(-cx, -cy)
 
         now = time.time()
         is_dizzy = now < self._dizzy_end_time
@@ -456,19 +594,47 @@ class MiniMascotWidget(QWidget):
         self._draw_cyber_ear(painter, head_cx + 20, head_cy - 16, is_left=False, wiggle=-ear_wiggle, primary=neon_primary)
 
         # --------------------------------------------------------
-        # 3. Chibi Legs / Feet (Bottom Limbs)
+        # 3. Chibi Legs / Feet (Bottom Limbs with Cling Adaptation)
         # --------------------------------------------------------
-        leg_l_sway = 0.0
-        leg_r_sway = 0.0
-        if not self._is_sleeping:
-            leg_l_sway = math.sin(self._pulse_phase * 1.8) * 1.6
-            leg_r_sway = math.sin(self._pulse_phase * 1.8 + math.pi) * 1.6
-        if self._is_dragging:
-            leg_l_sway = 2.5
-            leg_r_sway = 2.5
+        if self._cling_edge == "left":
+            # Left foot braced against left wall, right foot dangling
+            foot_l_x = head_cx - 16
+            foot_l_y = head_cy + 30
+            foot_r_x = head_cx - 2
+            foot_r_y = head_cy + 34
+            self._draw_cyber_foot(painter, foot_l_x, foot_l_y, neon_primary)
+            self._draw_cyber_foot(painter, foot_r_x, foot_r_y, neon_primary)
+            self._draw_magnetic_grip(painter, foot_l_x - 3.5, foot_l_y, neon_primary)
+        elif self._cling_edge == "right":
+            # Right foot braced against right wall, left foot dangling
+            foot_r_x = head_cx + 16
+            foot_r_y = head_cy + 30
+            foot_l_x = head_cx + 2
+            foot_l_y = head_cy + 34
+            self._draw_cyber_foot(painter, foot_l_x, foot_l_y, neon_primary)
+            self._draw_cyber_foot(painter, foot_r_x, foot_r_y, neon_primary)
+            self._draw_magnetic_grip(painter, foot_r_x + 3.5, foot_r_y, neon_primary)
+        elif self._cling_edge == "top":
+            # Feet dangling and swinging playfully
+            foot_sway = math.sin(self._pulse_phase * 1.8) * 1.8
+            self._draw_cyber_foot(painter, head_cx - 9 + foot_sway, head_cy + 33, neon_primary)
+            self._draw_cyber_foot(painter, head_cx + 9 - foot_sway, head_cy + 33, neon_primary)
+        elif self._cling_edge == "bottom":
+            # Standing firm on taskbar
+            self._draw_cyber_foot(painter, head_cx - 12, head_cy + 33, neon_primary)
+            self._draw_cyber_foot(painter, head_cx + 12, head_cy + 33, neon_primary)
+        else:
+            leg_l_sway = 0.0
+            leg_r_sway = 0.0
+            if not self._is_sleeping:
+                leg_l_sway = math.sin(self._pulse_phase * 1.8) * 1.6
+                leg_r_sway = math.sin(self._pulse_phase * 1.8 + math.pi) * 1.6
+            if self._is_dragging:
+                leg_l_sway = 2.5
+                leg_r_sway = 2.5
 
-        self._draw_cyber_foot(painter, head_cx - 10, head_cy + 33 + leg_l_sway, neon_primary)
-        self._draw_cyber_foot(painter, head_cx + 10, head_cy + 33 + leg_r_sway, neon_primary)
+            self._draw_cyber_foot(painter, head_cx - 10, head_cy + 33 + leg_l_sway, neon_primary)
+            self._draw_cyber_foot(painter, head_cx + 10, head_cy + 33 + leg_r_sway, neon_primary)
 
         # --------------------------------------------------------
         # 4. Chibi Mecha Torso / Body & Cyber Heart
@@ -564,9 +730,31 @@ class MiniMascotWidget(QWidget):
         if self._is_sleeping and self._zzz_particles:
             self._draw_zzz_particles(painter, neon_primary)
 
+        painter.restore()
+
     # ============================================================
     # SUB-COMPONENT RENDERERS
     # ============================================================
+
+    def _draw_magnetic_grip(self, painter: QPainter, gx: float, gy: float, primary: QColor):
+        """Draw small magnetic clamp glow with arc sparks at wall contact points."""
+        pulse = (math.sin(self._pulse_phase * 3.5) + 1.0) / 2.0
+        alpha = int(140 + pulse * 110)
+
+        # Outer glow ring
+        glow_color = QColor(primary.red(), primary.green(), primary.blue(), int(alpha * 0.45))
+        painter.setBrush(QBrush(glow_color))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawEllipse(QRectF(gx - 3.5, gy - 3.5, 7.0, 7.0))
+
+        # Core glowing spark
+        spark_color = QColor(primary.red(), primary.green(), primary.blue(), alpha)
+        painter.setBrush(QBrush(spark_color))
+        painter.drawEllipse(QRectF(gx - 2.0, gy - 2.0, 4.0, 4.0))
+
+        # White hot center
+        painter.setBrush(QBrush(QColor(255, 255, 255, alpha)))
+        painter.drawEllipse(QRectF(gx - 1.0, gy - 1.0, 2.0, 2.0))
 
     def _draw_cyber_tail(self, painter: QPainter, head_cx: float, head_cy: float, primary: QColor):
         """Draw mecha tail with smooth S-curve wagging and glowing tip."""
@@ -574,12 +762,32 @@ class MiniMascotWidget(QWidget):
         sway_amp = 3.5 if self._is_sleeping else 8.0
         tail_sway = math.sin(self._pulse_phase * sway_speed) * sway_amp
 
-        tail_path = QPainterPath()
-        start_pt = QPointF(head_cx - 8, head_cy + 28)
-        ctrl1 = QPointF(head_cx - 20 + tail_sway * 0.7, head_cy + 30)
-        ctrl2 = QPointF(head_cx - 28 + tail_sway * 1.3, head_cy + 18)
-        tip_pt = QPointF(head_cx - 22 + tail_sway, head_cy + 8)
+        if self._cling_edge == "left":
+            # Tail curves inwards into desktop to the right
+            start_pt = QPointF(head_cx + 4, head_cy + 26)
+            ctrl1 = QPointF(head_cx + 16, head_cy + 30 + tail_sway * 0.4)
+            ctrl2 = QPointF(head_cx + 24 + tail_sway * 0.7, head_cy + 18)
+            tip_pt = QPointF(head_cx + 18 + tail_sway, head_cy + 6)
+        elif self._cling_edge == "right":
+            # Tail curves inwards into desktop to the left
+            start_pt = QPointF(head_cx - 4, head_cy + 26)
+            ctrl1 = QPointF(head_cx - 16, head_cy + 30 + tail_sway * 0.4)
+            ctrl2 = QPointF(head_cx - 24 + tail_sway * 0.7, head_cy + 18)
+            tip_pt = QPointF(head_cx - 18 + tail_sway, head_cy + 6)
+        elif self._cling_edge == "top":
+            # Tail hangs straight down swinging
+            start_pt = QPointF(head_cx, head_cy + 28)
+            ctrl1 = QPointF(head_cx + tail_sway * 0.5, head_cy + 36)
+            ctrl2 = QPointF(head_cx + tail_sway * 0.9, head_cy + 42)
+            tip_pt = QPointF(head_cx + tail_sway * 1.2, head_cy + 48)
+        else:
+            # Default behind torso
+            start_pt = QPointF(head_cx - 8, head_cy + 28)
+            ctrl1 = QPointF(head_cx - 20 + tail_sway * 0.7, head_cy + 30)
+            ctrl2 = QPointF(head_cx - 28 + tail_sway * 1.3, head_cy + 18)
+            tip_pt = QPointF(head_cx - 22 + tail_sway, head_cy + 8)
 
+        tail_path = QPainterPath()
         tail_path.moveTo(start_pt)
         tail_path.cubicTo(ctrl1, ctrl2, tip_pt)
 
@@ -642,7 +850,7 @@ class MiniMascotWidget(QWidget):
         painter.drawRoundedRect(foot_rect, 4.0, 4.0)
 
     def _draw_cyber_arms(self, painter: QPainter, head_cx: float, head_cy: float, primary: QColor, is_waking_up: bool):
-        """Draw mecha arms/paws according to state (dragging, sleeping, speaking, ready)."""
+        """Draw mecha arms/paws according to state (clinging, dragging, sleeping, speaking, ready)."""
         paw_color = QColor(18, 26, 42)
         paw_border = QPen(primary, 1.2)
         painter.setBrush(QBrush(paw_color))
@@ -661,6 +869,40 @@ class MiniMascotWidget(QWidget):
             # Arms raised cheerful greeting
             painter.drawEllipse(QRectF(head_cx - 21 - paw_w / 2.0, head_cy + 10 - paw_h / 2.0, paw_w, paw_h))
             painter.drawEllipse(QRectF(head_cx + 21 - paw_w / 2.0, head_cy + 10 - paw_h / 2.0, paw_w, paw_h))
+        elif self._cling_edge == "left":
+            # Clinging to Left Screen Edge: Both paws grip the left wall!
+            l_grip_x = head_cx - 28
+            l_grip_y = head_cy + 8 + math.sin(self._pulse_phase * 2.0) * 1.5
+            r_grip_x = head_cx - 22
+            r_grip_y = head_cy + 22 - math.sin(self._pulse_phase * 2.0) * 1.5
+            painter.drawEllipse(QRectF(l_grip_x - paw_w / 2.0, l_grip_y - paw_h / 2.0, paw_w, paw_h))
+            painter.drawEllipse(QRectF(r_grip_x - paw_w / 2.0, r_grip_y - paw_h / 2.0, paw_w, paw_h))
+            self._draw_magnetic_grip(painter, l_grip_x - 3.5, l_grip_y, primary)
+            self._draw_magnetic_grip(painter, r_grip_x - 3.5, r_grip_y, primary)
+        elif self._cling_edge == "right":
+            # Clinging to Right Screen Edge: Both paws grip the right wall!
+            r_grip_x = head_cx + 28
+            r_grip_y = head_cy + 8 + math.sin(self._pulse_phase * 2.0) * 1.5
+            l_grip_x = head_cx + 22
+            l_grip_y = head_cy + 22 - math.sin(self._pulse_phase * 2.0) * 1.5
+            painter.drawEllipse(QRectF(r_grip_x - paw_w / 2.0, r_grip_y - paw_h / 2.0, paw_w, paw_h))
+            painter.drawEllipse(QRectF(l_grip_x - paw_w / 2.0, l_grip_y - paw_h / 2.0, paw_w, paw_h))
+            self._draw_magnetic_grip(painter, r_grip_x + 3.5, r_grip_y, primary)
+            self._draw_magnetic_grip(painter, l_grip_x + 3.5, l_grip_y, primary)
+        elif self._cling_edge == "top":
+            # Hanging from Top Ceiling: Arms reach up gripping the screen top!
+            l_paw_x = head_cx - 15
+            r_paw_x = head_cx + 15
+            grip_y = head_cy - 18
+            painter.drawEllipse(QRectF(l_paw_x - paw_w / 2.0, grip_y - paw_h / 2.0, paw_w, paw_h))
+            painter.drawEllipse(QRectF(r_paw_x - paw_w / 2.0, grip_y - paw_h / 2.0, paw_w, paw_h))
+            self._draw_magnetic_grip(painter, l_paw_x, grip_y - 2.5, primary)
+            self._draw_magnetic_grip(painter, r_paw_x, grip_y - 2.5, primary)
+        elif self._cling_edge == "bottom":
+            # Resting on Taskbar / Bottom Edge
+            paw_bob = math.sin(self._pulse_phase * 1.2) * 0.8
+            painter.drawEllipse(QRectF(head_cx - 15 - paw_w / 2.0, head_cy + 24 + paw_bob - paw_h / 2.0, paw_w, paw_h))
+            painter.drawEllipse(QRectF(head_cx + 15 - paw_w / 2.0, head_cy + 24 + paw_bob - paw_h / 2.0, paw_w, paw_h))
         elif self._is_sleeping:
             # Paws folded gently over belly/core
             painter.drawEllipse(QRectF(head_cx - 8 - paw_w / 2.0, head_cy + 25 - paw_h / 2.0, paw_w, paw_h))
