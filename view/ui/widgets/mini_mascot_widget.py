@@ -7,8 +7,8 @@ Features:
 - Smooth 360° Cursor Tracking (eyes organically look toward cursor position)
 - Natural Periodic Eye Blinking
 - Autonomous Idle Sleep & Play System:
-  * Fast, responsive sleep transitions: Drowsy at 3.5s of idle, Deep Sleep at 7.0s
-  * True sliding eyelid animation for heavy droopy eyes (lim dim)
+  * Fast, responsive sleep transitions: Drowsy at 3.0s of idle, Deep Sleep at 6.0s
+  * True sliding armor eyelid animation for heavy droopy eyes (lim dim)
   * Head nodding & bobbing physics while dozing off
   * Peaceful curved sleeping eyes with cute lashes & floating zZz neon bubbles
   * Periodic cute one-eye peeking while asleep
@@ -16,7 +16,6 @@ Features:
 - Interactive Voice State Expressions (Listening, Thinking, Speaking, Ready, Sleeping)
 - Drag Physics & Expressions (Shocked / Dizzy '> <' while dragging, Relieved bounce on drop)
 - Lip-sync Mouth Animation when Speaking
-- Soundwave Auroras when Listening
 """
 
 import math
@@ -115,8 +114,10 @@ class MiniMascotWidget(QWidget):
             self._is_drowsy = False
             self._drowsy_ratio = 1.0
             self._zzz_particles.clear()
-        elif state in (VoiceState.LISTENING, VoiceState.SPEAKING, VoiceState.THINKING):
+        elif state in (VoiceState.SPEAKING, VoiceState.THINKING):
+            # Only wake up when AI is actively responding/thinking
             self._trigger_wake_up()
+        # Note: Background ambient LISTENING or READY does NOT force wake up!
         self.update()
 
     def _trigger_wake_up(self):
@@ -153,11 +154,14 @@ class MiniMascotWidget(QWidget):
         dy = cursor_pos.y() - widget_center.y()
         dist_to_cursor = math.hypot(dx, dy)
 
-        # Active interaction detection
-        # Note: Merely resting mouse still DOES NOT count as interaction!
-        is_voice_active = self.voice_state in (VoiceState.LISTENING, VoiceState.SPEAKING, VoiceState.THINKING)
-        is_cursor_moving_near = (dist_to_cursor < 100.0 and cursor_moved > 4.5)
-        is_interacting = self._is_dragging or is_voice_active or is_cursor_moving_near
+        # Active interaction detection:
+        # - User dragging mascot
+        # - User actively moving cursor near mascot (< 90px and moving > 5px)
+        # - AI bot actively speaking or thinking
+        # (Ambient VoiceState.LISTENING or READY does NOT block idle sleep!)
+        is_bot_active = self.voice_state in (VoiceState.SPEAKING, VoiceState.THINKING)
+        is_cursor_moving_near = (dist_to_cursor < 90.0 and cursor_moved > 5.0)
+        is_interacting = self._is_dragging or is_bot_active or is_cursor_moving_near
 
         if is_interacting:
             if self._is_sleeping or self._is_drowsy:
@@ -177,16 +181,16 @@ class MiniMascotWidget(QWidget):
             self._is_sleeping = False
             self._is_drowsy = False
             self._drowsy_ratio = max(0.0, self._drowsy_ratio - 0.2)
-        elif idle_time >= 7.0:
-            # Deep Sleep after 7.0 seconds of idle
+        elif idle_time >= 6.0:
+            # Deep Sleep after 6.0 seconds of idle
             self._is_sleeping = True
             self._is_drowsy = False
             self._drowsy_ratio = 1.0
-        elif idle_time >= 3.5:
-            # Drowsy / Lim dim after 3.5 seconds of idle
+        elif idle_time >= 3.0:
+            # Drowsy / Lim dim after 3.0 seconds of idle
             self._is_drowsy = True
             self._is_sleeping = False
-            self._drowsy_ratio = min(1.0, (idle_time - 3.5) / 3.5)
+            self._drowsy_ratio = min(1.0, (idle_time - 3.0) / 3.0)
         else:
             self._is_sleeping = False
             self._is_drowsy = False
@@ -373,29 +377,6 @@ class MiniMascotWidget(QWidget):
             neon_primary = QColor(int(neon_primary.red() * 0.75), int(neon_primary.green() * 0.75 + 30), int(neon_primary.blue() * 0.85 + 30))
 
         # --------------------------------------------------------
-        # 1. Neon Aura / Energy Glow Rings
-        # --------------------------------------------------------
-        aura_r = 44.0 + math.sin(self._pulse_phase * 1.5) * 2.5
-        aura_grad = QRadialGradient(cx, cy, aura_r + 6)
-        c_glow = QColor(neon_primary)
-        c_glow.setAlpha(55 if self.voice_state == VoiceState.LISTENING else (20 if self._is_sleeping else 32))
-        aura_grad.setColorAt(0.0, c_glow)
-        aura_grad.setColorAt(0.7, QColor(neon_secondary.red(), neon_secondary.green(), neon_secondary.blue(), 12))
-        aura_grad.setColorAt(1.0, QColor(0, 0, 0, 0))
-        painter.setBrush(QBrush(aura_grad))
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.drawEllipse(QRectF(cx - aura_r - 6, cy - aura_r - 6, (aura_r + 6) * 2, (aura_r + 6) * 2))
-
-        # Listening Soundwave Rings
-        if self.voice_state == VoiceState.LISTENING:
-            for i, ring_scale in enumerate([1.12, 1.25]):
-                sw_r = aura_r * ring_scale + (math.sin(self._pulse_phase * 3.0 + i) * 2.0)
-                sw_pen = QPen(QColor(neon_primary.red(), neon_primary.green(), neon_primary.blue(), 90 - i * 35), 1.5, Qt.PenStyle.DashLine)
-                painter.setPen(sw_pen)
-                painter.setBrush(Qt.BrushStyle.NoBrush)
-                painter.drawEllipse(QRectF(cx - sw_r, cy - sw_r, sw_r * 2, sw_r * 2))
-
-        # --------------------------------------------------------
         # Head Position & Realistic Nodding / Bobbing Offset
         # --------------------------------------------------------
         if self._is_sleeping:
@@ -412,12 +393,12 @@ class MiniMascotWidget(QWidget):
         head_cy = cy - 8.0 + head_nod
 
         # --------------------------------------------------------
-        # 2. Cyber Tail (Wagging behind torso)
+        # 1. Cyber Tail (Wagging behind torso)
         # --------------------------------------------------------
         self._draw_cyber_tail(painter, head_cx, head_cy, neon_primary)
 
         # --------------------------------------------------------
-        # 3. Cyber Cat Ears (Mecha Chibi Ears)
+        # 2. Cyber Cat Ears (Mecha Chibi Ears)
         # --------------------------------------------------------
         ear_wiggle = self._ear_wiggle_angle
         if self._is_dragging:
@@ -429,7 +410,7 @@ class MiniMascotWidget(QWidget):
         self._draw_cyber_ear(painter, head_cx + 20, head_cy - 16, is_left=False, wiggle=-ear_wiggle, primary=neon_primary)
 
         # --------------------------------------------------------
-        # 4. Chibi Legs / Feet (Bottom Limbs)
+        # 3. Chibi Legs / Feet (Bottom Limbs)
         # --------------------------------------------------------
         leg_l_sway = 0.0
         leg_r_sway = 0.0
@@ -444,12 +425,12 @@ class MiniMascotWidget(QWidget):
         self._draw_cyber_foot(painter, head_cx + 10, head_cy + 33 + leg_r_sway, neon_primary)
 
         # --------------------------------------------------------
-        # 5. Chibi Mecha Torso / Body & Cyber Heart
+        # 4. Chibi Mecha Torso / Body & Cyber Heart
         # --------------------------------------------------------
         self._draw_cyber_body(painter, head_cx, head_cy, neon_primary, neon_secondary)
 
         # --------------------------------------------------------
-        # 6. Chibi Head (Rounded Cyber Helmet)
+        # 5. Chibi Head (Rounded Cyber Helmet)
         # --------------------------------------------------------
         head_w = 54.0
         head_h = 44.0
@@ -473,7 +454,7 @@ class MiniMascotWidget(QWidget):
         painter.drawPath(highlight_path)
 
         # --------------------------------------------------------
-        # 7. Cheeks (Soft Neon Blush Ovals)
+        # 6. Cheeks (Soft Neon Blush Ovals)
         # --------------------------------------------------------
         blush_color = QColor(255, 95, 140, 70 if self._is_sleeping else 110)
         painter.setBrush(QBrush(blush_color))
@@ -482,7 +463,7 @@ class MiniMascotWidget(QWidget):
         painter.drawEllipse(QRectF(head_cx + 12, head_cy + 4, 8.0, 4.0))
 
         # --------------------------------------------------------
-        # 8. Animated Eyes (Expression & Sleep & Tracking)
+        # 7. Animated Eyes (Expression & Sleep & Tracking)
         # --------------------------------------------------------
         blink_ratio = math.sin(self._blink_phase) if self._is_blinking else 0.0
         eye_spacing = 13.0
@@ -522,17 +503,17 @@ class MiniMascotWidget(QWidget):
             self._draw_anime_eye(painter, right_eye_center, blink_ratio, neon_primary)
 
         # --------------------------------------------------------
-        # 9. Cute Animated Mouth
+        # 8. Cute Animated Mouth
         # --------------------------------------------------------
         self._draw_mouth(painter, head_cx, head_cy + 8, is_dizzy or is_waking_up, neon_primary)
 
         # --------------------------------------------------------
-        # 10. Chibi Arms / Front Paws
+        # 9. Chibi Arms / Front Paws
         # --------------------------------------------------------
         self._draw_cyber_arms(painter, head_cx, head_cy, neon_primary, is_waking_up)
 
         # --------------------------------------------------------
-        # 11. Floating zZz Particles (When Sleeping)
+        # 10. Floating zZz Particles (When Sleeping)
         # --------------------------------------------------------
         if self._is_sleeping and self._zzz_particles:
             self._draw_zzz_particles(painter, neon_primary)
