@@ -7,7 +7,7 @@ import threading
 import time
 try:
     import numpy as np
-    import pyaudio
+    import pyaudio  # type: ignore
     VOICE_DEPS_AVAILABLE = True
 except ImportError:
     np = None

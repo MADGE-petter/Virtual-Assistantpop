@@ -167,8 +167,8 @@ class MessageBubbleWidget(QWidget):
         self.card = None
         self._setup_ui()
 
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
+    def resizeEvent(self, a0):
+        super().resizeEvent(a0)
         if hasattr(self, 'card') and self.card:
             available_w = self.width() - 36
             if available_w > 80:
@@ -681,13 +681,13 @@ class ChatAreaWidget(QWidget):
         self.top_spacer.setFixedHeight(top_h)
         self.bottom_spacer.setFixedHeight(bottom_h)
 
-    def showEvent(self, event):
-        super().showEvent(event)
+    def showEvent(self, a0):
+        super().showEvent(a0)
         if self._is_centered and not self._is_animating:
             QTimer.singleShot(0, self._recalculate_spacers)
 
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
+    def resizeEvent(self, a0):
+        super().resizeEvent(a0)
         if self._is_centered and not self._is_animating:
             self._recalculate_spacers()
 

@@ -137,10 +137,10 @@ class ConversationItemWidget(QFrame):
                 f"}}"
             )
 
-    def mousePressEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
+    def mousePressEvent(self, a0):
+        if a0 and a0.button() == Qt.MouseButton.LeftButton:
             self.clicked.emit(self.session.id)
-        super().mousePressEvent(event)
+        super().mousePressEvent(a0)
 
 
 class AvatarPopupMenu(QWidget):
@@ -158,14 +158,14 @@ class AvatarPopupMenu(QWidget):
         self.setFixedSize(260, 185)
         self._setup_ui()
 
-    def closeEvent(self, event):
+    def closeEvent(self, a0):
         self.menuClosed.emit()
-        super().closeEvent(event)
+        super().closeEvent(a0)
 
-    def changeEvent(self, event):
-        if event.type() == QEvent.Type.ActivationChange and not self.isActiveWindow():
+    def changeEvent(self, a0):
+        if a0 and a0.type() == QEvent.Type.ActivationChange and not self.isActiveWindow():
             self.close()
-        super().changeEvent(event)
+        super().changeEvent(a0)
 
     def _setup_ui(self):
         root_layout = QVBoxLayout(self)
@@ -414,10 +414,10 @@ class SidebarWidget(QWidget):
         # ----------------------------------------------------
         class ClickableWidget(QWidget):
             clicked = pyqtSignal()
-            def mouseReleaseEvent(self, event):
-                if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event.position().toPoint()):
+            def mouseReleaseEvent(self, a0):
+                if a0 and a0.button() == Qt.MouseButton.LeftButton and self.rect().contains(a0.position().toPoint()):
                     self.clicked.emit()
-                super().mouseReleaseEvent(event)
+                super().mouseReleaseEvent(a0)
                 
         self.profile_container = ClickableWidget()
         self.profile_container.setCursor(Qt.CursorShape.PointingHandCursor)

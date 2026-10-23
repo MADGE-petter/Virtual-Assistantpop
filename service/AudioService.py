@@ -1,11 +1,8 @@
-"""AudioService - sherpa-onnx Vietnamese ASR + TTS.
+"""AudioService - sherpa-onnx Vietnamese ASR + MeloTTS Vietnamese TTS.
 
-Lightweight architecture optimized for RTX 2050 4GB VRAM:
+Lightweight architecture:
 - ASR: sherpa-onnx Zipformer Vietnamese (offline) - runs on CPU/GPU
-- TTS: sherpa-onnx Piper Vietnamese (offline) - runs on CPU
-- No VRAM management needed - models are tiny (~30M + ~50M params)
-- No sequential loading complexity - both models fit easily in memory
-- Models downloaded from GitHub releases (public, no auth required)
+- TTS: MeloTTS Vietnamese VITS-2 (offline, high naturalness) - runs on CPU/GPU
 """
 import os
 import threading
@@ -37,6 +34,7 @@ try:
     import playsound
     PLAYSOUND_AVAILABLE = True
 except ImportError:
+    playsound = None  # type: ignore
     PLAYSOUND_AVAILABLE = False
 
 # Speech recognition for microphone capture
@@ -65,12 +63,9 @@ class AudioService:
     }
     
     TTS_MODEL_CONFIG = {
-        "name": "vits-piper-vi_VN-vais1000-medium",
-        "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-piper-vi_VN-vais1000-medium.tar.bz2",
-        "model": "vi_VN-vais1000-medium.onnx",
-        "tokens": "tokens.txt",
-        "data_dir": "espeak-ng-data",
-        "sample_rate": 22050,
+        "name": "melotts",
+        "config_path": "checkpoints/config.json",
+        "ckpt_path": "checkpoints/G_463000.pth",
     }
     
     def __init__(self, view=None):
@@ -98,8 +93,9 @@ class AudioService:
         # Models (lazy loaded)
         self._asr_recognizer = None
         self._tts_engine = None
+        self._tts_speaker_id = 0
         
-        print(f"[AudioService] Initialized. sherpa-onnx: {SHERPA_AVAILABLE}")
+        print(f"[AudioService] Initialized. sherpa-onnx: {SHERPA_AVAILABLE}, MeloTTS: True")
         if not SHERPA_AVAILABLE:
             print("[AudioService] WARNING: sherpa-onnx not available. ASR/TTS will not work.")
     
@@ -171,12 +167,10 @@ class AudioService:
         )
     
     def _ensure_tts_model(self) -> bool:
-        """Ensure TTS model is downloaded."""
-        return self._download_and_extract(
-            self.TTS_MODEL_CONFIG["url"],
-            self.tts_model_dir,
-            self.TTS_MODEL_CONFIG["model"]
-        )
+        """Ensure MeloTTS model checkpoint is downloaded."""
+        ckpt_path = os.path.join(self.tts_model_dir, "checkpoints", "G_463000.pth")
+        cfg_path = os.path.join(self.tts_model_dir, "checkpoints", "config.json")
+        return os.path.exists(ckpt_path) and os.path.exists(cfg_path)
     
     # ==================== MODEL LOADING ====================
     
@@ -215,36 +209,43 @@ class AudioService:
         print("[AudioService] Vietnamese Zipformer ASR loaded successfully!")
     
     def _load_tts_model(self):
-        """Load Vietnamese Piper TTS model via sherpa-onnx (offline)."""
+        """Load Vietnamese MeloTTS model (offline)."""
         if self._tts_engine is not None:
             return
             
-        if not SHERPA_AVAILABLE or sherpa_onnx is None:
-            raise RuntimeError("sherpa-onnx not installed")
+        import sys
+        melotts_dir = self.tts_model_dir
+        if melotts_dir not in sys.path:
+            sys.path.insert(0, melotts_dir)
+            
+        config_path = os.path.join(melotts_dir, "checkpoints", "config.json")
+        ckpt_path = os.path.join(melotts_dir, "checkpoints", "G_463000.pth")
         
-        # Ensure model is downloaded
-        if not self._ensure_tts_model():
-            raise RuntimeError("Failed to download TTS model")
+        if not (os.path.exists(config_path) and os.path.exists(ckpt_path)):
+            raise RuntimeError(f"Missing MeloTTS checkpoint files in {melotts_dir}/checkpoints")
+            
+        try:
+            import torch
+            from melo.api import TTS  # type: ignore
+        except ImportError as e:
+            raise RuntimeError(f"MeloTTS dependencies missing: {e}")
+            
+        device = "cuda:0" if torch.cuda.is_available() else "cpu"
+        print(f"[AudioService] Loading Vietnamese MeloTTS model on {device}...")
         
-        print("[AudioService] Loading Vietnamese Piper TTS model...")
-        
-        model_path = self._find_file(self.tts_model_dir, self.TTS_MODEL_CONFIG["model"])
-        tokens_path = self._find_file(self.tts_model_dir, self.TTS_MODEL_CONFIG["tokens"])
-        data_dir = self._find_dir(self.tts_model_dir, self.TTS_MODEL_CONFIG["data_dir"])
-        
-        if not (model_path and tokens_path and data_dir):
-            raise RuntimeError(f"Missing TTS model files in {self.tts_model_dir}")
-        
-        # Create config for VITS Piper model
-        config = sherpa_onnx.OfflineTtsConfig()
-        config.model.vits.model = model_path
-        config.model.vits.tokens = tokens_path
-        config.model.vits.data_dir = data_dir
-        config.model.num_threads = 4
-        config.model.debug = False
-        
-        self._tts_engine = sherpa_onnx.OfflineTts(config)
-        print("[AudioService] Vietnamese Piper TTS loaded successfully!")
+        model = TTS(
+            language="VI",
+            device=device,
+            use_hf=False,
+            config_path=config_path,
+            ckpt_path=ckpt_path
+        )
+        self._tts_engine = model
+        # MeloTTS stores config dynamically in HParams at runtime
+        hps_data = getattr(model.hps, "data", None)
+        spk2id = getattr(hps_data, "spk2id", {}) if hps_data is not None else {}
+        self._tts_speaker_id = list(spk2id.values())[0] if spk2id else 0
+        print("[AudioService] Vietnamese MeloTTS loaded successfully!")
     
     # ==================== STARTUP ====================
     
@@ -323,38 +324,34 @@ class AudioService:
             self.gate_lock.release()
     
     def _synthesize_and_play(self, text: str):
-        """Synthesize with sherpa-onnx Piper TTS and play."""
-        # Load TTS model if needed
+        """Synthesize with MeloTTS Vietnamese and play."""
         self._load_tts_model()
         if self._tts_engine is None:
             raise RuntimeError("TTS engine not initialized")
         
-        # Generate audio using sherpa-onnx OfflineTts
-        # Returns GeneratedAudio object with samples and sample_rate
-        generated_audio = self._tts_engine.generate(text)
-        
-        # Extract samples and sample rate from GeneratedAudio
-        audio = generated_audio.samples
-        sr = generated_audio.sample_rate
-        
-        # Save to temp file and play
         temp_path = os.path.join(tempfile.gettempdir(), f"tts_output_{int(time.time()*1000)}.wav")
         
-        # Ensure correct shape
-        if hasattr(audio, 'ndim') and audio.ndim > 1:
-            audio = audio.squeeze()
+        # Generate audio using MeloTTS
+        self._tts_engine.tts_to_file(
+            text=text,
+            speaker_id=self._tts_speaker_id,
+            output_path=temp_path,
+            speed=1.0,
+            quiet=True
+        )
         
         if sf is None:
             raise RuntimeError("soundfile not installed")
-        sf.write(temp_path, audio, sr)
+            
+        audio, sr = sf.read(temp_path)
         
-        # Play directly with sounddevice (cleaner & no file lock on Windows)
+        # Play directly with sounddevice
         try:
             import sounddevice as sd
             sd.play(audio, sr)
             sd.wait()
         except Exception:
-            if PLAYSOUND_AVAILABLE:
+            if PLAYSOUND_AVAILABLE and playsound is not None:
                 try:
                     playsound.playsound(temp_path, True)
                 except Exception:
@@ -474,8 +471,12 @@ class AudioService:
         stream.accept_waveform(16000, audio_data)
         self._asr_recognizer.decode_stream(stream)
         
-        result = self._asr_recognizer.get_result(stream)
-        text = result.text.strip()
+        get_res_fn = getattr(self._asr_recognizer, "get_result", None)
+        if callable(get_res_fn):
+            result = get_res_fn(stream)
+            text = getattr(result, "text", "").strip()
+        else:
+            text = getattr(getattr(stream, "result", None), "text", "").strip()
         
         return text if text else None
     

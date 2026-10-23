@@ -48,5 +48,9 @@ line-length = 88
 profile = "black"
 
 [tool.pyright]
-extraPaths = ["."]
+extraPaths = [".", "voice-models/melotts"]
 include = ["."]
+
+[tool.pyrefly]
+search-path = [".", "voice-models/melotts"]
+

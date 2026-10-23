@@ -1,5 +1,5 @@
 {
   "include": ["."],
-  "extraPaths": ["."],
+  "extraPaths": [".", "voice-models/melotts"],
   "reportIncompatibleMethodOverride": "none"
 }

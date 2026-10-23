@@ -215,19 +215,19 @@ class LoginView(QDialog):
                 self.height() - self._footer_label.height() - 10
             )
 
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
+    def resizeEvent(self, a0):
+        super().resizeEvent(a0)
         self._position_footer()
 
-    def mousePressEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
-            self._drag_pos = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
-            event.accept()
+    def mousePressEvent(self, a0):
+        if a0 and a0.button() == Qt.MouseButton.LeftButton:
+            self._drag_pos = a0.globalPosition().toPoint() - self.frameGeometry().topLeft()
+            a0.accept()
 
-    def mouseMoveEvent(self, event):
-        if event.buttons() == Qt.MouseButton.LeftButton and self._drag_pos is not None:
-            self.move(event.globalPosition().toPoint() - self._drag_pos)
-            event.accept()
+    def mouseMoveEvent(self, a0):
+        if a0 and a0.buttons() == Qt.MouseButton.LeftButton and self._drag_pos is not None:
+            self.move(a0.globalPosition().toPoint() - self._drag_pos)
+            a0.accept()
 
     def toggle_mode(self, ev=None):
         """Chuyển đổi giữa đăng nhập và đăng ký"""
