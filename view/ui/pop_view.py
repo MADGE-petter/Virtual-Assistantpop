@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+from typing import Optional
 
 # Ensure workspace root is in sys.path
 _PROJECT_ROOT = str(Path(__file__).resolve().parent.parent.parent)
@@ -197,6 +198,7 @@ class PopView(QMainWindow):
 
         # Chat Area Events
         self.chat_area.sendMessage.connect(self._on_user_send_message)
+        self.chat_area.retryRequested.connect(self._on_retry_message)
         self.chat_area.stopGeneration.connect(lambda: self.stopGeneration.emit())
         self.chat_area.switchModel.connect(lambda m: self.switchModel.emit(m))
         self.chat_area.openSettings.connect(lambda: self.navigation.open_settings_page(0))
@@ -212,7 +214,8 @@ class PopView(QMainWindow):
             self.settings_page.backToChatRequested.connect(self.navigation.show_chat_view)
         if hasattr(self.settings_page, 'requestOpenDownloadTab'):
             self.settings_page.requestOpenDownloadTab.connect(lambda: self.navigation.open_settings_page(2))
-        self.settings_page.modelDownloaded.connect(lambda: self.chat_area.input_bar._load_local_models())
+        if hasattr(self.settings_page, 'modelDownloaded'):
+            self.settings_page.modelDownloaded.connect(self._handle_model_downloaded)
         if hasattr(self.settings_page, 'settingsChanged'):
             self.settings_page.settingsChanged.connect(self._handle_settings_changed)
 
@@ -319,6 +322,29 @@ class PopView(QMainWindow):
     def _handle_show_file_preview(self, files: list):
         self.chat_area.set_thinking(False)
         self.chat_area.append_file_preview_card(files)
+
+    def _handle_model_downloaded(self):
+        """Handle model download complete notification from Model++."""
+        try:
+            if hasattr(self.chat_area, "input_bar"):
+                self.chat_area.input_bar._load_local_models()
+        except Exception as e:
+            print(f"[PopView] Lỗi làm mới danh sách mô hình: {e}")
+        self.show_toast("Mô hình AI đã tải xong! Bạn có thể nhấn 'Thử lại' để tiếp tục trò chuyện.", "info")
+
+    def _on_retry_message(self, msg_id: Optional[str] = None):
+        """Handle retry request from message bubble (e.g. after downloading model)."""
+        last_user_text = self.chat_model.get_last_user_message()
+        if not last_user_text:
+            last_user_text = getattr(self.chat_area, "_last_sent_text", None)
+
+        if not last_user_text:
+            self.show_toast("Không tìm thấy nội dung trước đó để thử lại.", "warning")
+            return
+
+        self.chat_area.set_thinking(True)
+        self.right_panel.add_activity_log("Thử lại tin nhắn", "chat")
+        self.sendMessage.emit(last_user_text)
 
     def _on_user_send_message(self, text: str):
         msg = self.chat_model.add_user_message(text)

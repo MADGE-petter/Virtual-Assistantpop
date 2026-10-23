@@ -180,6 +180,16 @@ class PopChatModel:
             return self.sessions[0]
         return None
 
+    def get_last_user_message(self) -> Optional[str]:
+        """Lấy nội dung tin nhắn gần nhất của người dùng trong phiên hiện tại."""
+        session = self.get_active_session()
+        if not session or not session.messages:
+            return None
+        for msg in reversed(session.messages):
+            if msg.sender == "user" and msg.text:
+                return msg.text
+        return None
+
     def get_categorized_sessions(self) -> dict:
         order = ["Hôm nay", "Hôm qua", "7 ngày trước", "Cũ hơn"]
         categorized = {k: [] for k in order}
@@ -318,3 +328,13 @@ class PopChatModel:
             logger.error("Error persisting bot message: %s", e)
 
         return msg
+
+    def get_last_user_message(self) -> Optional[str]:
+        """Return the text of the most recent user message in the active session."""
+        session = self.get_active_session()
+        if not session or not session.messages:
+            return None
+        for msg in reversed(session.messages):
+            if msg.sender == "user":
+                return msg.text
+        return None

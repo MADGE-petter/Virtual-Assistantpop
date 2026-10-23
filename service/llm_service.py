@@ -7,7 +7,7 @@ from __future__ import annotations
 import os
 import threading
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -19,8 +19,22 @@ DEFAULT_CONTEXT_SIZE = 4096
 DEFAULT_MAX_TOKENS = 512
 DEFAULT_TEMPERATURE = 0.7
 DEFAULT_TOP_P = 0.9
-DEFAULT_N_GPU_LAYERS = 0  # 0 = CPU only (safe for 4GB VRAM), -1 = all GPU layers
-DEFAULT_N_THREADS = 0  # 0 = auto-detect
+DEFAULT_N_GPU_LAYERS = -1  # -1 = all GPU layers (iGPU/dGPU default), 0 = CPU only
+DEFAULT_N_THREADS = 0  # 0 = auto-detect optimal threads (prevents 100% CPU lock)
+
+
+def get_optimal_threads(requested_threads: int = 0) -> int:
+    """Calculate CPU threads to prevent pinning CPU at 100% and keep system responsive."""
+    if requested_threads > 0:
+        return requested_threads
+    cpu_cnt = os.cpu_count() or 4
+    if cpu_cnt <= 2:
+        return 1
+    elif cpu_cnt <= 4:
+        return max(1, cpu_cnt - 1)
+    else:
+        # Reserve 1-2 cores for UI, audio, and OS to prevent stutter
+        return max(2, cpu_cnt - 2)
 
 
 class LLMService:
@@ -58,6 +72,19 @@ class LLMService:
         if hasattr(self, "_initialized") and self._initialized:
             return
 
+        # Sync with llm_config if defaults are used
+        try:
+            from service.llm_config import get_llm_config
+            cfg = get_llm_config()
+            if n_gpu_layers == DEFAULT_N_GPU_LAYERS and cfg.n_gpu_layers != DEFAULT_N_GPU_LAYERS:
+                n_gpu_layers = cfg.n_gpu_layers
+            if n_threads == DEFAULT_N_THREADS and cfg.n_threads != DEFAULT_N_THREADS:
+                n_threads = cfg.n_threads
+            if n_ctx == DEFAULT_CONTEXT_SIZE and cfg.n_ctx != DEFAULT_CONTEXT_SIZE:
+                n_ctx = cfg.n_ctx
+        except Exception:
+            pass
+
         self.model_path = self._resolve_model_path(model_path, models_dir)
         self.n_ctx = n_ctx
         self.n_gpu_layers = n_gpu_layers
@@ -86,29 +113,29 @@ class LLMService:
 
         if models_dir is None:
             project_root = Path(__file__).resolve().parent.parent
-            models_dir = project_root / "LLM-agents"
+            dir_path = project_root / "LLM-agents"
         else:
-            models_dir = Path(models_dir).expanduser().resolve()
+            dir_path = Path(models_dir).expanduser().resolve()
 
         if not model_path:
-            return str(models_dir / DEFAULT_MODEL_FILENAME)
+            return str(dir_path / DEFAULT_MODEL_FILENAME)
 
         p = Path(model_path).expanduser()
         if p.is_absolute() and p.exists():
             return str(p.resolve())
 
-        candidate = models_dir / model_path
+        candidate = dir_path / model_path
         if candidate.exists():
             return str(candidate)
 
         if not model_path.endswith(".gguf"):
-            candidate_gguf = models_dir / f"{model_path}.gguf"
+            candidate_gguf = dir_path / f"{model_path}.gguf"
             if candidate_gguf.exists():
                 return str(candidate_gguf)
 
-        if models_dir.exists():
+        if dir_path.exists():
             clean_search = model_path.lower().replace(" ", "").replace("-", "").replace("_", "")
-            for item in models_dir.iterdir():
+            for item in dir_path.iterdir():
                 clean_item = item.name.lower().replace(" ", "").replace("-", "").replace("_", "")
                 if clean_search in clean_item or clean_item in clean_search:
                     return str(item)
@@ -118,6 +145,40 @@ class LLMService:
     # ------------------------------------------------------------------ #
     # Model loading
     # ------------------------------------------------------------------ #
+    def is_model_available(self) -> Tuple[bool, str]:
+        """Check if model exists and is valid without loading weights into memory."""
+        try:
+            model_p = Path(self.model_path)
+            if model_p.is_dir():
+                found_gguf = None
+                for root, _, files in os.walk(str(model_p)):
+                    for f in files:
+                        if f.endswith(".gguf"):
+                            fp = Path(root) / f
+                            try:
+                                if fp.stat().st_size >= 10 * 1024 * 1024:
+                                    found_gguf = fp
+                                    break
+                            except OSError:
+                                pass
+                    if found_gguf:
+                        break
+                if found_gguf:
+                    return True, str(found_gguf)
+                return False, f"Thư mục '{model_p.name}' không chứa tệp .gguf hợp lệ (>10MB)."
+
+            if not model_p.exists() or not model_p.is_file() or model_p.stat().st_size < 10 * 1024 * 1024:
+                file_size_mb = 0
+                if model_p.exists() and model_p.is_file():
+                    try:
+                        file_size_mb = round(model_p.stat().st_size / (1024 * 1024), 2)
+                    except OSError:
+                        pass
+                return False, f"Chưa có tệp mô hình .gguf hợp lệ ({file_size_mb} MB tại '{model_p.name}')."
+            return True, str(model_p)
+        except Exception as e:
+            return False, str(e)
+
     def _ensure_loaded(self) -> Any:
         """Lazy-load the model on first call. Thread-safe."""
         if self._llm is not None:
@@ -161,23 +222,61 @@ class LLMService:
                 )
 
             try:
-                from llama_cpp import Llama  # type: ignore
+                from llama_cpp import Llama, llama_supports_gpu_offload  # type: ignore
             except ImportError as e:
                 raise ImportError(
                     "[LLMService] llama-cpp-python is not installed.\n"
                     "Install with: pip install llama-cpp-python\n"
                     "For NVIDIA GPU: pip install llama-cpp-python --extra-index-url "
-                    "https://abetlen.github.io/llama-cpp-python/whl/cu121"
+                    "https://abetlen.github.io/llama-cpp-python/whl/cu121\n"
+                    "For Vulkan (Intel/AMD iGPU): pip install llama-cpp-python --extra-index-url "
+                    "https://abetlen.github.io/llama-cpp-python/whl/vulkan"
                 ) from e
 
-            logger.info(f"[LLMService] Loading model from {self.model_path}...")
-            self._llm = Llama(
-                model_path=self.model_path,
-                n_ctx=self.n_ctx,
-                n_gpu_layers=self.n_gpu_layers,
-                n_threads=self.n_threads,
-                verbose=self.verbose,
+            # Check GPU offload support
+            gpu_supported = False
+            try:
+                gpu_supported = bool(llama_supports_gpu_offload())
+            except Exception as e:
+                logger.warning(f"[LLMService] Failed to check GPU offload support: {e}")
+
+            actual_gpu_layers = self.n_gpu_layers
+            if actual_gpu_layers != 0 and not gpu_supported:
+                logger.warning(
+                    "[LLMService] GPU offload is not supported by current llama-cpp-python installation. "
+                    "Falling back to CPU only (n_gpu_layers=0)."
+                )
+                actual_gpu_layers = 0
+
+            threads = get_optimal_threads(self.n_threads)
+
+            logger.info(
+                f"[LLMService] Loading model from {self.model_path} "
+                f"(n_gpu_layers={actual_gpu_layers}, n_threads={threads})..."
             )
+            try:
+                self._llm = Llama(
+                    model_path=self.model_path,
+                    n_ctx=self.n_ctx,
+                    n_gpu_layers=actual_gpu_layers,
+                    n_threads=threads,
+                    verbose=self.verbose,
+                )
+            except Exception as load_err:
+                if actual_gpu_layers != 0:
+                    logger.warning(
+                        f"[LLMService] Loading with GPU failed ({load_err}). "
+                        f"Retrying with CPU fallback (n_gpu_layers=0)..."
+                    )
+                    self._llm = Llama(
+                        model_path=self.model_path,
+                        n_ctx=self.n_ctx,
+                        n_gpu_layers=0,
+                        n_threads=threads,
+                        verbose=self.verbose,
+                    )
+                else:
+                    raise load_err
             logger.info("[LLMService] Model loaded successfully.")
             return self._llm
 

@@ -54,7 +54,7 @@ class ConversationContext:
         self.long_term_summary: Optional[dict] = None
         self.last_summarized_count: int = 0
     
-    def set_pending(self, intent: str, **slots):
+    def set_pending(self, intent: Optional[str], **slots):
         self.pending_intent = intent
         self.slots.update(slots)
     
@@ -226,7 +226,7 @@ class ConversationService:
         self,
         user_input: str,
         speak_callback: Optional[Callable] = None,
-    ) -> str:
+    ) -> ActionResult:
         # Check pending habit suggestion
         if self._pending_habit_app:
             user_lower = user_input.lower().strip()
@@ -244,14 +244,14 @@ class ConversationService:
                     speak_callback(response)
                 else:
                     self.audio.speak(response)
-                return response
+                return result if isinstance(result, ActionResult) else ActionResult(text=response)
 
         return self.process_exchange(user_input, speak_callback)
 
     def process_exchange(self, user_input: str, 
                          speak_callback: Optional[Callable] = None,
                          user_name: str = "bạn",
-                         session_id: str = "default"):
+                         session_id: str = "default") -> ActionResult:
         """Process a single user-bot exchange and return ActionResult."""
         self._generation_cancel_event.clear()
         
@@ -278,7 +278,7 @@ class ConversationService:
         
         plan = agent_engine.analyze_request(user_input)
         if plan.is_clarification_needed:
-            result_action = ActionResult(text=plan.clarification_question)
+            result_action = ActionResult(text=plan.clarification_question or "Bạn có thể nói rõ hơn yêu cầu được không?")
             should_save = False
         elif plan.needs_confirmation:
             result_action = ActionResult(
@@ -356,6 +356,13 @@ class ConversationService:
                     if config.enabled:
                         logger.info(f"[ConversationService] Intent unknown, calling LLM for: {user_input[:30]}...")
                         llm = self._get_llm_service()
+                        if hasattr(llm, 'is_model_available'):
+                            avail, err_detail = llm.is_model_available()
+                            if not avail:
+                                raise FileNotFoundError(
+                                    f"Mô hình AI chưa được tải về máy hoặc tệp không hợp lệ ({err_detail}). "
+                                    f"Vui lòng vào 'Model++' để tải mô hình hoặc copy tệp .gguf vào thư mục LLM-agents."
+                                )
                         
                         # 1. Build Context (Lấy tóm tắt sau mỗi 5 đoạn chat + các tin nhắn gần nhất)
                         history = []
@@ -371,7 +378,7 @@ class ConversationService:
                                     )
                                     history.append({"role": "system", "content": summary_text})
 
-                                sid_int = int(session_id) if str(session_id).isdigit() else 1
+                                sid_int = int(session_id) if session_id.isdigit() else 1
                                 raw_messages = self._memory_service.get_session_chat_messages(sid_int)
                                 if raw_messages:
                                     # Lấy các tin nhắn gần nhất, loại bỏ tin nhắn hiện tại nếu đã được lưu vào DB trước đó
@@ -424,7 +431,14 @@ class ConversationService:
                             should_save = True
                 except Exception as e:
                     logger.error(f"[ConversationService] LLM failed: {e}")
-                    result_action = ActionResult(text=f"⚠️ {e}")
+                    is_missing_model = isinstance(e, FileNotFoundError) or "Model++" in str(e) or "chưa được tải" in str(e)
+                    if is_missing_model:
+                        friendly_msg = (
+                            "Không tìm thấy Model AI để xử lý yêu cầu của bạn."
+                        )
+                        result_action = ActionResult(text=friendly_msg)
+                    else:
+                        result_action = ActionResult(text=f"{e}")
                     should_save = False
             else:
                 # Normal action handling
@@ -432,7 +446,9 @@ class ConversationService:
                 
                 if isinstance(result, ActionResult):
                     if result.needs_slot:
-                        context.set_pending(result.intent)
+                        pending_intent = result.intent if result.intent is not None else intent
+                        if pending_intent is not None:
+                            context.set_pending(pending_intent)
                         should_save = False
                     else:
                         should_save = True
@@ -452,10 +468,19 @@ class ConversationService:
             return ActionResult(text="")
             
         if result_action.text and not result_action.needs_permission and result_action.tool_name != "file_search":
-            if speak_callback:
-                speak_callback(result_action.text)
+            is_special_notice = result_action.text.startswith("⚠️") or "Mô hình AI hiện chưa được tải" in result_action.text
+            if is_special_notice:
+                # Cập nhật UI trực tiếp cho các lỗi hệ thống hoặc thông báo thiếu model, không kích hoạt TTS tránh treo hoặc delay
+                audio_view = getattr(self.audio, 'view', None)
+                if audio_view and hasattr(audio_view, 'update_bot_text'):
+                    audio_view.update_bot_text(result_action.text)
+                elif speak_callback:
+                    speak_callback(result_action.text, update_ui=True)
             else:
-                self.audio.speak(result_action.text)
+                if speak_callback:
+                    speak_callback(result_action.text)
+                else:
+                    self.audio.speak(result_action.text)
         elif result_action.needs_permission:
             confirm_voice = f"Vui lòng xác nhận hành động: {result_action.summary_text}"
             if speak_callback:

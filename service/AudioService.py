@@ -279,21 +279,29 @@ class AudioService:
         return True
     
     def _speak_worker(self, text: str, update_ui: bool):
-        self.gate_lock.acquire()
-        self.is_speaking = True
-        
+        # 1. Update UI ngay lập tức để chat và thinking indicator được cập nhật, không bị phụ thuộc vào audio
         try:
             if update_ui and self.view:
                 self.view.update_bot_text(text)
-            
-            print(f"[BOT] {text}")
-            
+        except Exception as e:
+            print(f"[AudioService] Error updating UI text: {e}")
+
+        print(f"[BOT] {text}")
+
+        # 2. Acquire lock có timeout để không bị deadlock nếu audio đang bận
+        got_lock = self.gate_lock.acquire(timeout=2.0)
+        if not got_lock:
+            print("[AudioService] Could not acquire audio lock for speaking (timeout). Skipping TTS.")
+            return
+
+        self.is_speaking = True
+        try:
             if SHERPA_AVAILABLE:
                 try:
                     self._synthesize_and_play(text)
                 except Exception as tts_err:
                     print(f"[AudioService] TTS synthesis warning: {tts_err}")
-                    time.sleep(len(text) * 0.05)
+                    time.sleep(min(3.0, len(text) * 0.05))
             else:
                 # Native System Fallback (macOS 'say -v Linh' / Windows pyttsx3)
                 try:
@@ -302,9 +310,9 @@ class AudioService:
                     if platform.system() == "Darwin":
                         subprocess.run(["say", "-v", "Linh", text], check=False)
                     else:
-                        time.sleep(len(text) * 0.05)
+                        time.sleep(min(3.0, len(text) * 0.05))
                 except Exception:
-                    time.sleep(len(text) * 0.05)
+                    time.sleep(min(3.0, len(text) * 0.05))
             
             time.sleep(0.3)  # Cooldown
             

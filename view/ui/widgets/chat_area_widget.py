@@ -159,6 +159,7 @@ class MessageBubbleWidget(QWidget):
     """Single Message Bubble Widget (User or AI) matching po #8 & #9."""
 
     actionClicked = pyqtSignal(str, str)
+    retryRequested = pyqtSignal(str)
 
     def __init__(self, msg: ChatMessage, parent=None):
         super().__init__(parent)
@@ -229,10 +230,24 @@ class MessageBubbleWidget(QWidget):
             card.setMaximumWidth(740)
             card.setMinimumWidth(100)
             card.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
-            card.setStyleSheet(
-                f"#botCard {{ background-color: rgba(12, 19, 34, 0.88); border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; border-radius: 16px; border-top-left-radius: 4px; }}"
-                f"#botCard QLabel {{ border: none; background: transparent; }}"
-            )
+
+            is_warning = self.msg.text.startswith("⚠️")
+            is_model_missing = "Model++" in self.msg.text or "Mô hình AI" in self.msg.text
+            if is_warning:
+                card.setStyleSheet(
+                    "QFrame#botCard { background-color: rgba(35, 20, 10, 0.92); border: 1px solid rgba(245, 158, 11, 0.45); border-radius: 16px; border-top-left-radius: 4px; }"
+                    "QFrame#botCard QLabel { border: none; background: transparent; }"
+                )
+            elif is_model_missing:
+                card.setStyleSheet(
+                    "QFrame#botCard { background-color: rgba(14, 25, 42, 0.92); border: 1px solid rgba(56, 189, 248, 0.40); border-radius: 16px; border-top-left-radius: 4px; }"
+                    "QFrame#botCard QLabel { border: none; background: transparent; }"
+                )
+            else:
+                card.setStyleSheet(
+                    f"#botCard {{ background-color: rgba(12, 19, 34, 0.88); border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; border-radius: 16px; border-top-left-radius: 4px; }}"
+                    f"#botCard QLabel {{ border: none; background: transparent; }}"
+                )
             card_layout = QVBoxLayout(card)
             card_layout.setContentsMargins(16, 12, 16, 12)
             card_layout.setSpacing(8)
@@ -240,8 +255,9 @@ class MessageBubbleWidget(QWidget):
             header_layout = QHBoxLayout()
             header_layout.setSpacing(8)
 
-            name_lbl = QLabel("POP")
-            name_lbl.setStyleSheet(f"color: {DesignTokens.CYAN_ACCENT}; font-size: 13px; font-weight: 700;")
+            name_lbl = QLabel("POP" if not is_warning else "POP • Cảnh báo")
+            name_color = DesignTokens.CORAL_ACCENT if is_warning else DesignTokens.CYAN_ACCENT
+            name_lbl.setStyleSheet(f"color: {name_color}; font-size: 13px; font-weight: 700;")
 
             time_lbl = QLabel(self.msg.timestamp)
             time_lbl.setStyleSheet(f"color: {DesignTokens.TEXT_MUTED}; font-size: 11px;")
@@ -253,6 +269,45 @@ class MessageBubbleWidget(QWidget):
             text_lbl = QLabel(self.msg.text)
             text_lbl.setWordWrap(True)
             text_lbl.setStyleSheet(f"color: {DesignTokens.TEXT_MAIN}; font-size: 14px; line-height: 1.5;")
+            card_layout.addLayout(header_layout)
+            card_layout.addWidget(text_lbl)
+
+            if is_model_missing:
+                actions_row = QHBoxLayout()
+                actions_row.setSpacing(10)
+
+                hub_btn = QPushButton(" Mở kho mô hình (Model++)")
+                hub_btn.setIcon(create_vector_icon("download", "#00FFAA", 14))
+                hub_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+                hub_btn.setStyleSheet(
+                    "QPushButton { background: rgba(0, 255, 170, 0.12); color: #00FFAA; "
+                    "border: 1px solid rgba(0, 255, 170, 0.35); border-radius: 8px; "
+                    "padding: 8px 14px; font-size: 12px; font-weight: 600; } "
+                    "QPushButton:hover { background: rgba(0, 255, 170, 0.22); border-color: #00FFAA; }"
+                )
+                def _open_hub():
+                    win = self.window()
+                    if win and hasattr(win, "navigation") and hasattr(win.navigation, "open_settings_page"):
+                        win.navigation.open_settings_page(2)
+                    elif win and hasattr(win, "_open_settings_page"):
+                        getattr(win, "_open_settings_page")(2)
+                hub_btn.clicked.connect(_open_hub)
+                actions_row.addWidget(hub_btn)
+
+                retry_btn = QPushButton(" Thử lại (Retry)")
+                retry_btn.setIcon(create_vector_icon("retry", "#38BDF8", 14))
+                retry_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+                retry_btn.setStyleSheet(
+                    "QPushButton { background: rgba(56, 189, 248, 0.12); color: #38BDF8; "
+                    "border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 8px; "
+                    "padding: 8px 14px; font-size: 12px; font-weight: 600; } "
+                    "QPushButton:hover { background: rgba(56, 189, 248, 0.22); border-color: #38BDF8; }"
+                )
+                retry_btn.clicked.connect(lambda: self.retryRequested.emit(self.msg.id))
+                actions_row.addWidget(retry_btn)
+                actions_row.addStretch()
+
+                card_layout.addLayout(actions_row)
 
             toolbar_layout = QHBoxLayout()
             toolbar_layout.setSpacing(6)
@@ -276,15 +331,14 @@ class MessageBubbleWidget(QWidget):
                         cb = QApplication.clipboard()
                         if cb:
                             cb.setText(self.msg.text)
+                    elif a == "retry":
+                        self.retryRequested.emit(self.msg.id)
                     self.actionClicked.emit(a, self.msg.id)
                 
                 btn.clicked.connect(_handle_action)
                 toolbar_layout.addWidget(btn)
 
             toolbar_layout.addStretch()
-
-            card_layout.addLayout(header_layout)
-            card_layout.addWidget(text_lbl)
             card_layout.addLayout(toolbar_layout)
 
             main_layout.addWidget(avatar_lbl, alignment=Qt.AlignmentFlag.AlignTop)
@@ -427,6 +481,7 @@ class ChatAreaWidget(QWidget):
     windowHideToMascot = pyqtSignal()
     windowClose = pyqtSignal()
     executeToolRequested = pyqtSignal(str, dict)
+    retryRequested = pyqtSignal(str)
 
     def __init__(self, parent=None, user_name: str = "bạn"):
         super().__init__(parent)
@@ -435,6 +490,7 @@ class ChatAreaWidget(QWidget):
         self._is_centered = True
         self._is_animating = False
         self._pending_text = ""
+        self._last_sent_text = ""
         self.drop_anim = None
         self._setup_ui()
 
@@ -638,6 +694,7 @@ class ChatAreaWidget(QWidget):
     def _handle_input_send(self, text: str):
         if not text.strip():
             return
+        self._last_sent_text = text
         if self._is_centered:
             self._start_drop_animation(text)
         else:
@@ -704,6 +761,9 @@ class ChatAreaWidget(QWidget):
 
     def load_session(self, session: ConversationSession):
         """Render all messages from a conversation session."""
+        self.is_thinking = False
+        self.thinking_widget.hide()
+
         while self.messages_layout.count():
             item = self.messages_layout.takeAt(0)
             if item:
@@ -713,9 +773,11 @@ class ChatAreaWidget(QWidget):
 
         for msg in session.messages:
             bw = MessageBubbleWidget(msg)
+            bw.retryRequested.connect(self.retryRequested.emit)
             self.messages_layout.addWidget(bw)
 
         self.messages_layout.addWidget(self.thinking_widget)
+        self.thinking_widget.hide()
         self.messages_layout.addStretch()
 
         if len(session.messages) == 0:
@@ -729,6 +791,7 @@ class ChatAreaWidget(QWidget):
             self._set_docked_state()
 
         bw = MessageBubbleWidget(msg)
+        bw.retryRequested.connect(self.retryRequested.emit)
         idx = self.messages_layout.indexOf(self.thinking_widget)
         if idx >= 0:
             self.messages_layout.insertWidget(idx, bw)
@@ -775,7 +838,12 @@ class ChatAreaWidget(QWidget):
         self.scroll_to_bottom()
 
     def scroll_to_bottom(self):
+        self._do_scroll_to_bottom()
+        QTimer.singleShot(30, self._do_scroll_to_bottom)
+        QTimer.singleShot(100, self._do_scroll_to_bottom)
+        QTimer.singleShot(250, self._do_scroll_to_bottom)
+
+    def _do_scroll_to_bottom(self):
         sb = self.scroll_area.verticalScrollBar()
         if sb:
             sb.setValue(sb.maximum())
-            QTimer.singleShot(0, lambda: sb.setValue(sb.maximum()))
