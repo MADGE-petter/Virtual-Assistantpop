@@ -200,6 +200,18 @@ class ConversationDB(BaseRepository):
             logger.error("Error creating chat session: %s", e, exc_info=True)
             return 1
 
+    def session_exists(self, session_id: int) -> bool:
+        """Kiểm tra session có tồn tại trong database hay không."""
+        try:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1 FROM sessions WHERE id = ?", (session_id,))
+            exists = cursor.fetchone() is not None
+            conn.close()
+            return exists
+        except Exception:
+            return False
+
     def update_session_title(self, session_id: int, title: str):
         """Update session title."""
         try:

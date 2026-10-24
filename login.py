@@ -7,24 +7,56 @@ Chạy giao diện đăng nhập
 
 import os
 import sys
+import traceback
 
-if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
+
+def show_fatal_error(error_msg: str):
+    """Hiển thị chi tiết lỗi ra màn hình console, ghi file log và hiện popup Windows."""
+    border = "=" * 65
+    print(f"\n{border}\n  [POP ASSISTANT - ERROR REPORT]\n{border}\n")
+    print(error_msg)
+    print(f"\n{border}")
+    
+    # Ghi file crash.log
     try:
-        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        from utils.paths import get_writeable_path
+        log_path = get_writeable_path("crash.log")
+    except Exception:
+        log_path = os.path.join(os.path.expanduser("~"), "PopAssistant_crash.log")
+    
+    try:
+        with open(log_path, "w", encoding="utf-8") as f:
+            f.write(error_msg)
+        print(f"[Log] Đã lưu thông tin lỗi tại: {log_path}")
     except Exception:
         pass
-if sys.stderr and hasattr(sys.stderr, 'reconfigure'):
+
+    # Hiện dialog thông báo Windows native (không phụ thuộc vào PyQt6)
     try:
-        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+        import ctypes
+        ctypes.windll.user32.MessageBoxW(0, error_msg[:1000], "Pop Assistant - Lỗi khởi động", 0x10)
     except Exception:
         pass
 
-from PyQt6.QtCore import QTimer
-from PyQt6.QtWidgets import QApplication
+    # Giữ cửa sổ console mở để người dùng xem lỗi
+    print("\nNhấn Enter để đóng cửa sổ...")
+    try:
+        input()
+    except Exception:
+        pass
+
 
 def main():
     """Main function to run login application"""
+    print("=" * 65)
+    print("  POP ASSISTANT - CONSOLE LOG MONITOR")
+    print("=" * 65)
+    print("[PopAssistant] Đang khởi động hệ thống...")
+
     try:
+        from PyQt6.QtCore import QTimer
+        from PyQt6.QtWidgets import QApplication
+
         app = QApplication(sys.argv)
         app.setApplicationName("Pop Assistant Login")
         app.setOrganizationName("Pop AI")
@@ -70,7 +102,7 @@ def main():
 
         def on_login_success(username):
             nonlocal main_window, login_controller
-            print(f"Login successful: {username}")
+            print(f"[Login] Đăng nhập thành công: {username}")
 
             # Đóng login window NGAY LẬP TỨC
             if login_controller:
@@ -100,7 +132,6 @@ def main():
                     print(f"[Login] Đã khởi tạo Mini Mascot cho '{username}'. Đúp chuột vào Mini Mascot để mở cửa sổ chat.")
                 except Exception as e:
                     print(f"Lỗi khởi tạo giao diện chính: {e}")
-                    import traceback
                     traceback.print_exc()
 
             QTimer.singleShot(0, _init_main_window)
@@ -109,29 +140,19 @@ def main():
         login_controller.exit_requested.connect(app.quit)
         
         login_controller.show()
-        print("[Login] Login window shown, starting event loop...")
+        print("[Login] Giao diện đăng nhập đã sẵn sàng. Đang chạy vòng lặp sự kiện...")
         
         # Run the application
-        app.exec()
+        sys.exit(app.exec())
             
-    except ImportError as e:
-        print(f"Chi tiết lỗi: {e}")
-        try:
-            from PyQt6.QtWidgets import QMessageBox
-            QMessageBox.critical(None, "Lỗi khởi động", f"Lỗi thiếu thư viện:\n{e}")
-        except Exception:
-            pass
-        if sys.stdin and hasattr(sys.stdin, 'isatty') and sys.stdin.isatty():
-            input("Nhấn Enter để thoát...")
     except Exception as e:
-        print(f"Lỗi khởi động ứng dụng: {e}")
-        try:
-            from PyQt6.QtWidgets import QMessageBox
-            QMessageBox.critical(None, "Lỗi khởi động", f"Lỗi khởi động ứng dụng:\n{e}")
-        except Exception:
-            pass
-        if sys.stdin and hasattr(sys.stdin, 'isatty') and sys.stdin.isatty():
-            input("Nhấn Enter để thoát...")
+        err_detail = f"Lỗi không thể khởi động ứng dụng:\n{e}\n\nTraceback:\n{traceback.format_exc()}"
+        show_fatal_error(err_detail)
+
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        err_detail = f"Lỗi nghiêm trọng cấp hệ thống:\n{e}\n\nTraceback:\n{traceback.format_exc()}"
+        show_fatal_error(err_detail)

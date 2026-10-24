@@ -439,7 +439,7 @@ class ConversationService:
                         result_action = ActionResult(text=friendly_msg)
                     else:
                         result_action = ActionResult(text=f"{e}")
-                    should_save = False
+                    should_save = True
             else:
                 # Normal action handling
                 result = self.actions.handle(intent, user_input, user_name, context)

@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 import os
 import sys
-from PyInstaller.utils.hooks import collect_all, copy_metadata
+from PyInstaller.utils.hooks import collect_all, copy_metadata, collect_submodules
 
 # 1. Base datas
 datas = [
@@ -35,18 +35,19 @@ hiddenimports = [
     'numpy', 'huggingface_hub', 'encodings',
     'torch', 'torchaudio', 'transformers', 'numba', 'scipy',
     'pyautogui', 'pytweening', 'mouseinfo', 'pygetwindow', 'pyscreeze',
-    'tools', 'tools.file_search_tool', 'tools.web_tool', 'tools.zalo_tool', 'tools.facebook_tool',
-    'controller', 'controller.login_controller', 'controller.pop_controller', 'controller.voice_mode_coordinator',
-    'view', 'view.ui', 'view.ui.styles', 'view.ui.pop_view', 'view.ui.login_view',
-    'service', 'service.login_service', 'service.conversation_service', 'service.AudioService', 'service.voice_service', 'service.llm_service',
-    'database', 'database.conversation_db',
     'melo', 'melo.api', 'melo.utils', 'melo.commons', 'melo.models', 'melo.modules',
     'melo.mel_processing', 'melo.split_utils', 'melo.download_utils', 'melo.text',
     'melo.text.vietnamese', 'melo.text.vietnamese_bert', 'melo.text.cleaner',
     'melo.text.symbols', 'melo.text.tone_sandhi',
 ]
 
-for pkg in ['sherpa_onnx', 'openwakeword', 'underthesea', 'llama_cpp']:
+for mod in ['controller', 'service', 'view', 'database', 'tools', 'utils']:
+    try:
+        hiddenimports += collect_submodules(mod)
+    except Exception as e:
+        print(f"[Spec] Note: collect_submodules for {mod} returned: {e}")
+
+for pkg in ['sherpa_onnx', 'openwakeword', 'underthesea', 'llama_cpp', 'nltk']:
     try:
         pkg_datas, pkg_binaries, pkg_hidden = collect_all(pkg)
         datas += pkg_datas
@@ -62,6 +63,8 @@ for meta_pkg in ['transformers', 'huggingface_hub', 'tokenizers', 'safetensors',
     except Exception:
         pass
 
+hiddenimports += ['pydoc', 'difflib']
+
 a = Analysis(
     ['login.py'],
     pathex=['.', 'voice-models/melotts'],
@@ -71,7 +74,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['tkinter', 'unittest', 'pydoc', 'pdb', 'difflib'],
+    excludes=['tkinter'],
     noarchive=False,
     optimize=1,
 )
@@ -92,7 +95,7 @@ exe = EXE(
     upx=False,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=False,
+    console=True,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,

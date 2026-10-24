@@ -277,6 +277,7 @@ class PopView(QMainWindow):
         if sender == "bot":
             self.chat_area.set_thinking(False)
             msg = self.chat_model.add_bot_message(text)
+            self.sidebar.reload_conversations()
             self.right_panel.add_activity_log("AI Response", "chat")
         else:
             msg = self.chat_model.add_user_message(text)

@@ -260,8 +260,8 @@ class PopChatModel:
                 self.active_session_id = None
 
     def _ensure_persisted_session(self, session: ConversationSession) -> int:
-        """Ensure session has a real integer database ID."""
-        if not session.id.isdigit():
+        """Ensure session has a real integer database ID that exists in the database."""
+        if not session.id.isdigit() or not self.db.session_exists(int(session.id)):
             user_id = self._get_current_user_id()
             real_id = self.db.create_chat_session(user_id, title=session.title)
             session.id = str(real_id)
@@ -279,14 +279,15 @@ class PopChatModel:
             clean_title = text.strip().replace("\n", " ")[:30]
             if clean_title:
                 session.title = clean_title
-                if session.id.isdigit():
-                    try:
-                        self.db.update_session_title(int(session.id), session.title)
-                    except Exception as e:
-                        logger.error("Error updating title in DB: %s", e)
 
         # Ensure session exists in DB
         s_id = self._ensure_persisted_session(session)
+
+        # Update title in DB now that s_id is guaranteed to exist
+        try:
+            self.db.update_session_title(s_id, session.title)
+        except Exception as e:
+            logger.error("Error updating title in DB: %s", e)
 
         timestamp_str = datetime.now().strftime("%I:%M %p")
         msg = ChatMessage(sender="user", text=text, timestamp=timestamp_str)
