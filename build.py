@@ -28,7 +28,16 @@ def build():
             except Exception as e:
                 print(f"[Build] Warning: Could not generate icon.ico: {e}")
 
-    # 2. Command to build using PopAssistant.spec
+    # 2. Clean obsolete onedir folder if present to avoid confusion
+    old_dir = os.path.join("dist", "PopAssistant")
+    if os.path.exists(old_dir) and os.path.isdir(old_dir):
+        try:
+            shutil.rmtree(old_dir, ignore_errors=True)
+            print(f"[Build] Cleaned up obsolete directory: {old_dir}")
+        except Exception:
+            pass
+
+    # 3. Command to build using PopAssistant.spec
     spec_file = "PopAssistant.spec"
     if not os.path.exists(spec_file):
         print(f"Error: {spec_file} not found!")
@@ -47,21 +56,13 @@ def build():
 
     try:
         subprocess.check_call(cmd)
-        dist_dir = os.path.abspath(os.path.join("dist", "PopAssistant"))
-        exe_path = os.path.join(dist_dir, "PopAssistant.exe")
-
-        # Sync voice-models directly next to PopAssistant.exe
-        if os.path.exists("voice-models"):
-            dest_models = os.path.join(dist_dir, "voice-models")
-            shutil.copytree("voice-models", dest_models, dirs_exist_ok=True)
-            print(f"[Build] Synced voice-models into {dest_models}")
+        exe_path = os.path.abspath(os.path.join("dist", "PopAssistant.exe"))
 
         print("\n" + "=" * 60)
-        print("  BUILD HOAN TAT!")
+        print("  BUILD HOAN TAT - 1 FILE EXE DUY NHAT!")
         print("=" * 60)
-        print(f"Thu muc ung dung: {dist_dir}")
-        print(f"File chay:        {exe_path}")
-        print("\nBan chi can nen thu muc 'PopAssistant' trong 'dist' thanh file .zip de mang sang may khac su dung ngay!")
+        print(f"File exe: {exe_path}")
+        print("\nBan co the copy truc tiep file 'PopAssistant.exe' trong thu muc 'dist' de su dung ngay!")
     except subprocess.CalledProcessError as e:
         print(f"\n[Build Error] PyInstaller exited with code {e.returncode}")
         sys.exit(e.returncode)

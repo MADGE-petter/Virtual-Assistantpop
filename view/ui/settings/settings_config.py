@@ -4,14 +4,15 @@ import time
 import urllib.request
 import urllib.parse
 from PyQt6.QtCore import QThread, pyqtSignal
+from utils.paths import get_writeable_path
 
-CONFIG_PATH = os.path.join(os.getcwd(), "user_settings.json")
+CONFIG_PATH = get_writeable_path("user_settings.json")
 
 DEFAULT_SETTINGS = {
     "language": "vi",
     "theme": "dark",
     "auto_launch": False,
-    "model_dir": os.path.join(os.getcwd(), "LLM-agents"),
+    "model_dir": get_writeable_path("LLM-agents"),
     "max_tokens": 2048,
     "temperature": 0.7,
     "context_rules": "Bạn là POP AI Assistant, trợ lý thông minh thân thiện bằng tiếng Việt.",
@@ -81,7 +82,7 @@ class HFModelDownloadThread(QThread):
     downloadFinished = pyqtSignal(str)
     downloadError = pyqtSignal(str)
 
-    def __init__(self, repo_id: str, target_dir: str, preferred_file: str = None, parent=None):
+    def __init__(self, repo_id: str, target_dir: str, preferred_file: str | None = None, parent=None):
         super().__init__(parent)
         self.repo_id = repo_id
         self.target_dir = target_dir
@@ -92,6 +93,7 @@ class HFModelDownloadThread(QThread):
         self._is_cancelled = True
 
     def run(self):
+        temp_path: str | None = None
         try:
             self.statusUpdated.emit("Đang phân tích danh sách file GGUF trong repository...")
             os.makedirs(self.target_dir, exist_ok=True)
@@ -170,7 +172,7 @@ class HFModelDownloadThread(QThread):
             self.downloadFinished.emit(target_path)
 
         except Exception as e:
-            if 'temp_path' in locals() and os.path.exists(temp_path):
+            if temp_path and os.path.exists(temp_path):
                 try:
                     os.remove(temp_path)
                 except Exception:

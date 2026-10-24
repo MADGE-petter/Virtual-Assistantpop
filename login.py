@@ -116,10 +116,22 @@ def main():
             
     except ImportError as e:
         print(f"Chi tiết lỗi: {e}")
-        input("Nhấn Enter để thoát...")
+        try:
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.critical(None, "Lỗi khởi động", f"Lỗi thiếu thư viện:\n{e}")
+        except Exception:
+            pass
+        if sys.stdin and hasattr(sys.stdin, 'isatty') and sys.stdin.isatty():
+            input("Nhấn Enter để thoát...")
     except Exception as e:
         print(f"Lỗi khởi động ứng dụng: {e}")
-        input("Nhấn Enter để thoát...")
+        try:
+            from PyQt6.QtWidgets import QMessageBox
+            QMessageBox.critical(None, "Lỗi khởi động", f"Lỗi khởi động ứng dụng:\n{e}")
+        except Exception:
+            pass
+        if sys.stdin and hasattr(sys.stdin, 'isatty') and sys.stdin.isatty():
+            input("Nhấn Enter để thoát...")
 
 if __name__ == "__main__":
     main()
