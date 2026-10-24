@@ -49,6 +49,7 @@ class LLMConfig:
     model_path: Optional[str] = None
     n_ctx: int = 4096
     n_gpu_layers: int = -1
+    main_gpu: int = 0
     n_threads: int = 0
     max_tokens: int = 512
     temperature: float = 0.7
@@ -69,12 +70,28 @@ class LLMConfig:
 
     @classmethod
     def from_env(cls) -> "LLMConfig":
+        # Load defaults from user_settings.json if present
+        default_gpu_layers = -1
+        default_main_gpu = 0
+        try:
+            from view.ui.settings.settings_config import load_user_settings
+            cfg = load_user_settings()
+            if cfg.get("llm_device") == "cpu":
+                default_gpu_layers = 0
+            elif "llm_gpu_layers" in cfg:
+                default_gpu_layers = int(cfg["llm_gpu_layers"])
+            if "llm_main_gpu" in cfg:
+                default_main_gpu = int(cfg["llm_main_gpu"])
+        except Exception:
+            pass
+
         return cls(
             enabled=_get_env_bool("POP_LLM_ENABLED", True),
             fallback_to_rules=_get_env_bool("POP_LLM_FALLBACK", True),
             model_path=_get_env_str("POP_LLM_MODEL_PATH", None),
             n_ctx=_get_env_int("POP_LLM_N_CTX", 4096),
-            n_gpu_layers=_get_env_int("POP_LLM_N_GPU_LAYERS", -1),
+            n_gpu_layers=_get_env_int("POP_LLM_N_GPU_LAYERS", default_gpu_layers),
+            main_gpu=_get_env_int("POP_LLM_MAIN_GPU", default_main_gpu),
             n_threads=_get_env_int("POP_LLM_N_THREADS", 0),
             verbose=_get_env_bool("POP_LLM_VERBOSE", False),
         )

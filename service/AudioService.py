@@ -196,6 +196,7 @@ class AudioService:
         if not (encoder_path and decoder_path and joiner_path and tokens_path):
             raise RuntimeError(f"Missing ASR model files in {self.asr_model_dir}")
         
+        provider = "cpu"
         self._asr_recognizer = sherpa_onnx.OfflineRecognizer.from_transducer(
             tokens=tokens_path,
             encoder=encoder_path,
@@ -205,9 +206,22 @@ class AudioService:
             sample_rate=self.ASR_MODEL_CONFIG["sample_rate"],
             feature_dim=self.ASR_MODEL_CONFIG["feature_dim"],
             decoding_method="greedy_search",
+            provider=provider,
         )
-        print("[AudioService] Vietnamese Zipformer ASR loaded successfully!")
+        print(f"[AudioService] Vietnamese Zipformer ASR loaded successfully on RAM/CPU (provider={provider})!")
     
+    def _get_voice_device(self) -> str:
+        """Get target compute device for voice models (default: cpu / system RAM)."""
+        env_dev = os.environ.get("POP_VOICE_DEVICE")
+        if env_dev:
+            return env_dev.strip().lower()
+        try:
+            from view.ui.settings.settings_config import load_user_settings
+            cfg = load_user_settings()
+            return cfg.get("voice_device", "cpu").strip().lower()
+        except Exception:
+            return "cpu"
+
     def _load_tts_model(self):
         """Load Vietnamese MeloTTS model (offline)."""
         if self._tts_engine is not None:
@@ -230,8 +244,13 @@ class AudioService:
         except ImportError as e:
             raise RuntimeError(f"MeloTTS dependencies missing: {e}")
             
-        device = "cuda:0" if torch.cuda.is_available() else "cpu"
-        print(f"[AudioService] Loading Vietnamese MeloTTS model on {device}...")
+        # Voice models run on RAM/CPU to reserve VRAM for LLM on eGPU
+        target_dev = self._get_voice_device()
+        if target_dev == "cpu":
+            device = "cpu"
+        else:
+            device = "cuda:0" if torch.cuda.is_available() else "cpu"
+        print(f"[AudioService] Loading Vietnamese MeloTTS model on {device} (RAM/CPU mode: {device == 'cpu'})...")
         
         model = TTS(
             language="VI",
@@ -245,7 +264,7 @@ class AudioService:
         hps_data = getattr(model.hps, "data", None)
         spk2id = getattr(hps_data, "spk2id", {}) if hps_data is not None else {}
         self._tts_speaker_id = list(spk2id.values())[0] if spk2id else 0
-        print("[AudioService] Vietnamese MeloTTS loaded successfully!")
+        print("[AudioService] Vietnamese MeloTTS loaded successfully on RAM/CPU!")
     
     # ==================== STARTUP ====================
     

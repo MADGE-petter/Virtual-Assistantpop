@@ -64,6 +64,7 @@ class LLMService:
         model_path: Optional[str] = None,
         n_ctx: int = DEFAULT_CONTEXT_SIZE,
         n_gpu_layers: int = DEFAULT_N_GPU_LAYERS,
+        main_gpu: int = 0,
         n_threads: int = DEFAULT_N_THREADS,
         verbose: bool = False,
         models_dir: Optional[str] = None,
@@ -78,6 +79,8 @@ class LLMService:
             cfg = get_llm_config()
             if n_gpu_layers == DEFAULT_N_GPU_LAYERS and cfg.n_gpu_layers != DEFAULT_N_GPU_LAYERS:
                 n_gpu_layers = cfg.n_gpu_layers
+            if main_gpu == 0 and cfg.main_gpu != 0:
+                main_gpu = cfg.main_gpu
             if n_threads == DEFAULT_N_THREADS and cfg.n_threads != DEFAULT_N_THREADS:
                 n_threads = cfg.n_threads
             if n_ctx == DEFAULT_CONTEXT_SIZE and cfg.n_ctx != DEFAULT_CONTEXT_SIZE:
@@ -88,6 +91,7 @@ class LLMService:
         self.model_path = self._resolve_model_path(model_path, models_dir)
         self.n_ctx = n_ctx
         self.n_gpu_layers = n_gpu_layers
+        self.main_gpu = main_gpu
         self.n_threads = n_threads
         self.verbose = verbose
 
@@ -97,7 +101,7 @@ class LLMService:
 
         logger.info(
             f"[LLMService] Configured: model={self.model_path}, "
-            f"n_ctx={n_ctx}, n_gpu_layers={n_gpu_layers}, n_threads={n_threads}"
+            f"n_ctx={n_ctx}, n_gpu_layers={n_gpu_layers}, main_gpu={main_gpu}, n_threads={n_threads}"
         )
 
     # ------------------------------------------------------------------ #
@@ -252,13 +256,14 @@ class LLMService:
 
             logger.info(
                 f"[LLMService] Loading model from {self.model_path} "
-                f"(n_gpu_layers={actual_gpu_layers}, n_threads={threads})..."
+                f"(n_gpu_layers={actual_gpu_layers}, main_gpu={self.main_gpu}, n_threads={threads})..."
             )
             try:
                 self._llm = Llama(
                     model_path=self.model_path,
                     n_ctx=self.n_ctx,
                     n_gpu_layers=actual_gpu_layers,
+                    main_gpu=self.main_gpu,
                     n_threads=threads,
                     verbose=self.verbose,
                 )
@@ -272,6 +277,7 @@ class LLMService:
                         model_path=self.model_path,
                         n_ctx=self.n_ctx,
                         n_gpu_layers=0,
+                        main_gpu=0,
                         n_threads=threads,
                         verbose=self.verbose,
                     )
@@ -279,6 +285,23 @@ class LLMService:
                     raise load_err
             logger.info("[LLMService] Model loaded successfully.")
             return self._llm
+
+    def reload_config(self) -> None:
+        """Reload configuration from user_settings.json / env and reset model if loaded."""
+        try:
+            from service.llm_config import LLMConfig
+            import service.llm_config as cfg_module
+            cfg_module._default_config = LLMConfig.from_env()
+            new_cfg = cfg_module.get_llm_config()
+            self.n_gpu_layers = new_cfg.n_gpu_layers
+            self.main_gpu = new_cfg.main_gpu
+            self.n_threads = new_cfg.n_threads
+            self.n_ctx = new_cfg.n_ctx
+            if self._llm is not None:
+                self.unload()
+                logger.info(f"[LLMService] Reloaded config: n_gpu_layers={self.n_gpu_layers}, main_gpu={self.main_gpu}")
+        except Exception as e:
+            logger.error(f"[LLMService] Failed to reload config: {e}")
 
     def is_loaded(self) -> bool:
         return self._llm is not None

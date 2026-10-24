@@ -16,7 +16,14 @@ DEFAULT_SETTINGS = {
     "max_tokens": 2048,
     "temperature": 0.7,
     "context_rules": "Bạn là POP AI Assistant, trợ lý thông minh thân thiện bằng tiếng Việt.",
-    "mascot_sleep_timeout_minutes": 3
+    "mascot_sleep_timeout_minutes": 3,
+    "autostart": False,
+    "mascot_top": True,
+    "tts_enabled": True,
+    "voice_device": "cpu",
+    "llm_device": "gpu",
+    "llm_gpu_layers": -1,
+    "llm_main_gpu": 0
 }
 
 
