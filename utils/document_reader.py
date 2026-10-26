@@ -78,7 +78,7 @@ def read_excel_file(file_path: str, max_chars: int = 25000) -> Tuple[bool, str, 
                 sheet = wb.sheet_by_index(sheet_idx)
                 rows_text = []
                 for row_idx in range(min(sheet.nrows, 200)):
-                    row_vals = [str(sheet.cell_value(row_idx, col_idx)) for col_idx in range(sheet.ncols)]
+                    row_vals = [f"{sheet.cell_value(row_idx, col_idx)}" for col_idx in range(sheet.ncols)]
                     if any(row_vals):
                         rows_text.append(" | ".join(row_vals))
                 if rows_text:

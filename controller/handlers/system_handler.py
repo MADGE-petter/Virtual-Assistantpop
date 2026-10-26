@@ -2,6 +2,7 @@
 
 import re
 import time
+from typing import overload
 
 from controller.handlers.base_handler import BaseHandler
 from model.temperature_monitor import get_cpu_temperature_auto
@@ -45,12 +46,14 @@ class SystemHandler(BaseHandler):
                         return set_system_volume(target_volume)
                     if any(k in text_lower for k in ["tăng", "to hơn", "lớn hơn"]):
                         current = self._extract_number(get_system_volume(), 50)
-                        new_val = min(100, current + 20)
+                        current_val = 50 if current is None else current
+                        new_val = min(100, current_val + 20)
                         return set_system_volume(new_val)
                     
                     if any(k in text_lower for k in ["giảm", "nhỏ hơn", "bé hơn", "nhỏ lại", "xuống"]):
                         current = self._extract_number(get_system_volume(), 50)
-                        new_val = max(0, current - 20)
+                        current_val = 50 if current is None else current
+                        new_val = max(0, current_val - 20)
                         return set_system_volume(new_val)
                     
                     # Đặt/chỉnh giá trị cụ thể
@@ -106,9 +109,19 @@ class SystemHandler(BaseHandler):
         except Exception as e:
             return f"Lỗi khi điều khiển hệ thống: {e}"
     
+    @overload
     @staticmethod
-    def _extract_number(text, default=None):
+    def _extract_number(text: str | None, default: int) -> int: ...
+
+    @overload
+    @staticmethod
+    def _extract_number(text: str | None, default: None = None) -> int | None: ...
+
+    @staticmethod
+    def _extract_number(text: str | None, default: int | None = None) -> int | None:
         """Trích xuất số từ text."""
+        if not text:
+            return default
         match = re.search(r'(\d+)', text)
         return int(match.group(1)) if match else default
     

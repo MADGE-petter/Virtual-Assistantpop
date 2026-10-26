@@ -1,31 +1,34 @@
-import os
 import subprocess
+from typing import Any
 
 # ===============================
 # ÂM LƯỢNG HỆ THỐNG
 # ===============================
 
 # Cache volume interface để tránh tạo COM object nhiều lần
-_volume_interface_cache = None
+_volume_interface_cache: Any = None
 
-def _get_volume_interface():
+def _get_volume_interface() -> Any:
     global _volume_interface_cache
     if _volume_interface_cache is not None:
         return _volume_interface_cache
-    
-    from ctypes import POINTER, cast
 
     from comtypes import CLSCTX_ALL
     from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
 
     try:
         devices = AudioUtilities.GetSpeakers()
-        interface = devices.Activate(
-            IAudioEndpointVolume._iid_,
-            CLSCTX_ALL,
-            None
-        )
-        _volume_interface_cache = cast(interface, POINTER(IAudioEndpointVolume))
+        if hasattr(devices, "EndpointVolume"):
+            _volume_interface_cache = devices.EndpointVolume
+        else:
+            from ctypes import POINTER, cast
+
+            interface = devices.Activate(
+                IAudioEndpointVolume._iid_,
+                CLSCTX_ALL,
+                None
+            )
+            _volume_interface_cache = cast(interface, POINTER(IAudioEndpointVolume))
         return _volume_interface_cache
     except Exception as e:
         print(f"[ERROR] Failed to get volume interface: {e}")
@@ -274,12 +277,12 @@ def wifi_off():
 # ===============================
 
 def shutdown():
-    os.system("shutdown /s /t 1")
+    subprocess.run(["shutdown", "/s", "/t", "1"])
     return "Đang tắt máy"
 
 
 def restart():
-    os.system("shutdown /r /t 1")
+    subprocess.run(["shutdown", "/r", "/t", "1"])
     return "Đang khởi động lại"
 
 

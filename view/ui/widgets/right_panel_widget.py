@@ -27,15 +27,15 @@ class AudioWaveformWidget(QWidget):
         self.timer.timeout.connect(self.update)
         # Timer will be started in showEvent
         
-    def showEvent(self, event):
+    def showEvent(self, a0):
         self.timer.start(40)  # ~25 FPS
-        super().showEvent(event)
+        super().showEvent(a0)
         
-    def hideEvent(self, event):
+    def hideEvent(self, a0):
         self.timer.stop()
-        super().hideEvent(event)
+        super().hideEvent(a0)
 
-    def paintEvent(self, event):
+    def paintEvent(self, a0):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
@@ -123,13 +123,13 @@ class RightPanelWidget(QWidget):
         self.timer.timeout.connect(self._refresh_telemetry)
         # Timer will be started in showEvent
         
-    def showEvent(self, event):
+    def showEvent(self, a0):
         self.timer.start(1000)
-        super().showEvent(event)
+        super().showEvent(a0)
         
-    def hideEvent(self, event):
+    def hideEvent(self, a0):
         self.timer.stop()
-        super().hideEvent(event)
+        super().hideEvent(a0)
 
     def _setup_ui(self):
         main_layout = QVBoxLayout(self)
@@ -150,8 +150,23 @@ class RightPanelWidget(QWidget):
         vc_layout.setContentsMargins(12, 10, 12, 10)
         vc_layout.setSpacing(8)
 
+        vc_header = QHBoxLayout()
+        vc_header.setContentsMargins(0, 0, 0, 0)
+
         vc_title = QLabel("VOICE STATUS")
         vc_title.setStyleSheet(f"color: {DesignTokens.TEXT_MUTED}; font-size: 11px; font-weight: 700; letter-spacing: 1px;")
+        vc_header.addWidget(vc_title)
+        vc_header.addStretch()
+
+        close_btn = QPushButton("✕")
+        close_btn.setFixedSize(20, 20)
+        close_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        close_btn.setStyleSheet(
+            f"QPushButton {{ background: transparent; color: {DesignTokens.TEXT_MUTED}; font-size: 11px; border: none; border-radius: 4px; }}"
+            f"QPushButton:hover {{ background: rgba(255, 255, 255, 0.1); color: #FFFFFF; }}"
+        )
+        close_btn.clicked.connect(self.closeRequested.emit)
+        vc_header.addWidget(close_btn)
 
         self.waveform_widget = AudioWaveformWidget(self.voice_model)
 
@@ -169,7 +184,7 @@ class RightPanelWidget(QWidget):
         self.status_sub_lbl = QLabel("Sẵn sàng nhận lệnh")
         self.status_sub_lbl.setStyleSheet(f"color: {DesignTokens.TEXT_MUTED}; font-size: 11px;")
 
-        vc_layout.addWidget(vc_title)
+        vc_layout.addLayout(vc_header)
         vc_layout.addWidget(self.waveform_widget)
         vc_layout.addLayout(status_box)
         vc_layout.addWidget(self.status_sub_lbl)

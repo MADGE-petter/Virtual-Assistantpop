@@ -55,8 +55,9 @@ class ToastWidget(QWidget):
         QTimer.singleShot(duration, self._animate_out)
     
     def _position_at_top_center(self):
-        if self.parent():
-            parent_rect = self.parent().geometry()
+        parent = self.parent()
+        if isinstance(parent, QWidget):
+            parent_rect = parent.geometry()
             x = parent_rect.x() + (parent_rect.width() - self.width()) // 2
             y = parent_rect.y() + 20
             self.move(x, y)

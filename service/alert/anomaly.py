@@ -25,13 +25,16 @@ class AnomalyDetectionService:
     def _get_connection(self):
         return self.repo._get_connection()
     
-    def detect_app_anomaly(self, user_id: int, app_name: str, 
-                          current_hour: int = None) -> Optional[Dict]:
+    def detect_app_anomaly(self, user_id: int, app_name: Optional[str] = None, 
+                          current_hour: Optional[int] = None) -> Optional[Dict]:
         """Detect if user opens unusual app at unusual time
         
         Example: User never opens Blender at 3am → anomaly
         """
         try:
+            if not app_name:
+                return None
+
             if current_hour is None:
                 current_hour = datetime.now().hour
             

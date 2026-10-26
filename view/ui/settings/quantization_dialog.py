@@ -2,6 +2,7 @@ import os
 import json
 import re
 import urllib.request
+from typing import Any, Dict, List
 from PyQt6.QtCore import Qt, pyqtSignal, QThread
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
@@ -125,7 +126,7 @@ class HFVariantFetchThread(QThread):
             with urllib.request.urlopen(req, timeout=12) as resp:
                 data = json.loads(resp.read().decode('utf-8'))
 
-            variants = []
+            variants: List[Dict[str, Any]] = []
             for item in data:
                 if isinstance(item, dict) and item.get('path', '').endswith('.gguf'):
                     filename = item['path']
@@ -140,8 +141,17 @@ class HFVariantFetchThread(QThread):
                         "eval": eval_res
                     })
 
+            def _get_sort_key(item: dict[str, Any]) -> tuple[int, float]:
+                eval_info = item.get("eval")
+                priority = eval_info.get("priority", 99) if isinstance(eval_info, dict) else 99
+                try:
+                    size_mb = float(item.get("size_mb", 0.0))
+                except (ValueError, TypeError):
+                    size_mb = 0.0
+                return (priority, -size_mb)
+
             # Sắp xếp danh sách: Ưu tiên các gói Mượt mà/Vừa đủ lên đầu
-            variants.sort(key=lambda x: (x["eval"]["priority"], -x["size_mb"]))
+            variants.sort(key=_get_sort_key)
             self.variantsFound.emit(variants)
 
         except Exception as e:

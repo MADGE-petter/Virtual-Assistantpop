@@ -57,7 +57,7 @@ class MemoryService:
             
             if "contexts" not in data:
                 data["contexts"] = {}
-            data["contexts"][str(session_id)] = context_dict
+            data["contexts"][session_id] = context_dict
             
             with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
@@ -73,7 +73,7 @@ class MemoryService:
                 with open(file_path, "r", encoding="utf-8") as f:
                     try:
                         data = json.load(f)
-                        return data.get("contexts", {}).get(str(session_id), {})
+                        return data.get("contexts", {}).get(session_id, {})
                     except json.JSONDecodeError:
                         return {}
         except Exception as e:
@@ -89,7 +89,7 @@ class MemoryService:
         import json
         import re
         try:
-            sid_int = int(session_id) if str(session_id).isdigit() else 1
+            sid_int = int(session_id) if session_id.isdigit() else 1
             all_messages = self.get_session_chat_messages(sid_int)
             total_msgs = len(all_messages) if all_messages else 0
 

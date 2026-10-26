@@ -40,7 +40,7 @@ class AlertManager:
     }
     
     def __init__(self, audio_service=None, ui_callback: Optional[Callable] = None, 
-                 check_interval: int = 60, user_name: str = "bạn", db_path: str = None,
+                 check_interval: int = 60, user_name: str = "bạn", db_path: Optional[str] = None,
                  interactive_callback: Optional[Callable] = None):
         self.audio_service = audio_service
         self.ui_callback = ui_callback
@@ -178,7 +178,7 @@ class AlertManager:
                 'max_history': self.MAX_ALERT_HISTORY,
                 'memory_usage_percent': round(len(self._alerts) / self.MAX_ALERT_HISTORY * 100, 1),
                 'cooldown_keys': len(self._last_alert_time),
-                'oldest_alert_age': (time.time() - (self._alerts[0].timestamp.timestamp() if hasattr(self._alerts[0].timestamp, 'timestamp') else self._alerts[0].timestamp)) if self._alerts else 0
+                'oldest_alert_age': (time.time() - self._alerts[0].timestamp.timestamp()) if self._alerts else 0
             }
     
     def _init_alert_persistence(self):
@@ -194,7 +194,7 @@ class AlertManager:
             alert.level.value,
             alert.value,
             alert.message,
-            alert.timestamp.timestamp() if hasattr(alert.timestamp, 'timestamp') else alert.timestamp,
+            alert.timestamp.timestamp(),
             alert.acknowledged
         )
     
@@ -331,7 +331,7 @@ class AlertManager:
         if self._alert_repo.delete_all_alerts():
             print(f"[AlertManager] Cleared all alerts from database and vacuumed")
 
-    def handle_interactive_response(self, metric: str, response: str, context: dict = None):
+    def handle_interactive_response(self, metric: str, response: str, context: Optional[dict] = None):
         self.interactive_handler.handle_response(metric, response, context)
 
     def get_interactive_context(self, metric: str) -> dict:

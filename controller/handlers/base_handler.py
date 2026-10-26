@@ -2,6 +2,7 @@
 
 import time
 from abc import ABC, abstractmethod
+from typing import Any
 
 
 class BaseHandler(ABC):
@@ -29,7 +30,7 @@ class BaseHandler(ABC):
         self.login_username = name
     
     @abstractmethod
-    def handle(self, text): 
+    def handle(self, text: str) -> Any: 
         pass
     
     def speak(self, text, wait=0):

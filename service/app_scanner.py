@@ -74,7 +74,7 @@ class AppScanner:
         
         return True
     
-    def _pick_best_exe(self, exe_files: list, parent_dir: str) -> str:
+    def _pick_best_exe(self, exe_files: list, parent_dir: str) -> str | None:
         """Chọn file .exe tốt nhất từ danh sách - ưu tiên trùng tên thư mục cha."""
         if not exe_files:
             return None

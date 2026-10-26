@@ -146,8 +146,8 @@ class SqlService:
         return self.get_daily_stats(user_name, limit)
     
     def clear_history(self, user_name=None):
-       
-        self.db.clear_history(user_name)
+        """Xóa lịch sử hội thoại của user hoặc toàn bộ lịch sử."""
+        return self.db.clear_history(user_name)
     
     def get_most_recent_user(self):
         

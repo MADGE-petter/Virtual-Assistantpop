@@ -3,7 +3,7 @@ Dịch vụ giám sát hệ thống
 Tập trung các chỉ số hệ thống dựa trên psutil và các tiện ích liệt kê tiến trình,
 để các module khác gọi service này thay vì tự dùng psutil trực tiếp.
 """
-from typing import Dict, List
+from typing import Any, Dict, List
 
 try:
     import psutil
@@ -11,13 +11,13 @@ except Exception:
     psutil = None
 
 
-def _psutil_available():
+def _psutil_available() -> bool:
     return psutil is not None
 
 
 def get_cpu_usage():
     """Trả về chuỗi mô tả mức sử dụng CPU."""
-    if not _psutil_available():
+    if psutil is None:
         return "Không thể lấy CPU: psutil không khả dụng"
     cpu = psutil.cpu_percent(interval=None)
     return f"CPU đang sử dụng {cpu}%"
@@ -25,32 +25,33 @@ def get_cpu_usage():
 
 def get_cpu_percent():
     """Trả về phần trăm CPU dưới dạng số thực."""
-    if not _psutil_available():
+    if psutil is None:
         return 0.0
     return psutil.cpu_percent(interval=None)
 
 
 def get_ram_usage():
-    if not _psutil_available():
+    if psutil is None:
         return "Không thể lấy RAM: psutil không khả dụng"
     ram = psutil.virtual_memory()
     return f"RAM sử dụng {ram.percent}%"
 
 
 def get_ram_percent():
-    if not _psutil_available():
+    if psutil is None:
         return 0.0
     return psutil.virtual_memory().percent
 
 
 def get_temperature_readings():
     """Trả về danh sách các cảm biến nhiệt độ từ psutil hoặc Windows WMI ACPI."""
-    if not _psutil_available():
+    if psutil is None:
         return []
     try:
-        temps = psutil.sensors_temperatures()
+        sensors_fn = getattr(psutil, 'sensors_temperatures', None)
+        temps = sensors_fn() if callable(sensors_fn) else None
         readings = []
-        if temps:
+        if isinstance(temps, dict):
             for name, entries in temps.items():
                 for entry in entries:
                     if entry.current is not None:
@@ -74,7 +75,7 @@ def get_temperature_readings():
 
 
 def get_disk_usage(path: str = "C:\\"):
-    if not _psutil_available():
+    if psutil is None:
         return f"Không thể lấy ổ đĩa: psutil không khả dụng"
     try:
         disk = psutil.disk_usage(path)
@@ -84,9 +85,9 @@ def get_disk_usage(path: str = "C:\\"):
 
 
 def get_top_ram_processes(limit: int = 5) -> List[Dict]:
-    if not _psutil_available():
+    if psutil is None:
         return []
-    processes = []
+    processes: List[Dict[str, Any]] = []
     for proc in psutil.process_iter(['pid', 'name', 'memory_info']):
         try:
             mem_info = proc.info.get('memory_info')
@@ -95,14 +96,14 @@ def get_top_ram_processes(limit: int = 5) -> List[Dict]:
                 processes.append({'name': proc.info.get('name') or 'Unknown', 'pid': proc.info.get('pid'), 'ram_mb': ram_mb})
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             continue
-    processes.sort(key=lambda x: x.get('ram_mb', 0), reverse=True)
+    processes.sort(key=lambda x: float(x.get('ram_mb') or 0.0), reverse=True)
     return processes[:limit]
 
 
 def get_top_cpu_processes(limit: int = 5) -> List[Dict]:
-    if not _psutil_available():
+    if psutil is None:
         return []
-    processes = []
+    processes: List[Dict[str, Any]] = []
     for proc in psutil.process_iter(['pid', 'name']):
         try:
             cpu_percent = proc.cpu_percent(interval=None)
@@ -110,7 +111,7 @@ def get_top_cpu_processes(limit: int = 5) -> List[Dict]:
                 processes.append({'name': proc.info.get('name') or 'Unknown', 'pid': proc.info.get('pid'), 'cpu_percent': cpu_percent})
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             continue
-    processes.sort(key=lambda x: x.get('cpu_percent', 0), reverse=True)
+    processes.sort(key=lambda x: float(x.get('cpu_percent') or 0.0), reverse=True)
     return processes[:limit]
 
 
@@ -130,7 +131,7 @@ def format_process_list(processes: List[Dict], metric: str = 'ram') -> str:
 
 
 def get_battery():
-    if not _psutil_available():
+    if psutil is None:
         return "Không thể đọc pin: psutil không khả dụng"
     try:
         battery = psutil.sensors_battery()
@@ -146,11 +147,12 @@ def get_battery():
 
 def get_temperature_alert():
     """Trả về tuple (mức cảnh báo, thông điệp) giống implementation trước."""
-    if not _psutil_available():
+    if psutil is None:
         return None, "Không hỗ trợ đọc nhiệt độ"
     try:
-        temps = psutil.sensors_temperatures()
-        if not temps:
+        sensors_fn = getattr(psutil, 'sensors_temperatures', None)
+        temps = sensors_fn() if callable(sensors_fn) else None
+        if not isinstance(temps, dict):
             return None, "Không đọc được nhiệt độ"
         max_temp = 0
         hottest_sensor = ""
@@ -173,13 +175,13 @@ def get_temperature_alert():
 
 def get_full_system_status() -> Dict:
     """Trả về dict tổng hợp với cpu, ram_percent, disk_info (list), battery (dict), temperature (float hoặc None)."""
-    if not _psutil_available():
+    if psutil is None:
         return {}
-    status = {}
+    status: Dict[str, Any] = {}
     try:
         status['cpu'] = psutil.cpu_percent(interval=None)
         status['ram_percent'] = psutil.virtual_memory().percent
-        disk_info = []
+        disk_info: List[Dict[str, Any]] = []
         for p in psutil.disk_partitions(all=False):
             try:
                 d = psutil.disk_usage(p.mountpoint)
@@ -195,8 +197,9 @@ def get_full_system_status() -> Dict:
         # nhiệt độ
         temp = None
         try:
-            temps = psutil.sensors_temperatures()
-            if temps:
+            sensors_fn = getattr(psutil, 'sensors_temperatures', None)
+            temps = sensors_fn() if callable(sensors_fn) else None
+            if isinstance(temps, dict):
                 for name, entries in temps.items():
                     for entry in entries:
                         if entry.current:

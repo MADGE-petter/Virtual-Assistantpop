@@ -82,7 +82,7 @@ class AppHandler:
             # Tìm app trong danh sách đã cài (cache + Start Menu + Registry + deep scan)
             found_name, found_path = self.app_scanner.find_app(app_name)
             
-            if found_path:
+            if found_path and found_name:
                 print(f"[AppHandler] Found: '{found_name}' at '{found_path}'")
                 self._open_app(found_name, found_path)
                 

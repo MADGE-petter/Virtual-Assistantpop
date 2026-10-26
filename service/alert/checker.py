@@ -2,6 +2,7 @@
 Alert Checkers - Các bộ giám sát CPU, RAM, Disk, Temperature, Battery
 """
 
+from datetime import datetime
 import re
 from abc import ABC, abstractmethod
 from typing import Optional, Tuple
@@ -13,6 +14,11 @@ except ImportError:
     HAS_PSUTIL = False
     psutil = None
 
+from service.system_monitoring_service import (
+    format_process_list,
+    get_top_cpu_processes,
+    get_top_ram_processes,
+)
 from .types import Alert, AlertLevel, AlertThreshold
 
 
@@ -48,13 +54,13 @@ class BaseMonitor(ABC):
         )
     
     def _check_level(self, value: float, warning_msg: str, critical_msg: str, 
-                     danger_msg: str = None) -> Tuple[Optional[Alert], bool]:
+                     danger_msg: Optional[str] = None) -> Tuple[Optional[Alert], bool]:
         """Kiểm tra level và trả về Alert hoặc recovery - giảm code lặp"""
         # Check danger level
         if self.threshold.danger and value >= self.threshold.danger:
             if self._alert_state != AlertLevel.DANGER:
                 self._alert_state = AlertLevel.DANGER
-                return self._create_alert(AlertLevel.DANGER, danger_msg, value), False
+                return self._create_alert(AlertLevel.DANGER, danger_msg or critical_msg, value), False
             return None, False
         
         # Check critical level
@@ -104,10 +110,6 @@ class RAMMonitor(BaseMonitor):
         # Lấy top processes nếu RAM cao
         top_processes = []
         if ram.percent >= self.threshold.warning:
-            from service.system_monitoring_service import (
-                format_process_list,
-                get_top_ram_processes,
-            )
             top_processes = get_top_ram_processes(5)
         
         # Tạo message với thông tin processes
@@ -186,10 +188,6 @@ class TempMonitor(BaseMonitor):
             # Lấy top CPU processes nếu nhiệt độ cao
             top_processes = []
             if max_temp >= self.threshold.warning:
-                from service.system_monitoring_service import (
-                    format_process_list,
-                    get_top_cpu_processes,
-                )
                 top_processes = get_top_cpu_processes(5)
             
             # Tạo message với thông tin processes
@@ -212,14 +210,14 @@ class TempMonitor(BaseMonitor):
         except Exception as e:
             print(f"[Monitor] Error checking {self.__class__.__name__}: {e}")
             return None, False
-            
-        return None, False
 
 
 class BatteryMonitor(BaseMonitor):
     """Giám sát Pin - logic ngược: % thấp = cảnh báo"""
     
     def check(self) -> Tuple[Optional[Alert], bool]:
+        if not psutil:
+            return None, False
         try:
             battery = psutil.sensors_battery()
             if not battery or battery.power_plugged:
@@ -254,5 +252,3 @@ class BatteryMonitor(BaseMonitor):
         return None, False
 
 
-# Import datetime here to avoid circular import issues
-from datetime import datetime

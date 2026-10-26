@@ -18,7 +18,7 @@ class SearchHandler(BaseHandler):
         r'\byt\b'
     ]
 
-    def handle(self, text):
+    def handle(self, text: str) -> str:
         """Xử lý tìm kiếm."""
         search_query = extract_search_query(text)
         if not search_query:

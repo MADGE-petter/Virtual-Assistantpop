@@ -4,7 +4,7 @@ Activity Log Model - Chronological system activity logger.
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 
 @dataclass
@@ -32,7 +32,7 @@ class ActivityLogModel:
             )
         ]
 
-    def add_log(self, event: str, category: str = "info", timestamp: str = None) -> ActivityItem:
+    def add_log(self, event: str, category: str = "info", timestamp: Optional[str] = None) -> ActivityItem:
         if not timestamp:
             timestamp = datetime.now().strftime("%I:%M %p")
         item = ActivityItem(timestamp=timestamp, event=event, category=category)

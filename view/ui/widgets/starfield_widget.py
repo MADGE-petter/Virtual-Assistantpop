@@ -88,13 +88,13 @@ class StarfieldWidget(QWidget):
             })
             total_created += 1
 
-    def showEvent(self, event):
-        super().showEvent(event)
+    def showEvent(self, a0):
+        super().showEvent(a0)
         if not self.timer.isActive():
             self.timer.start(55)  # ~18 FPS: mượt mà, tiết kiệm ~45% tải render CPU
 
-    def hideEvent(self, event):
-        super().hideEvent(event)
+    def hideEvent(self, a0):
+        super().hideEvent(a0)
         if self.timer.isActive():
             self.timer.stop()
 
@@ -128,11 +128,11 @@ class StarfieldWidget(QWidget):
 
         self.update()
 
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
+    def resizeEvent(self, a0):
+        super().resizeEvent(a0)
         self._init_stars()
 
-    def paintEvent(self, event):
+    def paintEvent(self, a0):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 

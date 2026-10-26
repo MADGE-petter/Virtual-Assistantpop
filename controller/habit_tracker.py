@@ -134,25 +134,29 @@ class HabitTracker:
             self._log_error('check_health_metric', e)
             return None
     
-    def check_smart_sleep(self, user_id: int, current_hour: int = None) -> Optional[Dict]:
+    def check_smart_sleep(self, user_id: int, current_hour: Optional[int] = None) -> Optional[Dict]:
         """Smart sleep alert - Case 2"""
         try:
-            if not self._alerts.should_send_alert(user_id, 'smart_sleep'):
+            if hasattr(self._alerts, 'should_send_alert'):
+                if not self._alerts.should_send_alert(user_id, 'smart_sleep'):
+                    return None
+
+            if not hasattr(self._alerts, 'check_smart_sleep_alert'):
                 return None
-            
+
             result = self._alerts.check_smart_sleep_alert(user_id, current_hour)
-            
-            if result:
+
+            if result and hasattr(self._alerts, 'update_alert_interaction'):
                 self._alerts.update_alert_interaction(user_id, 'smart_sleep', 'viewed')
-            
+
             return result
-            
+
         except Exception as e:
             self._log_error('check_smart_sleep', e)
             return None
     
-    def detect_anomaly(self, user_id: int, app_name: str = None, 
-                      current_hour: int = None) -> Optional[Dict]:
+    def detect_anomaly(self, user_id: int, app_name: Optional[str] = None, 
+                      current_hour: Optional[int] = None) -> Optional[Dict]:
         """Detect behavioral anomalies"""
         try:
             return self._anomaly.detect_app_anomaly(user_id, app_name, current_hour)

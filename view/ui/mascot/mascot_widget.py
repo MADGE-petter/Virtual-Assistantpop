@@ -94,13 +94,13 @@ class MiniMascotWidget(QWidget):
         """Reload configuration from user settings."""
         self.model.reload_settings()
 
-    def showEvent(self, event):
-        super().showEvent(event)
+    def showEvent(self, a0):
+        super().showEvent(a0)
         if not self.timer.isActive():
             self.timer.start(22)
 
-    def hideEvent(self, event):
-        super().hideEvent(event)
+    def hideEvent(self, a0):
+        super().hideEvent(a0)
         if self.timer.isActive():
             self.timer.stop()
 
@@ -161,28 +161,36 @@ class MiniMascotWidget(QWidget):
     # MOUSE EVENTS (DELEGATED TO CONTROLLER)
     # ============================================================
 
-    def mousePressEvent(self, event: QMouseEvent):
-        self.controller.handle_mouse_press(event)
+    def mousePressEvent(self, a0: QMouseEvent | None):
+        if not a0:
+            return
+        self.controller.handle_mouse_press(a0)
 
-    def mouseMoveEvent(self, event: QMouseEvent):
+    def mouseMoveEvent(self, a0: QMouseEvent | None):
+        if not a0:
+            return
         geom = self._get_screen_geometry()
-        self.controller.handle_mouse_move(event, geom)
+        self.controller.handle_mouse_move(a0, geom)
 
-    def mouseReleaseEvent(self, event: QMouseEvent):
+    def mouseReleaseEvent(self, a0: QMouseEvent | None):
+        if not a0:
+            return
         geom = self._get_screen_geometry()
-        action = self.controller.handle_mouse_release(event, geom)
+        action = self.controller.handle_mouse_release(a0, geom)
         if action == "toggle_voice":
             self.toggleVoiceRequested.emit()
 
-    def mouseDoubleClickEvent(self, event: QMouseEvent):
-        if self.controller.handle_mouse_double_click(event):
+    def mouseDoubleClickEvent(self, a0: QMouseEvent | None):
+        if not a0:
+            return
+        if self.controller.handle_mouse_double_click(a0):
             self.toggleMainWindowRequested.emit()
 
     # ============================================================
     # PAINT EVENT (DELEGATED TO PAINTER)
     # ============================================================
 
-    def paintEvent(self, event):
+    def paintEvent(self, a0):
         painter = QPainter(self)
         try:
             self.painter.paint(painter, self.width(), self.height(), self.model)

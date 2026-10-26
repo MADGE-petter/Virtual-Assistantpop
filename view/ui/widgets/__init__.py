@@ -1,4 +1,8 @@
-from view.ui.widgets.sidebar_widget import SidebarWidget
+from view.ui.widgets.sidebar import (
+    SidebarWidget,
+    ConversationItemWidget,
+    AvatarPopupMenu,
+)
 from view.ui.widgets.chat_area_widget import ChatAreaWidget
 from view.ui.widgets.input_bar import (
     InputBarWidget,
@@ -14,6 +18,8 @@ from view.ui.widgets.model_downloader_dialog import ModelDownloaderDialog
 
 __all__ = [
     "SidebarWidget",
+    "ConversationItemWidget",
+    "AvatarPopupMenu",
     "ChatAreaWidget",
     "InputBarWidget",
     "MessageTextEdit",

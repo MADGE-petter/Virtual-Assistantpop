@@ -46,6 +46,7 @@ class ModelsTabWidget(QWidget):
 
         desc = QLabel("Các mô hình AI định dạng GGUF chạy offline 100% trên phần cứng máy tính (GPU/RAM)")
         desc.setStyleSheet(f"color: {DesignTokens.TEXT_MUTED}; font-size: 13px;")
+        desc.setWordWrap(True)
 
         title_box.addLayout(title_row)
         title_box.addWidget(desc)
@@ -136,8 +137,10 @@ class ModelsTabWidget(QWidget):
     def reload_local_models(self):
         while self.cards_layout.count():
             item = self.cards_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+            if item is not None:
+                w = item.widget()
+                if w is not None:
+                    w.deleteLater()
 
         target_dir = self.user_settings.get("model_dir", os.path.join(os.getcwd(), "LLM-agents"))
         if not os.path.exists(target_dir) or not os.listdir(target_dir):

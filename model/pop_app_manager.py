@@ -114,7 +114,7 @@ def close_application(app_name: str):
     app_name_lower = app_name.lower()
     
     try:
-        import psutil
+        import psutil  # type: ignore
 
         # Tìm process - ưu tiên chính xác, sau đó fuzzy
         for proc in psutil.process_iter(['pid', 'name']):

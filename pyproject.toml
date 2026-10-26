@@ -39,6 +39,11 @@ dev = [
     "black>=24.4.0",
     "isort>=5.13.0",
     "pyinstaller>=6.5.0",
+    "types-psutil>=7.0.0",
+    "types-pywin32>=312.0.0",
+    "types-PyAutoGUI",
+    "types-openpyxl",
+    "types-xlrd",
 ]
 
 [tool.black]

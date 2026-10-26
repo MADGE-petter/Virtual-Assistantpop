@@ -203,6 +203,7 @@ class PopView(QMainWindow):
         self.chat_area.switchModel.connect(lambda m: self.switchModel.emit(m))
         self.chat_area.openSettings.connect(lambda: self.navigation.open_settings_page(0))
         self.chat_area.toggleRightPanel.connect(self.navigation.toggle_right_panel)
+        self.right_panel.closeRequested.connect(self.navigation.toggle_right_panel)
         self.chat_area.windowMinimize.connect(self.showMinimized)
         self.chat_area.windowHideToMascot.connect(self.window_mgr.switch_to_mini_mascot)
         self.chat_area.windowMaximize.connect(self.window_mgr.toggle_maximize)

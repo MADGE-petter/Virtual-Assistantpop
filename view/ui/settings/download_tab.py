@@ -178,18 +178,25 @@ class DownloadTabWidget(QWidget):
         self.scroll_models.setWidget(self.cards_container)
         layout.addWidget(self.scroll_models, stretch=1)
 
+    def _clear_cards_layout(self):
+        while self.cards_layout.count():
+            item = self.cards_layout.takeAt(0)
+            if item is not None:
+                w = item.widget()
+                if w is not None:
+                    w.deleteLater()
+
     def _on_search_text_changed(self, text: str):
         query = text.strip()
         self.search_timer.stop()
-        self.completer.popup().hide()
+        popup = self.completer.popup()
+        if popup is not None:
+            popup.hide()
         self.completer_model.setStringList([])
         if len(query) < 2:
             self._pending_search_query = None
             self.status_lbl.setText("Nhập ít nhất 2 ký tự để tìm model...")
-            while self.cards_layout.count():
-                item = self.cards_layout.takeAt(0)
-                if item.widget():
-                    item.widget().deleteLater()
+            self._clear_cards_layout()
             return
 
         self.status_lbl.setText(f"Đang tìm '{query}' trên Hugging Face...")
@@ -212,10 +219,7 @@ class DownloadTabWidget(QWidget):
     def _search_models(self, query: str):
         self.search_timer.stop()
         self.status_lbl.setText(f"Đang tìm kiếm '{query}' trên Hugging Face Hub...")
-        while self.cards_layout.count():
-            item = self.cards_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+        self._clear_cards_layout()
 
         if self.search_thread and self.search_thread.isRunning():
             self._pending_search_query = query
@@ -248,10 +252,7 @@ class DownloadTabWidget(QWidget):
         self.completer.setCompletionPrefix(self.input_search.text().strip())
         if self.input_search.hasFocus() and self.completer.completionCount():
             self.completer.complete()
-        while self.cards_layout.count():
-            item = self.cards_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+        self._clear_cards_layout()
 
         if not models:
             self.status_lbl.setText("Không tìm thấy model GGUF nào phù hợp.")
@@ -367,7 +368,7 @@ class DownloadTabWidget(QWidget):
         dialog.fileSelected.connect(lambda chosen_file: self._start_real_download(repo_id, model_name, chosen_file))
         dialog.exec()
 
-    def _start_real_download(self, repo_id: str, model_name: str, chosen_file: str = None):
+    def _start_real_download(self, repo_id: str, model_name: str, chosen_file: str | None = None):
         if self.download_thread and self.download_thread.isRunning():
             QMessageBox.warning(self, "Đang tải", "Một mô hình khác đang được tải về. Vui lòng chờ hoàn tất hoặc bấm Hủy tải.")
             return

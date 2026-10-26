@@ -5,7 +5,7 @@ Chịu trách nhiệm tạo gợi ý dựa trên thói quen người dùng
 """
 
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 
 class HabitRecommendationService:
@@ -30,7 +30,7 @@ class HabitRecommendationService:
                     return cached_result
             
             days = 7
-            suggestions = []
+            suggestions: List[Dict[str, Any]] = []
             seen_apps = set()
 
             # === PHASE 1: Check user_habits table (burst detection / learned habits) ===
@@ -74,6 +74,8 @@ class HabitRecommendationService:
                             last_opened_dt = datetime.fromisoformat(last_opened)
                         except ValueError:
                             last_opened_dt = datetime.now()
+                    elif not isinstance(last_opened, datetime):
+                        last_opened_dt = datetime.now()
 
                     if app_name not in last_opened_by_app or last_opened_dt > last_opened_by_app[app_name]:
                         last_opened_by_app[app_name] = last_opened_dt
@@ -112,12 +114,15 @@ class HabitRecommendationService:
                     if app_name in seen_apps:
                         continue
                     if count >= 3:  # Frequent app fallback
-                        last_opened_dt = last_opened
                         if isinstance(last_opened, str):
                             try:
                                 last_opened_dt = datetime.fromisoformat(last_opened)
                             except ValueError:
                                 last_opened_dt = datetime.now()
+                        elif isinstance(last_opened, datetime):
+                            last_opened_dt = last_opened
+                        else:
+                            last_opened_dt = datetime.now()
 
                         days_ago = max(0, (datetime.now().date() - last_opened_dt.date()).days)
                         recency_bonus = max(0.0, (7 - days_ago) / 7)
@@ -135,7 +140,10 @@ class HabitRecommendationService:
                             'priority': 'high'
                         })
 
-            suggestions.sort(key=lambda x: (-x['score'], -x['last_opened'].timestamp()))
+            suggestions.sort(key=lambda x: (
+                -float(x.get('score', 0)),
+                -float(x['last_opened'].timestamp()) if isinstance(x.get('last_opened'), datetime) else 0.0
+            ))
             result = suggestions[:3]
             
             # Lưu cache
@@ -192,9 +200,9 @@ class HabitRecommendationService:
         except Exception:
             return []
     
-    def get_all_suggestions(self, user_id: int, current_app: str = None) -> List[Dict]:
+    def get_all_suggestions(self, user_id: int, current_app: Optional[str] = None) -> List[Dict]:
         """Get all types of suggestions"""
-        suggestions = []
+        suggestions: List[Dict[str, Any]] = []
         
         # Habit-based suggestions
         habit_suggestions = self.suggest_based_on_habits(user_id)
@@ -211,8 +219,8 @@ class HabitRecommendationService:
         
         # Sort by priority and confidence
         suggestions.sort(key=lambda x: (
-            0 if x['priority'] == 'high' else 1 if x['priority'] == 'medium' else 2,
-            -x['confidence']
+            0 if x.get('priority') == 'high' else 1 if x.get('priority') == 'medium' else 2,
+            -float(x.get('confidence', 0.0))
         ))
         
         return suggestions[:5]  # Return top 5 suggestions

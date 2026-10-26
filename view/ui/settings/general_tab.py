@@ -2,7 +2,7 @@ from PyQt6.QtCore import Qt, pyqtSignal, QRectF, QTimer, QSettings
 from PyQt6.QtGui import QPainter, QColor, QBrush, QPen
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QFrame, QComboBox, QScrollArea
+    QFrame, QComboBox, QScrollArea, QSizePolicy
 )
 from view.ui.styles import DesignTokens
 from view.ui.icons import create_vector_icon
@@ -86,9 +86,10 @@ class GeneralTabWidget(QWidget):
 
         content_widget = QWidget()
         content_widget.setStyleSheet("background: transparent;")
+        content_widget.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
         layout = QVBoxLayout(content_widget)
-        layout.setContentsMargins(32, 28, 32, 28)
-        layout.setSpacing(20)
+        layout.setContentsMargins(24, 20, 24, 20)
+        layout.setSpacing(18)
 
         # Header Title Bar
         title_box = QVBoxLayout()
@@ -109,6 +110,7 @@ class GeneralTabWidget(QWidget):
 
         desc = QLabel("Tùy chỉnh hành vi hệ thống và thiết lập phân bổ tài nguyên phần cứng (RAM / eGPU) cho các mô hình AI")
         desc.setStyleSheet(f"color: {DesignTokens.TEXT_MUTED}; font-size: 13px;")
+        desc.setWordWrap(True)
 
         title_box.addLayout(title_row)
         title_box.addWidget(desc)
@@ -124,8 +126,8 @@ class GeneralTabWidget(QWidget):
             f"#generalCard QLabel {{ border: none; background: transparent; }}"
         )
         card_layout = QVBoxLayout(card)
-        card_layout.setContentsMargins(22, 18, 22, 18)
-        card_layout.setSpacing(16)
+        card_layout.setContentsMargins(18, 16, 18, 16)
+        card_layout.setSpacing(14)
 
         # Setting 1: Autostart
         s1 = self._create_setting_row(
@@ -174,6 +176,7 @@ class GeneralTabWidget(QWidget):
         # Section 2: Hardware Acceleration & Offload (RAM vs eGPU)
         hw_title = QLabel("Phân Bổ Phần Cứng (Hardware Acceleration / eGPU)")
         hw_title.setStyleSheet(f"font-size: 14px; font-weight: 700; color: {DesignTokens.CYAN_ACCENT}; letter-spacing: 0.5px; margin-top: 6px;")
+        hw_title.setWordWrap(True)
         layout.addWidget(hw_title)
 
         hw_card = QFrame()
@@ -185,12 +188,12 @@ class GeneralTabWidget(QWidget):
             f"#hwCard QLabel {{ border: none; background: transparent; }}"
         )
         hw_layout = QVBoxLayout(hw_card)
-        hw_layout.setContentsMargins(22, 18, 22, 18)
-        hw_layout.setSpacing(16)
+        hw_layout.setContentsMargins(18, 16, 18, 16)
+        hw_layout.setSpacing(14)
 
         # Hardware Setting 1: Voice models compute device
         voice_opts = [
-            ("RAM / CPU (Mặc định - Tiết kiệm VRAM)", "cpu"),
+            ("RAM / CPU (Mặc định)", "cpu"),
             ("GPU / eGPU (CUDA)", "cuda")
         ]
         h1 = self._create_custom_combo_row(
@@ -206,8 +209,8 @@ class GeneralTabWidget(QWidget):
 
         # Hardware Setting 2: LLM compute device
         llm_opts = [
-            ("eGPU / GPU Rời (Toàn bộ layers: -1)", "gpu"),
-            ("RAM / CPU (CPU Only: 0 layers)", "cpu")
+            ("eGPU / GPU Rời (Toàn bộ layers)", "gpu"),
+            ("RAM / CPU (Chỉ CPU)", "cpu")
         ]
         h2 = self._create_custom_combo_row(
             "Thiết bị chạy Mô hình Đàm thoại (LLM)",
@@ -222,8 +225,8 @@ class GeneralTabWidget(QWidget):
 
         # Hardware Setting 3: Main GPU Index (for multi-GPU / eGPU setups)
         gpu_idx_opts = [
-            ("GPU 0 (Mặc định eGPU / Card đồ họa chính)", 0),
-            ("GPU 1 (Card đồ họa phụ)", 1),
+            ("GPU 0 (Card chính / eGPU)", 0),
+            ("GPU 1 (Card phụ)", 1),
             ("GPU 2", 2)
         ]
         h3 = self._create_custom_combo_row(
@@ -243,6 +246,7 @@ class GeneralTabWidget(QWidget):
         
         self.status_feedback = QLabel("")
         self.status_feedback.setStyleSheet(f"color: {DesignTokens.CYAN_ACCENT}; font-size: 13px; font-weight: 600;")
+        self.status_feedback.setWordWrap(True)
         self.status_feedback.hide()
         bottom_bar.addWidget(self.status_feedback)
 
@@ -276,16 +280,19 @@ class GeneralTabWidget(QWidget):
 
         lbl_title = QLabel(title)
         lbl_title.setStyleSheet(f"font-size: 14px; font-weight: 600; color: {DesignTokens.TEXT_MAIN};")
+        lbl_title.setWordWrap(True)
 
         lbl_sub = QLabel(subtitle)
         lbl_sub.setStyleSheet(f"font-size: 12px; color: {DesignTokens.TEXT_MUTED};")
+        lbl_sub.setWordWrap(True)
+        lbl_sub.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
 
         text_box.addWidget(lbl_title)
         text_box.addWidget(lbl_sub)
         row.addLayout(text_box, stretch=1)
 
         switch = ToggleSwitch(checked=default_val)
-        row.addWidget(switch, alignment=Qt.AlignmentFlag.AlignVCenter)
+        row.addWidget(switch, alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
         return row, switch
 
@@ -309,9 +316,12 @@ class GeneralTabWidget(QWidget):
 
         lbl_title = QLabel(title)
         lbl_title.setStyleSheet(f"font-size: 14px; font-weight: 600; color: {DesignTokens.TEXT_MAIN};")
+        lbl_title.setWordWrap(True)
 
         lbl_sub = QLabel(subtitle)
         lbl_sub.setStyleSheet(f"font-size: 12px; color: {DesignTokens.TEXT_MUTED};")
+        lbl_sub.setWordWrap(True)
+        lbl_sub.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
 
         text_box.addWidget(lbl_title)
         text_box.addWidget(lbl_sub)
@@ -319,14 +329,15 @@ class GeneralTabWidget(QWidget):
 
         combo = QComboBox()
         combo.setFixedHeight(34)
+        combo.setFixedWidth(220)
         combo.setCursor(Qt.CursorShape.PointingHandCursor)
         combo.setStyleSheet(
             f"QComboBox {{ background: rgba(20, 28, 44, 0.85); border: 1px solid rgba(0, 255, 170, 0.3); "
-            f"border-radius: 8px; padding: 4px 12px; color: {DesignTokens.TEXT_MAIN}; font-size: 13px; font-weight: 600; min-width: 180px; }}"
+            f"border-radius: 8px; padding: 4px 10px; color: {DesignTokens.TEXT_MAIN}; font-size: 12px; font-weight: 600; }}"
             f"QComboBox:hover {{ border-color: {DesignTokens.CYAN_ACCENT}; background: rgba(28, 40, 62, 0.95); }}"
-            f"QComboBox::drop-down {{ border: none; width: 22px; }}"
+            f"QComboBox::drop-down {{ border: none; width: 20px; }}"
             f"QComboBox QAbstractItemView {{ background: #0B111E; border: 1px solid #1E293B; "
-            f"border-radius: 8px; color: {DesignTokens.TEXT_MAIN}; selection-background-color: rgba(0, 255, 170, 0.2); selection-color: #00FFAA; padding: 4px; }}"
+            f"border-radius: 8px; color: {DesignTokens.TEXT_MAIN}; selection-background-color: rgba(0, 255, 170, 0.2); selection-color: #00FFAA; padding: 4px; font-size: 12px; }}"
         )
         selected_index = 0
         for i, (text, val) in enumerate(options):
@@ -335,7 +346,7 @@ class GeneralTabWidget(QWidget):
                 selected_index = i
         combo.setCurrentIndex(selected_index)
 
-        row.addWidget(combo, alignment=Qt.AlignmentFlag.AlignVCenter)
+        row.addWidget(combo, alignment=Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         return row, combo
 
     def _create_separator(self):

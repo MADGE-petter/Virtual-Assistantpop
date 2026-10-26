@@ -1,7 +1,7 @@
 """Usage Tracker - Theo dõi thời gian sử dụng và ứng dụng"""
 import os
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from database.db_manager import get_db_manager
 from utils.logger import get_logger
@@ -13,7 +13,7 @@ logger = get_logger(__name__)
 class UsageTracker:
     """Theo dõi thời gian sử dụng và ứng dụng được mở"""
 
-    def __init__(self, db_path: str = None):
+    def __init__(self, db_path: Optional[str] = None):
         self.db_path = db_path if db_path is not None else get_database_path()
         self.db_manager = get_db_manager(self.db_path)
         self.session_start: Optional[datetime] = None
@@ -176,7 +176,7 @@ class UsageTracker:
                 FROM app_usage
                 WHERE date >= ?
             '''
-        params = [start_date]
+        params: List[Any] = [start_date]
 
         if user_name:
             query += ' AND username = ?'
@@ -195,7 +195,7 @@ class UsageTracker:
             rows = cursor.fetchall()
         return rows
 
-    def get_top_apps_duration(self, days: int = 7, user_name: str = "user", limit: int = 10) -> List[Dict[str, object]]:
+    def get_top_apps_duration(self, days: int = 7, user_name: str = "user", limit: int = 10) -> List[Dict[str, Any]]:
         """Estimate app usage duration from open events."""
         start_date = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
         query = '''
@@ -216,17 +216,17 @@ class UsageTracker:
             cursor.execute(query, tuple(params))
             rows = cursor.fetchall()
 
-        events = []
+        events: List[Dict[str, Any]] = []
         for row in rows:
             try:
                 dt = datetime.strptime(f"{row['date']} {row['timestamp']}", '%Y-%m-%d %H:%M:%S')
-                events.append({'dt': dt, 'app_name': row['app_name']})
+                events.append({'dt': dt, 'app_name': str(row['app_name'])})
             except Exception:
                 continue
 
-        app_totals = {}
+        app_totals: Dict[str, Dict[str, Any]] = {}
         for index, event in enumerate(events):
-            current_app = event['app_name']
+            current_app = str(event['app_name'])
             next_dt = None
             if index + 1 < len(events):
                 next_dt = events[index + 1]['dt']
@@ -257,7 +257,7 @@ class UsageTracker:
 
         sorted_apps = sorted(
             app_totals.values(),
-            key=lambda item: item['open_count'],
+            key=lambda item: int(item['open_count']),
             reverse=True
         )
         return sorted_apps[:limit]

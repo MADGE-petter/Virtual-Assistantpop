@@ -68,7 +68,7 @@ class InteractiveAlertHandler:
         with threading.RLock():
             self._interactive_alerts.pop(metric, None)
 
-    def handle_response(self, metric: str, response: str, context: dict = None):
+    def handle_response(self, metric: str, response: str, context: Optional[dict] = None):
         with threading.RLock():
             if metric not in self._interactive_alerts:
                 return
@@ -174,6 +174,8 @@ class InteractiveAlertHandler:
         return None
 
     def _close_process(self, process_info: dict) -> bool:
+        if psutil is None:
+            return False
         try:
             pid = process_info.get('pid')
             name = process_info.get('name')

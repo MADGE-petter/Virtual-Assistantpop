@@ -188,7 +188,7 @@ def init_fonts():
         from PyQt6.QtWidgets import QApplication
 
         app = QApplication.instance()
-        if app:
+        if isinstance(app, QApplication):
             app.setFont(QFont("Arial", 10))
             return True
         return False

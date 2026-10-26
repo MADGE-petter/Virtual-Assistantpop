@@ -5,7 +5,7 @@ Chịu trách nhiệm truy xuất database, không chứa business logic
 """
 
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 from database.base_repository import BaseRepository
 
@@ -92,7 +92,7 @@ class HabitRepository(BaseRepository):
             return []
 
     def find_habit(self, user_id: int, habit_type: str, target: str, 
-                   time_bucket: int, day_type: str) -> Optional[Tuple]:
+                   time_bucket: int, day_type: Union[int, str]) -> Optional[Tuple]:
         """Find existing habit by composite key"""
         try:
             with self._get_connection() as conn:
@@ -123,7 +123,7 @@ class HabitRepository(BaseRepository):
             pass
     
     def insert_habit(self, user_id: int, habit_type: str, target: str,
-                     time_bucket: int, day_type: str, frequency: int = 1,
+                     time_bucket: int, day_type: Union[int, str], frequency: int = 1,
                      confidence: float = 0.1) -> int:
         """Insert new habit"""
         try:

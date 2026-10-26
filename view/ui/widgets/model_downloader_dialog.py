@@ -210,11 +210,11 @@ class ModelDownloaderDialog(QDialog):
         self.progress_container.hide()
         main_layout.addWidget(self.progress_container)
 
-    def closeEvent(self, event):
+    def closeEvent(self, a0):
         if hasattr(self, 'search_thread') and self.search_thread and self.search_thread.isRunning():
             self.search_thread.quit()
             self.search_thread.wait(500)
-        super().closeEvent(event)
+        super().closeEvent(a0)
 
     def _on_search_clicked(self):
         query = self.input_search.text().strip()

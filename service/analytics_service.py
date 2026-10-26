@@ -55,6 +55,9 @@ class AnalyticsService:
     
     def _collect_health_snapshot(self):
         """Thu thập health snapshot"""
+        if psutil is None:
+            return
+
         try:
             # CPU
             cpu_percent = psutil.cpu_percent(interval=1)

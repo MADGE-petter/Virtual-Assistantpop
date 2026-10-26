@@ -85,6 +85,7 @@ class AboutTabWidget(QWidget):
 
         desc = QLabel("Thông số cấu hình phần cứng, card đồ họa và môi trường thực thi của máy tính")
         desc.setStyleSheet(f"color: {DesignTokens.TEXT_MUTED}; font-size: 13px; border: none; background: transparent;")
+        desc.setWordWrap(True)
 
         title_box.addLayout(title_row)
         title_box.addWidget(desc)

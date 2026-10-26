@@ -5,7 +5,7 @@ Chịu trách nhiệm học và cập nhật thói quen người dùng
 """
 
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 
 class HabitLearningService:
@@ -65,7 +65,7 @@ class HabitLearningService:
         return False
     
     def update_habit(self, user_id: int, habit_type: str, target: str,
-                     time_bucket: int, day_type: str) -> None:
+                     time_bucket: int, day_type: Union[int, str]) -> None:
         """Update or create habit with temporal decay + burst detection"""
         try:
             now = datetime.now()

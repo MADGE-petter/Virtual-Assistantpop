@@ -182,8 +182,8 @@ class SettingsDialog(QDialog):
 
         base_layout.addWidget(self.container_box)
 
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
+    def resizeEvent(self, a0):
+        super().resizeEvent(a0)
         self.starfield.setGeometry(0, 0, self.width(), self.height())
 
     def _on_tab_changed(self, index: int):
@@ -193,12 +193,16 @@ class SettingsDialog(QDialog):
         elif index == 6:
             self.about_tab.update_system_telemetry()
 
-    def mousePressEvent(self, event: QMouseEvent):
-        if event.button() == Qt.MouseButton.LeftButton:
-            self._drag_pos = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
-            event.accept()
+    def mousePressEvent(self, a0: QMouseEvent | None):
+        if not a0:
+            return
+        if a0.button() == Qt.MouseButton.LeftButton:
+            self._drag_pos = a0.globalPosition().toPoint() - self.frameGeometry().topLeft()
+            a0.accept()
 
-    def mouseMoveEvent(self, event: QMouseEvent):
-        if event.buttons() == Qt.MouseButton.LeftButton and not self._drag_pos.isNull():
-            self.move(event.globalPosition().toPoint() - self._drag_pos)
-            event.accept()
+    def mouseMoveEvent(self, a0: QMouseEvent | None):
+        if not a0:
+            return
+        if a0.buttons() == Qt.MouseButton.LeftButton and not self._drag_pos.isNull():
+            self.move(a0.globalPosition().toPoint() - self._drag_pos)
+            a0.accept()

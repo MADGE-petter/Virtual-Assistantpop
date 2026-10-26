@@ -337,7 +337,7 @@ class LLMService:
         top_p: float = DEFAULT_TOP_P,
         stop: Optional[List[str]] = None,
         system_prompt: Optional[str] = None,
-        response_format: Optional[Dict] = None,
+        response_format: Optional[Dict[str, Any]] = None,
     ) -> str:
         """Run a chat completion.
 
@@ -360,7 +360,7 @@ class LLMService:
         msgs.extend(messages)
 
         try:
-            kwargs = {
+            kwargs: Dict[str, Any] = {
                 "messages": msgs,
                 "max_tokens": max_tokens,
                 "temperature": temperature,
