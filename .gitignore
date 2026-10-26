@@ -40,7 +40,7 @@ database/*.db
 # Config files - KHÔNG upload config lên GitHub
 user_data.json
 admin_settings.json
-config.json
+/config.json
 secrets.json
 auto_login.json
 database/auto_login.json
@@ -59,14 +59,15 @@ logs/
 .DS_Store
 Thumbs.db
 
-# Large model files (LLM & Voice)
+# Large model files (LLM & Voice weights > 100MB)
 LLM-agents/*
 !LLM-agents/.gitkeep
-voice-models/
+*.pth
+*.pt
+*.gguf
 database/user_memory.json
 database/assets/
 models--*/
-*.gguf
 
 # PyQt
 *.ui.py
