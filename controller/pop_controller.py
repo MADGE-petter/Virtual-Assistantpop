@@ -33,7 +33,7 @@ class PopController(QObject):
         # === KHỞI TẠO SERVICES ===
         self.audio = AudioService(view)
         self.sql = SqlService()
-        self.actions = ActionHandler(self.audio, view)
+        self.actions = ActionHandler(self.audio, view, controller=self)
         
         # User service
         self._user_svc = UserService(self.sql)
@@ -242,6 +242,27 @@ class PopController(QObject):
         """Dừng assistant qua Shutdown Coordinator."""
         self._active = False
         self.shutdown.stop()
+
+    def exit_app(self):
+        """Thoát hoàn toàn ứng dụng Pop."""
+        print("[PopController] exit_app called")
+        self._active = False
+        self._started = False
+        if hasattr(self, "conversation_coordinator"):
+            try:
+                self.conversation_coordinator.stop()
+            except Exception:
+                pass
+        if self.view and hasattr(self.view, "close"):
+            from PyQt6.QtCore import QTimer
+            QTimer.singleShot(0, self.view.close)
+        else:
+            if hasattr(self, "shutdown"):
+                self.shutdown.stop()
+            from PyQt6.QtWidgets import QApplication
+            app = QApplication.instance()
+            if app:
+                app.quit()
     
     def sleep(self, manual=True):
         """Vào sleep mode qua VoiceModeCoordinator."""

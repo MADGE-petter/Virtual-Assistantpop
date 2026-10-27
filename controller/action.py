@@ -1,3 +1,6 @@
+import threading
+import time
+
 from controller.handlers import (
     AppHandler,
     FileHandler,
@@ -15,9 +18,10 @@ from service.conversation_service import ActionResult
 
 class ActionHandler:
     
-    def __init__(self, audio_service=None, view=None):
+    def __init__(self, audio_service=None, view=None, controller=None):
         self.audio_service = audio_service
         self.view = view
+        self.controller = controller
         self.user_name = "bạn"
         self._handlers = []
         
@@ -67,6 +71,11 @@ class ActionHandler:
         """Set login username cho tất cả handlers."""
         self._update_handlers('set_login_name', name)
     
+    def set_controller(self, controller):
+        """Set controller reference."""
+        self.controller = controller
+        self._update_handlers('set_controller', controller)
+    
     def handle(self, intent, text, user_name=None, context=None, execute=False):
         if user_name:
             self.set_user_name(user_name)
@@ -105,6 +114,7 @@ class ActionHandler:
             "sleep": self.greeting_handler.handle_sleep,
             "goodbye": self.greeting_handler.handle_goodbye,
             "habit_query": self.habit_handler.handle,
+            "exit_app": self.handle_exit_app,
             "unknown": self.greeting_handler.handle_unknown
         }
         if intent == "weather":
@@ -119,3 +129,37 @@ class ActionHandler:
             result = ActionResult(text=str(result))
         
         return result
+
+    def handle_exit_app(self, text=""):
+        """Xử lý lệnh tắt ứng dụng Pop (tự hủy đi / tắt đi / tắt app)."""
+        text_lower = text.lower() if text else ""
+        if "tự hủy" in text_lower:
+            reply = "Đã kích hoạt chế độ tự hủy. Đang tắt ứng dụng, tạm biệt bạn!"
+        else:
+            reply = "Đang tắt ứng dụng. Tạm biệt bạn!"
+            
+        def _delayed_exit():
+            try:
+                # Đợi TTS phát âm xong trước khi đóng app
+                if self.audio_service and hasattr(self.audio_service, "wait_until_speaking_done"):
+                    time.sleep(0.5)
+                    self.audio_service.wait_until_speaking_done()
+                else:
+                    time.sleep(2.0)
+            except Exception:
+                time.sleep(2.0)
+                
+            # Đóng ứng dụng qua controller hoặc view
+            if self.controller and hasattr(self.controller, "exit_app"):
+                self.controller.exit_app()
+            elif self.view and hasattr(self.view, "close"):
+                from PyQt6.QtCore import QTimer
+                QTimer.singleShot(0, self.view.close)
+            else:
+                from PyQt6.QtWidgets import QApplication
+                app = QApplication.instance()
+                if app:
+                    app.quit()
+        
+        threading.Thread(target=_delayed_exit, name="PopExitAppThread", daemon=True).start()
+        return reply

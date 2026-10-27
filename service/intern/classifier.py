@@ -78,6 +78,20 @@ class IntentClassifier:
         "mở app vừa tải", "mở ứng dụng vừa tải", "mở file mới tải",
         "mở file download", "mở download"
     ]
+    # Exit app intents (Tự hủy đi / Tắt đi / Tắt app)
+    EXIT_APP_KEYWORDS = [
+        "tự hủy đi", "tự hủy",
+        "tắt đi", "tắt app", "tắt ứng dụng",
+        "đóng app", "đóng ứng dụng", "thoát app", "thoát ứng dụng",
+        "tắt pop", "đóng pop", "thoát pop",
+        "tắt trợ lý", "đóng trợ lý"
+    ]
+
+    EXCLUDE_FROM_EXIT_APP = [
+        "máy", "pc", "laptop", "nguồn", "wifi", "bluetooth",
+        "âm lượng", "tiếng", "độ sáng", "đèn", "nhạc", "màn hình"
+    ]
+
     # Sleep mode intents
     SLEEP_KEYWORDS = [
       "ngủ đi", "sleep", "rest", "nghỉ ngơi","dừng",
@@ -90,11 +104,16 @@ class IntentClassifier:
     ]
     @classmethod
     def classify(cls, text):
-        """Classify user input - Fast 5 intents (Time, Weather, Search, Web, App) -> LLM Fallback."""
+        """Classify user input - Fast intents -> LLM Fallback."""
         if not text:
             return "unknown"
             
         text_lower = text.lower().strip()
+
+        # 0. Exit App Intent (Tự hủy đi, tắt đi, tắt app)
+        if cls._check_keywords(text_lower, cls.EXIT_APP_KEYWORDS) and not any(k in text_lower for k in cls.EXCLUDE_FROM_EXIT_APP):
+            print(f"[INTERN] Detected: exit_app | Text: '{text}'")
+            return "exit_app"
 
         # 1. Time / Date Intent
         if cls._check_keywords(text_lower, cls.TIME_KEYWORDS):
