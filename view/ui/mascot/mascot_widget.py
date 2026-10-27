@@ -28,6 +28,7 @@ class MiniMascotWidget(QWidget):
 
     toggleMainWindowRequested = pyqtSignal()
     toggleVoiceRequested = pyqtSignal()
+    openCollectionRequested = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -36,6 +37,17 @@ class MiniMascotWidget(QWidget):
         self.model = MascotModel()
         self.painter = MascotPainter()
         self.controller = MascotController(self.model, self)
+        self._collection_dialog = None
+
+        # Load equipped character skin
+        try:
+            from service.collection import get_collection_service
+            self._collection_service = get_collection_service()
+            self.painter.set_character(self._collection_service.equipped())
+            self._collection_service.on_equip_changed(self.set_character)
+        except Exception as e:
+            self._collection_service = None
+            print(f"[MiniMascotWidget] Collection init: {e}")
 
         # Widget Dimensions & Window Flags
         self.setFixedSize(120, 120)
@@ -46,7 +58,7 @@ class MiniMascotWidget(QWidget):
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setToolTip("POP AI Chibi Mascot\n• Click đơn: Bật/Tắt Micro\n• Kéo thả: Di chuyển & Bám viền màn hình\n• Bấm đúp: Mở/Ẩn cửa sổ Chat chính")
+        self.setToolTip("POP AI Chibi Mascot\n• Click đơn: Bật/Tắt Micro\n• Chuột phải: Mở Bộ Sưu Tập Mascot (Gacha / Đổi Skin)\n• Kéo thả: Di chuyển & Bám viền màn hình\n• Bấm đúp: Mở/Ẩn cửa sổ Chat chính")
 
         # Load saved desktop position & screen edge snap
         saved_pos = self.model.load_saved_position()
@@ -185,6 +197,101 @@ class MiniMascotWidget(QWidget):
             return
         if self.controller.handle_mouse_double_click(a0):
             self.toggleMainWindowRequested.emit()
+
+    def contextMenuEvent(self, a0):
+        from PyQt6.QtCore import Qt
+        from PyQt6.QtGui import QGuiApplication
+
+        # Nếu giữ Shift hoặc Ctrl: hiển thị menu tính năng mở rộng
+        modifiers = QGuiApplication.keyboardModifiers()
+        if modifiers & (Qt.KeyboardModifier.ShiftModifier | Qt.KeyboardModifier.ControlModifier):
+            self._show_extended_menu(a0)
+            return
+
+        # Chuột phải thông thường: Mở ngay Bộ Sưu Tập Mascot
+        self.open_collection_dialog()
+        if a0:
+            a0.accept()
+
+    def _show_extended_menu(self, a0):
+        from PyQt6.QtWidgets import QMenu
+        from PyQt6.QtGui import QAction
+
+        menu = QMenu(self)
+        menu.setStyleSheet("""
+            QMenu {
+                background-color: #0F172A;
+                color: #FFFFFF;
+                border: 1px solid rgba(0, 255, 170, 0.4);
+                border-radius: 8px;
+                padding: 6px;
+                font-family: Arial, sans-serif;
+                font-size: 12px;
+            }
+            QMenu::item {
+                padding: 6px 14px;
+                border-radius: 4px;
+            }
+            QMenu::item:selected {
+                background: rgba(0, 255, 170, 0.2);
+                color: #00FFAA;
+            }
+            QMenu::separator {
+                height: 1px;
+                background: rgba(255, 255, 255, 0.1);
+                margin: 4px 6px;
+            }
+        """)
+
+        act_coll = menu.addAction("Bộ Sưu Tập Mascot")
+        if act_coll:
+            act_coll.triggered.connect(self.open_collection_dialog)
+
+        menu.addSeparator()
+
+        act_chat = menu.addAction("Mở Cửa Sổ Trò Chuyện")
+        if act_chat:
+            act_chat.triggered.connect(lambda: self.toggleMainWindowRequested.emit())
+
+        act_mic = menu.addAction("Bật / Tắt Micro")
+        if act_mic:
+            act_mic.triggered.connect(lambda: self.toggleVoiceRequested.emit())
+
+        if self.model.is_sleeping:
+            act_sleep = menu.addAction("Đánh Thức Mascot")
+            if act_sleep:
+                act_sleep.triggered.connect(self.wake_up)
+        else:
+            act_sleep = menu.addAction("Cho Mascot Đi Ngủ")
+            if act_sleep:
+                act_sleep.triggered.connect(lambda: self.set_voice_state(VoiceState.SLEEPING))
+
+        menu.addSeparator()
+
+        act_hide = menu.addAction("Ẩn Mascot")
+        if act_hide:
+            act_hide.triggered.connect(self.hide)
+
+        if a0:
+            menu.exec(a0.globalPos())
+            a0.accept()
+
+    def set_character(self, char_def):
+        """Update active character skin."""
+        self.painter.set_character(char_def)
+        self.update()
+
+    def open_collection_dialog(self):
+        """Open the Collection Dialog modal window."""
+        from view.ui.collection import CollectionDialog
+        user_key = getattr(self._collection_service, 'user_key', None) if self._collection_service else None
+        if not self._collection_dialog:
+            self._collection_dialog = CollectionDialog(user_key=user_key, parent=None)
+            self._collection_dialog.characterEquipped.connect(self.set_character)
+        self._collection_dialog.refresh_wallet()
+        self._collection_dialog.show()
+        self._collection_dialog.raise_()
+        self._collection_dialog.activateWindow()
 
     # ============================================================
     # PAINT EVENT (DELEGATED TO PAINTER)

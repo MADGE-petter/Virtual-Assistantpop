@@ -230,6 +230,15 @@ class PopView(QMainWindow):
 
     def set_controller(self, controller):
         self.controller = controller
+        if controller and getattr(controller, 'login_username', None):
+            try:
+                from service.collection import get_collection_service
+                svc = get_collection_service(controller.login_username)
+                if hasattr(self, 'mini_mascot') and self.mini_mascot:
+                    self.mini_mascot._collection_service = svc
+                    self.mini_mascot.set_character(svc.equipped())
+            except Exception as e:
+                print(f"[PopView] Sync collection user error: {e}")
 
     def wake_up(self):
         """Wake up the assistant and mascot."""

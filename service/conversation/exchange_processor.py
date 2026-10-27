@@ -255,6 +255,14 @@ class ExchangeProcessor:
             except Exception as e:
                 print(f"[Warning] Failed to save exchange: {e}")
 
+        # Reward Pop Coins for using the assistant
+        try:
+            from service.collection import get_collection_service
+            coll_svc = get_collection_service(user_name)
+            coll_svc.reward_voice_command()
+        except Exception:
+            pass
+
         return result_action
 
     def _deliver_output(self, result_action: ActionResult, speak_callback: Optional[Callable]) -> None:

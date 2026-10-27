@@ -62,7 +62,7 @@ class ChatHeaderBarWidget(QFrame):
         self.mascot_btn = QPushButton()
         self.mascot_btn.setIcon(create_vector_icon("mini_mascot", DesignTokens.CYAN_ACCENT, 14))
         self.mascot_btn.setFixedSize(28, 28)
-        self.mascot_btn.setToolTip("Ẩn xuống để hiện Linh vật Mini Mascot")
+        self.mascot_btn.setToolTip("Ẩn xuống Linh vật Mini Mascot (Chuột phải vào Mascot để mở Gacha & Bộ Sưu Tập)")
         self.mascot_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.mascot_btn.setStyleSheet(
             "QPushButton { border: none; background: transparent; padding: 0px; border-radius: 6px; } "
