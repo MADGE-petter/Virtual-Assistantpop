@@ -40,7 +40,7 @@ class GachaStageWidget(QWidget):
 
         # State machine: "IDLE" | "SPINNING" | "FLASH" | "REVEALED"
         self.state: str = "IDLE"
-        self.aura_color: QColor = QColor(0, 255, 170)
+        self.aura_color: QColor = QColor(0, 210, 255)  # Màu xanh Rasengan chuẩn anime
 
         # Animation timers
         self.spin_timer: float = 0.0
@@ -54,11 +54,13 @@ class GachaStageWidget(QWidget):
         self._mascot_model: MascotModel = MascotModel()
         self._on_finish_callback = None
 
-        # 3 Orbitals with clean wireframe paths
+        # 4 Quỹ đạo 3D phân bổ đều 4 hướng (Ngang, Dọc, Chéo 1, Chéo 2)
+        # Nhịp quay lệch nhau 90 độ cố định để 4 quả luôn phân bổ đều, không dồn cục
         self.orbitals: List[Dict[str, Any]] = [
-            {"base_angle": 30.0,  "speed": 1.25, "offset": 0.0, "particles": [0.0, math.pi]},
-            {"base_angle": 90.0,  "speed": 0.95, "offset": 1.4, "particles": [0.4, 0.4 + math.pi]},
-            {"base_angle": 150.0, "speed": 1.40, "offset": 2.8, "particles": [1.1, 1.1 + math.pi]},
+            {"type": "horizontal", "speed": 1.25, "offset": 0.0,            "radius": 60.0},  # Vòng 1: Ngang (lướt trước - sau theo chiều ngang)
+            {"type": "vertical",   "speed": 1.25, "offset": math.pi * 0.5,  "radius": 66.0},  # Vòng 2: Dọc (lướt đỉnh - đáy theo chiều dọc)
+            {"type": "diag_a",     "speed": 1.25, "offset": math.pi * 1.0,  "radius": 56.0},  # Vòng 3: Chéo 1 (Tây Bắc - Đông Nam)
+            {"type": "diag_b",     "speed": 1.25, "offset": math.pi * 1.5,  "radius": 62.0},  # Vòng 4: Chéo 2 (Tây Nam - Đông Bắc)
         ]
 
         self._timer = QTimer(self)
@@ -81,7 +83,7 @@ class GachaStageWidget(QWidget):
         self._on_finish_callback = on_finish
 
         r_info = RARITY_INFO.get(result.character.rarity, {})
-        self.set_aura_color(r_info.get("color", "#00FFAA"))
+        self.set_aura_color(r_info.get("color", "#00D2FF"))
 
         self.state = "SPINNING"
         self.spin_timer = 0.0
@@ -94,7 +96,7 @@ class GachaStageWidget(QWidget):
         self.state = "IDLE"
         self._current_result = None
         self._mascot_renderer = None
-        self.aura_color = QColor(0, 255, 170)
+        self.aura_color = QColor(0, 210, 255)
         self.update()
 
     def _on_tick(self):
@@ -151,132 +153,185 @@ class GachaStageWidget(QWidget):
     # 1. ATOMIC CORE WITH AFTERIMAGES (NO WHITE PETALS)
     # ============================================================
     def _paint_atomic_core(self, painter: QPainter, cx: float, cy: float):
-        # Subtle shake during high-speed spin
-        if self.state == "SPINNING":
-            spin_p = self.spin_timer / self.spin_duration
-            shake = (spin_p ** 2) * 3.5
-            cx += math.sin(self.phase * 22.0) * shake
-            cy += math.cos(self.phase * 19.0) * shake
-
-        a = 78.0  # semi-major axis
-        b = 26.0  # semi-minor axis
-        precession = math.sin(self.phase * 0.4) * 3.0
-
         is_fast = (self.state == "SPINNING")
-        trail_count = 14 if is_fast else 7
-        trail_step = 0.06 if is_fast else 0.075
+        speed_mult = 2.2 if is_fast else 1.0
 
-        # ---------------- A. DRAW ORBITAL WIREFRAMES ----------------
-        # CRITICAL: Always set brush to NoBrush so NO white/solid fill occurs!
-        painter.setBrush(Qt.BrushStyle.NoBrush)
+        # Màu sắc chính (mặc định Cyan Rasengan, tự đổi theo độ hiếm khi gacha)
+        ar, ag, ab = self.aura_color.red(), self.aura_color.green(), self.aura_color.blue()
 
-        orbit_thetas = []
-        for orb in self.orbitals:
-            angle_deg = orb["base_angle"] + precession
-            theta = math.radians(angle_deg)
-            orbit_thetas.append(theta)
+        # ============================================================
+        # 1. TỌA ĐỘ 3D VÀ PHÉP CHIẾU PHỐI CẢNH (TRUE 3D PERSPECTIVE)
+        # ============================================================
+        rasengan_r = 20.0
+        meteor_head_r = 9.0
+        trail_count = 18 if is_fast else 14
+        trail_step = 0.05 if is_fast else 0.065
+        cam_dist = 220.0
 
-            # Draw clean wireframe ellipse ring
-            path = QPainterPath()
-            cos_t = math.cos(theta)
-            sin_t = math.sin(theta)
-            for s in range(61):
-                phi = (s / 60.0) * 2.0 * math.pi
-                xl = a * math.cos(phi)
-                yl = b * math.sin(phi)
-                px = cx + xl * cos_t - yl * sin_t
-                py = cy + xl * sin_t + yl * cos_t
-                if s == 0:
-                    path.moveTo(px, py)
-                else:
-                    path.lineTo(px, py)
+        def calc_meteor_3d(orb_idx: int, theta: float):
+            orb = self.orbitals[orb_idx]
+            r = orb.get("radius", 60.0)
+            orb_type = orb.get("type", "horizontal")
 
-            pen_alpha = 150 if is_fast else 90
-            ring_pen = QPen(QColor(self.aura_color.red(), self.aura_color.green(), self.aura_color.blue(), pen_alpha), 1.3)
-            painter.setPen(ring_pen)
-            painter.drawPath(path)
+            ct = math.cos(theta)
+            st = math.sin(theta)
 
-        # ---------------- B. PARTICLES & AFTERIMAGES (TÀN ẢNH) ----------------
-        for idx, orb in enumerate(self.orbitals):
-            theta = orbit_thetas[idx]
-            cos_t = math.cos(theta)
-            sin_t = math.sin(theta)
-            speed = orb["speed"]
-            offset = orb["offset"]
+            if orb_type == "horizontal":
+                # Quỹ đạo ngang 3D: lướt qua trước mặt (Z > 0) và chìm sau lưng (Z < 0) theo phương ngang
+                xw = r * ct
+                yw = r * st * 0.38
+                zw = r * st * 0.92
+            elif orb_type == "vertical":
+                # Quỹ đạo dọc 3D: lượn từ đỉnh qua trước mặt xuống đáy rồi vòng ngược sau lưng
+                xw = r * ct * 0.38
+                yw = r * st
+                zw = r * ct * 0.92
+            elif orb_type == "diag_a":
+                # Quỹ đạo chéo 1 (Tây Bắc - Đông Nam): lượn 3D chéo góc
+                xw = r * (ct * 0.7071 + st * 0.27)
+                yw = r * (ct * 0.7071 - st * 0.27)
+                zw = r * st * 0.92
+            else:  # diag_b
+                # Quỹ đạo chéo 2 (Tây Nam - Đông Bắc): lượn 3D chéo góc đối xứng
+                xw = r * (ct * 0.7071 + st * 0.27)
+                yw = r * (-ct * 0.7071 + st * 0.27)
+                zw = r * st * 0.92
 
-            for base_p in orb["particles"]:
-                phi = self.phase * speed + offset + base_p
+            # Phép chiếu phối cảnh 3D thực thụ (True Perspective Divide)
+            # zw càng lớn (càng gần người xem) thì p_scale càng to, screen_x/y càng nở rộng
+            p_scale = cam_dist / max(40.0, (cam_dist - zw))
+            screen_x = cx + xw * p_scale
+            screen_y = cy + yw * p_scale
+            return (screen_x, screen_y, zw, p_scale)
 
-                # 1. Draw glowing Afterimage Tail (Tàn ảnh lướt phía sau)
-                for k in range(1, trail_count + 1):
-                    t_phi = phi - k * trail_step
-                    txl = a * math.cos(t_phi)
-                    tyl = b * math.sin(t_phi)
-                    tpx = cx + txl * cos_t - tyl * sin_t
-                    tpy = cy + txl * sin_t + tyl * cos_t
+        # Thu thập các điểm (đầu + đuôi thiên thạch)
+        # Point tuple: (px, py, zw, p_scale, k, orb_idx)
+        meteor_points = []
+        for orb_idx, orb in enumerate(self.orbitals):
+            head_theta = self.phase * orb["speed"] * speed_mult + orb["offset"]
+            for k in range(trail_count, -1, -1):
+                t_theta = head_theta - k * trail_step
+                px, py, zw, p_scale = calc_meteor_3d(orb_idx, t_theta)
+                meteor_points.append((px, py, zw, p_scale, k, orb_idx))
 
-                    decay = 1.0 - (k / float(trail_count))
-                    tail_alpha = int((190 if is_fast else 140) * (decay ** 1.4))
-                    tail_size = max(1.2, 4.2 * decay)
+        # Phân lớp chiều sâu 3D: sau lưng (zw < 0) và phía trước (zw >= 0)
+        behind_points = [p for p in meteor_points if p[2] < 0]
+        front_points = [p for p in meteor_points if p[2] >= 0]
+        behind_points.sort(key=lambda item: item[2])
+        front_points.sort(key=lambda item: item[2])
 
-                    t_col = QColor(self.aura_color.red(), self.aura_color.green(), self.aura_color.blue(), tail_alpha)
-                    painter.setBrush(QBrush(t_col))
-                    painter.setPen(Qt.PenStyle.NoPen)
-                    painter.drawEllipse(QRectF(tpx - tail_size / 2, tpy - tail_size / 2, tail_size, tail_size))
-
-                # 2. Main Particle (Hạt nguyên tử)
-                xl = a * math.cos(phi)
-                yl = b * math.sin(phi)
-                px = cx + xl * cos_t - yl * sin_t
-                py = cy + xl * sin_t + yl * cos_t
-
-                # Glowing Halo
-                halo_r = 8.5
-                halo_grad = QRadialGradient(px, py, halo_r)
-                halo_grad.setColorAt(0.0, QColor(self.aura_color.red(), self.aura_color.green(), self.aura_color.blue(), 210))
-                halo_grad.setColorAt(1.0, QColor(0, 0, 0, 0))
-                painter.setBrush(QBrush(halo_grad))
+        def draw_meteor_point(px: float, py: float, zw: float, p_scale: float, k: int, in_front: bool):
+            if k == 0:
+                # Quả cầu to xung quanh (rõ nét, kích thước co giãn mạnh theo 3D)
+                hr = meteor_head_r * p_scale
+                halo_rad = hr * 2.2
+                h_grad = QRadialGradient(px, py, halo_rad)
+                alpha_core = 250 if in_front else 150
+                h_grad.setColorAt(0.0, QColor(255, 255, 255, alpha_core))
+                h_grad.setColorAt(0.4, QColor(ar, ag, ab, int(alpha_core * 0.85)))
+                h_grad.setColorAt(1.0, QColor(0, 100, 255, 0))
+                painter.setBrush(QBrush(h_grad))
                 painter.setPen(Qt.PenStyle.NoPen)
-                painter.drawEllipse(QRectF(px - halo_r, py - halo_r, halo_r * 2, halo_r * 2))
+                painter.drawEllipse(QRectF(px - halo_rad, py - halo_rad, halo_rad * 2, halo_rad * 2))
 
-                # Bright Core Dot
-                painter.setBrush(QBrush(QColor(255, 255, 255, 250)))
-                painter.drawEllipse(QRectF(px - 2.8, py - 2.8, 5.6, 5.6))
+                # Thân quả cầu 3D
+                s_grad = QRadialGradient(px - hr * 0.3, py - hr * 0.3, hr * 1.25)
+                s_grad.setColorAt(0.0, QColor(255, 255, 255, 255))
+                s_grad.setColorAt(0.45, QColor(ar, ag, ab, 240 if in_front else 160))
+                s_grad.setColorAt(0.9, QColor(0, 90, 220, 200 if in_front else 130))
+                s_grad.setColorAt(1.0, QColor(0, 40, 120, 180 if in_front else 100))
+                painter.setBrush(QBrush(s_grad))
+                painter.setPen(QPen(QColor(255, 255, 255, 200 if in_front else 120), 0.8))
+                painter.drawEllipse(QRectF(px - hr, py - hr, hr * 2, hr * 2))
 
-        # ---------------- C. CENTRAL NUCLEUS (HIỆN RÕ LÕI) ----------------
-        pulse = (math.sin(self.phase * 2.4) + 1.0) / 2.0
-        nuc_r = 23.0 + pulse * 2.2
+                # Lõi trắng sáng
+                painter.setBrush(QBrush(QColor(255, 255, 255, 250 if in_front else 150)))
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.drawEllipse(QRectF(px - hr * 0.35, py - hr * 0.35, hr * 0.7, hr * 0.7))
+            else:
+                # Đuôi thiên thạch vuốt bé dần mượt mà theo phối cảnh 3D
+                decay = 1.0 - (k / float(trail_count))
+                tr = max(1.0, meteor_head_r * (decay ** 0.8) * p_scale)
 
-        # 1. Soft Outer Aura (No obscuring white)
-        aura_rad = nuc_r * 2.2 + pulse * 8.0
+                if decay > 0.5:
+                    tf = (decay - 0.5) / 0.5
+                    cr = int(255 * tf + ar * (1.0 - tf))
+                    cg = int(255 * tf + ag * (1.0 - tf))
+                    cb = int(255 * tf + ab * (1.0 - tf))
+                else:
+                    tf = decay / 0.5
+                    cr = int(ar * tf + 0 * (1.0 - tf))
+                    cg = int(ag * tf + 100 * (1.0 - tf))
+                    cb = int(ab * tf + 240 * (1.0 - tf))
+
+                alpha_base = (220 if is_fast else 170) if in_front else 110
+                alpha = int(alpha_base * (decay ** 1.3))
+                painter.setBrush(QBrush(QColor(cr, cg, cb, alpha)))
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.drawEllipse(QRectF(px - tr, py - tr, tr * 2, tr * 2))
+
+        # ---------------- BƯỚC 1: VẼ CÁC QUẢ CẦU / ĐUÔI BAY SAU LƯNG (ZW < 0) ----------------
+        for px, py, zw, p_scale, k, orb_idx in behind_points:
+            draw_meteor_point(px, py, zw, p_scale, k, in_front=False)
+
+        # ---------------- BƯỚC 2: VẼ QUẢ CẦU NỬA XANH NỬA TRẮNG KẾT HỢP (KHÔNG CÒN XOÁY TRẮNG) ----------------
+        # A. Quầng sáng êm dịu bao quanh
+        aura_rad = rasengan_r * 1.6
         aura_grad = QRadialGradient(cx, cy, aura_rad)
-        aura_alpha = 110 if is_fast else 65
-        aura_grad.setColorAt(0.0, QColor(self.aura_color.red(), self.aura_color.green(), self.aura_color.blue(), aura_alpha))
-        aura_grad.setColorAt(0.7, QColor(self.aura_color.red(), self.aura_color.green(), self.aura_color.blue(), int(aura_alpha * 0.2)))
-        aura_grad.setColorAt(1.0, QColor(0, 0, 0, 0))
+        aura_grad.setColorAt(0.0, QColor(ar, ag, ab, 65 if is_fast else 40))
+        aura_grad.setColorAt(0.6, QColor(0, 140, 255, 20))
+        aura_grad.setColorAt(1.0, QColor(0, 50, 200, 0))
         painter.setBrush(QBrush(aura_grad))
         painter.setPen(Qt.PenStyle.NoPen)
         painter.drawEllipse(QRectF(cx - aura_rad, cy - aura_rad, aura_rad * 2, aura_rad * 2))
 
-        # 2. Semi-transparent Luminous Crystal Nucleus Sphere
-        sphere_grad = QRadialGradient(cx - nuc_r * 0.25, cy - nuc_r * 0.25, nuc_r * 1.2)
-        sphere_grad.setColorAt(0.0, QColor(255, 255, 255, 230))
-        sphere_grad.setColorAt(0.35, QColor(self.aura_color.red(), self.aura_color.green(), self.aura_color.blue(), 200))
-        sphere_grad.setColorAt(0.85, QColor(self.aura_color.red(), self.aura_color.green(), self.aura_color.blue(), 130))
-        sphere_grad.setColorAt(1.0, QColor(10, 20, 38, 190))
-        painter.setBrush(QBrush(sphere_grad))
-        painter.setPen(QPen(QColor(self.aura_color.red(), self.aura_color.green(), self.aura_color.blue(), 220), 1.5))
-        painter.drawEllipse(QRectF(cx - nuc_r, cy - nuc_r, nuc_r * 2, nuc_r * 2))
+        # B. Quả cầu 3D nửa trắng nửa xanh xoay tròn rõ nét và sinh động hơn
+        center_speed = 3.4 * (1.8 if is_fast else 1.0)
+        rot_ang = -0.785 + self.phase * center_speed
+        cos_rot = math.cos(rot_ang)
+        sin_rot = math.sin(rot_ang)
 
-        # 3. Inner Energy Nodes (3 micro quarks orbiting inside nucleus)
-        for q_idx in range(3):
-            q_angle = self.phase * 3.2 + q_idx * (2.0 * math.pi / 3.0)
-            q_rad = nuc_r * 0.40
-            qx = cx + math.cos(q_angle) * q_rad
-            qy = cy + math.sin(q_angle) * q_rad
-            painter.setBrush(QBrush(QColor(255, 255, 255, 240)))
-            painter.setPen(Qt.PenStyle.NoPen)
-            painter.drawEllipse(QRectF(qx - 2.2, qy - 2.2, 4.4, 4.4))
+        diag_x1 = cx - rasengan_r * cos_rot
+        diag_y1 = cy - rasengan_r * sin_rot
+        diag_x2 = cx + rasengan_r * cos_rot
+        diag_y2 = cy + rasengan_r * sin_rot
+
+        dual_grad = QLinearGradient(diag_x1, diag_y1, diag_x2, diag_y2)
+        dual_grad.setColorAt(0.0, QColor(255, 255, 255, 255))        # Nửa trắng tinh khiết
+        dual_grad.setColorAt(0.40, QColor(245, 250, 255, 250))      # Trắng ngọc phát quang
+        dual_grad.setColorAt(0.48, QColor(190, 235, 255, 245))      # Giao thoa trắng - xanh dịu
+        dual_grad.setColorAt(0.52, QColor(ar, ag, ab, 245))          # Nửa xanh năng lượng rực rỡ
+        dual_grad.setColorAt(0.82, QColor(0, 110, 240, 230))        # Xanh lam điện
+        dual_grad.setColorAt(1.0, QColor(10, 30, 80, 220))          # Xanh sapphire sâu tạo khối 3D
+
+        painter.setBrush(QBrush(dual_grad))
+        painter.setPen(QPen(QColor(255, 255, 255, 190), 0.8))
+        painter.drawEllipse(QRectF(cx - rasengan_r, cy - rasengan_r, rasengan_r * 2, rasengan_r * 2))
+
+        # C. Điểm bóng sáng thủy tinh 3D di chuyển theo nhịp quay
+        spec_x = cx - rasengan_r * 0.38 * cos_rot
+        spec_y = cy - rasengan_r * 0.38 * sin_rot
+        spec_r = rasengan_r * 0.62
+        spec_grad = QRadialGradient(spec_x, spec_y, spec_r)
+        spec_grad.setColorAt(0.0, QColor(255, 255, 255, 220))
+        spec_grad.setColorAt(0.5, QColor(255, 255, 255, 70))
+        spec_grad.setColorAt(1.0, QColor(255, 255, 255, 0))
+        painter.setBrush(QBrush(spec_grad))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawEllipse(QRectF(spec_x - spec_r, spec_y - spec_r, spec_r * 2, spec_r * 2))
+
+        # D. Lõi phát sáng nhẹ dịu trung tâm (kết nối 2 mảng màu)
+        core_r = 4.5
+        core_grad = QRadialGradient(cx, cy, core_r)
+        core_grad.setColorAt(0.0, QColor(255, 255, 255, 220))
+        core_grad.setColorAt(1.0, QColor(ar, ag, ab, 0))
+        painter.setBrush(QBrush(core_grad))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawEllipse(QRectF(cx - core_r, cy - core_r, core_r * 2, core_r * 2))
+
+        # ---------------- BƯỚC 3: VẼ CÁC QUẢ CẦU / ĐUÔI BAY PHÍA TRƯỚC (ZW >= 0) ----------------
+        for px, py, zw, p_scale, k, orb_idx in front_points:
+            draw_meteor_point(px, py, zw, p_scale, k, in_front=True)
 
     # ============================================================
     # 2. ENERGY FLASH (SÁNG BỪNG LÊN 1 CÁI)
