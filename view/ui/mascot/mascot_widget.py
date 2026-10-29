@@ -118,8 +118,11 @@ class MiniMascotWidget(QWidget):
 
     def set_voice_state(self, state: VoiceState):
         """Update voice state and sync sleep/active triggers."""
+        import time
         self.model.voice_state = state
         if state == VoiceState.SLEEPING:
+            if not self.model.is_sleeping:
+                self.model.sleep_enter_time = time.time()
             self.model.is_sleeping = True
             self.model.is_drowsy = False
             self.model.drowsy_ratio = 1.0
@@ -130,7 +133,7 @@ class MiniMascotWidget(QWidget):
 
     def wake_up(self):
         """Wake up mascot and restore full 45 FPS performance."""
-        self.model.trigger_wake_up()
+        self.model.trigger_wake_up(pop_bubble=True)
         if self.model.is_power_saving:
             self.model.is_power_saving = False
             self.timer.setInterval(22)

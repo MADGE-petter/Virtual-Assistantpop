@@ -142,6 +142,18 @@ _BUILTINS: List[CharacterDef] = [
               "eye": "#FDE047", "ears": "crest", "tail": "phoenix",
               "extras": ["flame_wings", "halo", "rainbow_aura", "orbit_stars"]},
     ),
+    CharacterDef(
+        id="white_fox_girl", name="Hồ Ly Bạch Tâm", rarity="mythic", kind="fox_girl",
+        description="Thiếu nữ thú nhân cáo trắng đáng yêu mặc áo len trắng dài họa tiết trái tim. Khi ngủ sẽ hóa thành cáo bông cuộn tròn hoặc ngủ gật phồng bong bóng mũi.",
+    ),
+    CharacterDef(
+        id="phoebe_chuby", name="Phoebe Chupi", rarity="mythic", kind="phoebe_chuby",
+        description="Meme Phoebe Chupi tròn ủm siêu đáng yêu với đôi má bánh bao phúng phính, bím tóc nơ xanh-trắng và tiếng kêu 'Chupi~!' chữa lành vô tận.",
+    ),
+    CharacterDef(
+        id="nono_chubby", name="Nono (Phruonuo)", rarity="mythic", kind="nono_chubby",
+        description="Bé Nono bánh bao núng nính (Phrolova Chubby) với tóc xám bạc buộc hai bên, hoa bỉ ngạn đỏ và băng bịt mắt trắng, biểu cảm ngơ ngác siêu cưng.",
+    ),
 ]
 
 

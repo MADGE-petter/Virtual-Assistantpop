@@ -30,7 +30,13 @@ class MascotController:
             self.model.drag_start_pos = event.globalPosition().toPoint() - self.widget.frameGeometry().topLeft()
             self.model.is_dragging = False
             self.model.drag_distance = 0.0
-            self.model.trigger_wake_up()
+            self.model.was_sleeping_on_press = self.model.is_sleeping
+            if self.model.is_sleeping:
+                self.model.trigger_wake_up(pop_bubble=True)
+                if self.model.voice_state == VoiceState.SLEEPING:
+                    self.model.voice_state = VoiceState.READY
+            else:
+                self.model.trigger_wake_up()
             event.accept()
 
     def handle_mouse_move(self, event: QMouseEvent, screen_geom: Optional[QRect]):
@@ -66,7 +72,7 @@ class MascotController:
         """
         Handles mouse release.
         Returns:
-            "toggle_voice": if it was a quick click to toggle mic
+            "toggle_voice": if it was a quick click to toggle mic (and wasn't just waking up from sleep)
             None: otherwise
         """
         result = None
@@ -77,8 +83,10 @@ class MascotController:
                 self.snap_to_edge_if_near(screen_geom)
                 self.model.save_position(self.widget.pos())
             elif self.model.drag_distance <= 5:
-                result = "toggle_voice"
+                if not self.model.was_sleeping_on_press:
+                    result = "toggle_voice"
 
+            self.model.was_sleeping_on_press = False
             self.model.trigger_wake_up()
             event.accept()
         return result
@@ -160,7 +168,7 @@ class MascotController:
         dist_to_cursor = math.hypot(dx, dy)
 
         is_bot_active = model.voice_state in (VoiceState.SPEAKING, VoiceState.THINKING)
-        is_cursor_moving_near = (dist_to_cursor < 85.0 and cursor_moved > 2.0)
+        is_cursor_moving_near = (dist_to_cursor < 85.0 and cursor_moved > 2.0) and not model.is_sleeping
         is_interacting = model.is_dragging or is_bot_active or is_cursor_moving_near
 
         if is_interacting:
@@ -172,6 +180,7 @@ class MascotController:
         # 2. Idle & Sleep State Machine
         idle_time = now - model.last_user_activity
         is_waking_up = now < model.wake_up_until
+        was_sleeping = model.is_sleeping
 
         if model.voice_state == VoiceState.SLEEPING:
             model.is_sleeping = True
@@ -194,6 +203,9 @@ class MascotController:
             model.is_sleeping = False
             model.is_drowsy = False
             model.drowsy_ratio = 0.0
+
+        if model.is_sleeping and not was_sleeping:
+            model.sleep_enter_time = now
 
         # Eco Power Saving Mode Interval Calculation
         fps_update = False
@@ -276,6 +288,18 @@ class MascotController:
             if p["alpha"] > 0:
                 surviving.append(p)
         model.zzz_particles = surviving
+
+        # Update snot bubble pop particles
+        if model.bubble_pop_particles:
+            surviving_pop = []
+            for bp in model.bubble_pop_particles:
+                bp["dx"] += bp["vx"]
+                bp["dy"] += bp["vy"]
+                bp["vy"] += 0.12  # gentle gravity
+                bp["alpha"] -= 12.0
+                if bp["alpha"] > 0:
+                    surviving_pop.append(bp)
+            model.bubble_pop_particles = surviving_pop
 
         # 5. Natural Blinking Logic
         if not model.is_sleeping and not model.is_drowsy:

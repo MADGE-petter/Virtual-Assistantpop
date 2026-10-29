@@ -64,6 +64,12 @@ class MascotModel:
         self.zzz_particles: List[Dict[str, Any]] = []
         self.next_zzz_time: float = 0.0
 
+        # Morphing & Snot Bubble Pop States (Fox Girl & Custom Sleep Animations)
+        self.sleep_enter_time: float = 0.0
+        self.bubble_pop_until: float = 0.0
+        self.bubble_pop_particles: List[Dict[str, Any]] = []
+        self.was_sleeping_on_press: bool = False
+
         # Eco Power Saving Mode State
         self.is_power_saving: bool = False
         self.sleep_timeout_minutes: float = 3.0
@@ -88,10 +94,24 @@ class MascotModel:
         else:
             self.drowsy_timeout_sec = self.sleep_timeout_sec * 0.75
 
-    def trigger_wake_up(self):
+    def trigger_wake_up(self, pop_bubble: bool = False):
         """Immediately wake up mascot from sleep or drowsiness."""
         now = time.time()
         if self.is_sleeping or self.is_drowsy:
+            if self.is_sleeping and pop_bubble:
+                self.bubble_pop_until = now + 0.65
+                self.bubble_pop_particles.clear()
+                for i in range(10):
+                    angle = (i / 10.0) * math.pi * 2.0 + random.uniform(-0.2, 0.2)
+                    speed = random.uniform(1.8, 3.8)
+                    self.bubble_pop_particles.append({
+                        "dx": math.cos(angle) * 4.0,
+                        "dy": math.sin(angle) * 4.0,
+                        "vx": math.cos(angle) * speed,
+                        "vy": math.sin(angle) * speed,
+                        "r": random.uniform(1.8, 3.2),
+                        "alpha": 240,
+                    })
             self.wake_up_until = now + 1.2
             self.is_sleeping = False
             self.is_drowsy = False

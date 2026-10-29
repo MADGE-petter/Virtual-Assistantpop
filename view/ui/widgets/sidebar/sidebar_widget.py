@@ -173,25 +173,39 @@ class SidebarWidget(QWidget):
         profile_layout.setSpacing(10)
 
         # Avatar circle
-        first_char = self.user_name[0].upper() if self.user_name else "U"
+        is_admin = (self.user_name.strip().lower() == "admin")
+        first_char = "👑" if is_admin else (self.user_name[0].upper() if self.user_name else "U")
         self.avatar_lbl = QLabel(first_char)
         self.avatar_lbl.setFixedSize(34, 34)
         self.avatar_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.avatar_lbl.setStyleSheet(
-            f"background: {DesignTokens.GRADIENT_BLUE_GREEN}; "
-            f"color: #040812; font-weight: 700; font-size: 14px; border-radius: 17px; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT};"
-        )
+        if is_admin:
+            self.avatar_lbl.setStyleSheet(
+                "background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #FF0055, stop:1 #FFAA00); "
+                "color: #FFFFFF; font-weight: 800; font-size: 16px; border-radius: 17px; border: 2px solid #FFD700;"
+            )
+        else:
+            self.avatar_lbl.setStyleSheet(
+                f"background: {DesignTokens.GRADIENT_BLUE_GREEN}; "
+                f"color: #040812; font-weight: 700; font-size: 14px; border-radius: 17px; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT};"
+            )
 
         self.user_text_container = QWidget()
         utc_layout = QVBoxLayout(self.user_text_container)
         utc_layout.setContentsMargins(0, 0, 0, 0)
-        utc_layout.setSpacing(2)
+        utc_layout.setSpacing(1)
         utc_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
-        self.user_name_lbl = QLabel(self.user_name)
-        self.user_name_lbl.setStyleSheet(f"color: #FFFFFF; font-weight: 700; font-size: 14px;")
-
-        utc_layout.addWidget(self.user_name_lbl)
+        display_name = "admin 👑" if is_admin else self.user_name
+        self.user_name_lbl = QLabel(display_name)
+        if is_admin:
+            self.user_name_lbl.setStyleSheet("color: #FFD700; font-weight: 800; font-size: 14px; letter-spacing: 0.5px;")
+            self.admin_badge_lbl = QLabel("Quản trị viên tối cao")
+            self.admin_badge_lbl.setStyleSheet("color: #FF8800; font-weight: 600; font-size: 10px;")
+            utc_layout.addWidget(self.user_name_lbl)
+            utc_layout.addWidget(self.admin_badge_lbl)
+        else:
+            self.user_name_lbl.setStyleSheet("color: #FFFFFF; font-weight: 700; font-size: 14px;")
+            utc_layout.addWidget(self.user_name_lbl)
 
         profile_layout.addWidget(self.avatar_lbl)
         profile_layout.addWidget(self.user_text_container, stretch=1)

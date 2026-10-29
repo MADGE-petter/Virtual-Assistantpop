@@ -65,10 +65,24 @@ class CollectionService:
     # ============================================================
     # STATE
     # ============================================================
+    @property
+    def is_admin(self) -> bool:
+        return self.user_key.strip().lower() == "admin"
+
     def wallet(self) -> Dict:
-        return self.repo.get_wallet(self.user_key)
+        w = self.repo.get_wallet(self.user_key)
+        if self.is_admin:
+            # Đặc quyền admin tối cao: vô hạn xu, mảnh vỡ và trứng
+            w["coins"] = 999999999
+            w["shards"] = 999999999
+            w["eggs"] = 999999
+            w["streak"] = 999
+        return w
 
     def owned(self) -> Dict[str, int]:
+        if self.is_admin:
+            # Sở hữu full toàn bộ linh vật trong game
+            return {c.id: 99 for c in self.registry.all()}
         return self.repo.get_owned(self.user_key)
 
     def equipped(self) -> CharacterDef:
@@ -85,6 +99,13 @@ class CollectionService:
     def _ensure_starter(self) -> None:
         with self._lock:
             w = self.wallet()
+            if self.is_admin:
+                for c in self.registry.all():
+                    if c.id not in self.repo.get_owned(self.user_key):
+                        self.repo.add_owned(self.user_key, c.id)
+                self.repo.update_wallet(self.user_key, coins=999999999, shards=999999999, eggs=999999)
+                return
+
             if DEFAULT_CHARACTER_ID not in self.owned():
                 self.repo.add_owned(self.user_key, DEFAULT_CHARACTER_ID)
             if not w["starter_given"]:
@@ -151,6 +172,8 @@ class CollectionService:
     # ============================================================
     def buy_egg(self, qty: int = 1) -> ActionOutcome:
         with self._lock:
+            if self.is_admin:
+                return ActionOutcome(True, f"[Admin] Đã cấp {qty} trứng gacha vô hạn.")
             w = self.wallet()
             cost = EGG_PRICE * qty
             if w["coins"] < cost:
@@ -162,15 +185,16 @@ class CollectionService:
     def open_egg(self) -> Optional[OpenResult]:
         with self._lock:
             w = self.wallet()
-            if w["eggs"] <= 0:
+            if not self.is_admin and w["eggs"] <= 0:
                 return None
             char, new_pity = self.engine.roll(self.registry.gacha_pool(), int(w["pity"]))
-            is_new = char.id not in self.owned()
+            is_new = (char.id not in self.repo.get_owned(self.user_key)) if self.is_admin else (char.id not in self.owned())
             self.repo.add_owned(self.user_key, char.id)
             shards = 0 if is_new else RARITY_INFO[char.rarity]["shard_gain"]
-            self.repo.update_wallet(self.user_key, eggs=w["eggs"] - 1, pity=new_pity,
-                                    shards=w["shards"] + shards,
-                                    total_opened=w["total_opened"] + 1)
+            if not self.is_admin:
+                self.repo.update_wallet(self.user_key, eggs=w["eggs"] - 1, pity=new_pity,
+                                        shards=w["shards"] + shards,
+                                        total_opened=w["total_opened"] + 1)
             self.repo.log(self.user_key, "open_egg", "egg", -1, char.id)
             if shards:
                 self.repo.log(self.user_key, "duplicate", "shard", shards, char.id)
@@ -181,6 +205,8 @@ class CollectionService:
             char = self.registry.get(char_id)
             if char is None:
                 return ActionOutcome(False, "Nhân vật không tồn tại.")
+            if self.is_admin:
+                return ActionOutcome(True, f"[Admin] Đã kích hoạt toàn quyền {char.name}!")
             if char_id in self.owned():
                 return ActionOutcome(False, "Bạn đã sở hữu nhân vật này.")
             w = self.wallet()
@@ -196,6 +222,8 @@ class CollectionService:
             char = self.registry.get(char_id)
             if char is None:
                 return ActionOutcome(False, "Nhân vật không tồn tại.")
+            if self.is_admin:
+                return ActionOutcome(True, f"[Admin] Đã kích hoạt toàn quyền {char.name}!")
             if char_id in self.owned():
                 return ActionOutcome(False, "Bạn đã sở hữu nhân vật này.")
             cost = RARITY_INFO[char.rarity]["shard_cost"]
@@ -210,11 +238,14 @@ class CollectionService:
     def equip(self, char_id: str) -> ActionOutcome:
         with self._lock:
             char = self.registry.get(char_id)
-            if char is None or char_id not in self.owned():
+            if char is None:
+                return ActionOutcome(False, "Nhân vật không tồn tại.")
+            if not self.is_admin and char_id not in self.owned():
                 return ActionOutcome(False, "Bạn chưa sở hữu nhân vật này.")
             self.repo.update_wallet(self.user_key, equipped=char_id)
         self._emit_equip(char)
-        return ActionOutcome(True, f"Đã trang bị {char.name}.")
+        prefix = "[Admin] " if self.is_admin else ""
+        return ActionOutcome(True, f"{prefix}Đã trang bị {char.name}.")
 
     # Aliases for shop/UI compatibility
     buy_character_with_coins = buy_character
