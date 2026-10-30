@@ -6,6 +6,7 @@ Follows MVC architecture:
 - Controller: view.ui.mascot.mascot_controller.MascotController
 """
 
+from typing import Optional
 from PyQt6.QtCore import Qt, QPoint, QTimer, pyqtSignal, QRect
 from PyQt6.QtGui import QPainter, QMouseEvent, QCursor, QGuiApplication
 from PyQt6.QtWidgets import QWidget
@@ -142,34 +143,26 @@ class MiniMascotWidget(QWidget):
             self.play_character_sfx()
         self.update()
 
+    def set_music_mode(self, enabled: bool = True):
+        """Set music mode (used for preview/testing)."""
+        self.model.is_playing_music = enabled
+        self.update()
+
     def play_character_sfx(self, char_id: str | None = None):
-        """Play Phoebe Chupi or Nono authentic voice clip asynchronously when equipped or woken up."""
+        """Play Phoebe Chupi, Nono, or Aemeath authentic voice clip safely when equipped or woken up."""
         import os
-        import threading
         cid = char_id
         if not cid and self.painter.current_character:
             cid = self.painter.current_character.id
-        if cid not in ("phoebe_chuby", "nono_chubby"):
+        if cid not in ("phoebe_chuby", "nono_chubby", "aemeath_idol"):
             return
 
         try:
             from utils.paths import resource_path
-            sample_name = "phoebe_chupi.wav" if cid == "phoebe_chuby" else "nono_chubby.wav"
+            from utils.sound_player import play_wav_safely
+            sample_name = "nono_chubby.wav" if cid == "nono_chubby" else "phoebe_chupi.wav"
             wav_path = resource_path(os.path.join("voice-models", "samples", sample_name))
-            if not os.path.isfile(wav_path):
-                return
-
-            def _play():
-                try:
-                    import soundfile as sf
-                    import sounddevice as sd
-                    data, sr = sf.read(wav_path)
-                    sd.play(data, sr)
-                    sd.wait()
-                except Exception:
-                    pass
-
-            threading.Thread(target=_play, daemon=True).start()
+            play_wav_safely(wav_path)
         except Exception:
             pass
 
@@ -318,7 +311,7 @@ class MiniMascotWidget(QWidget):
         prev_id = self.painter.current_character.id if self.painter.current_character else None
         self.painter.set_character(char_def)
         new_id = char_def.id if char_def else None
-        if new_id and new_id != prev_id and new_id in ("phoebe_chuby", "nono_chubby"):
+        if new_id and new_id != prev_id and new_id in ("phoebe_chuby", "nono_chubby", "aemeath_idol"):
             self.play_character_sfx(new_id)
         self.update()
 

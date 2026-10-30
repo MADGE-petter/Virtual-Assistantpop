@@ -20,6 +20,19 @@ class MascotController:
     def __init__(self, model: MascotModel, widget):
         self.model = model
         self.widget = widget
+        from view.ui.mascot.music_detector import MusicDetector
+        self.detector = MusicDetector.instance()
+        self.detector.start()
+
+    def _update_music_state(self, now: float):
+        """Updates music state: 100% automatic detection via MusicDetector."""
+        model = self.model
+        # Speaking voice always takes priority over music mode
+        if model.voice_state == VoiceState.SPEAKING:
+            return
+
+        if self.detector is not None:
+            model.is_playing_music = self.detector.is_playing
 
     # ============================================================
     # MOUSE INTERACTION & DRAG
@@ -80,7 +93,7 @@ class MascotController:
         result = None
         if event.button() == Qt.MouseButton.LeftButton:
             if self.model.is_dragging:
-                self.model.dizzy_end_time = time.time() + 1.2
+                self.model.dizzy_end_time = 0.0
                 self.model.is_dragging = False
                 self.snap_to_edge_if_near(screen_geom)
                 self.model.save_position(self.widget.pos())
@@ -158,6 +171,9 @@ class MascotController:
         now = time.time()
         model = self.model
 
+        # 0. Update Music / YouTube Audio Detection
+        self._update_music_state(now)
+
         # 1. Cursor Activity Tracking
         cursor_moved = math.hypot(
             cursor_pos.x() - model.last_cursor_pos.x(),
@@ -169,7 +185,7 @@ class MascotController:
         dy = cursor_pos.y() - widget_center.y()
         dist_to_cursor = math.hypot(dx, dy)
 
-        is_bot_active = model.voice_state in (VoiceState.SPEAKING, VoiceState.THINKING)
+        is_bot_active = model.voice_state in (VoiceState.SPEAKING, VoiceState.THINKING) or model.is_playing_music
         is_cursor_moving_near = (dist_to_cursor < 85.0 and cursor_moved > 2.0) and not model.is_sleeping
         is_interacting = model.is_dragging or is_bot_active or is_cursor_moving_near
 

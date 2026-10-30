@@ -137,12 +137,9 @@ class ChubbyMemeRenderer(BaseCharacterRenderer):
 
         painter.restore()
 
-        # 8. Unscaled Overlays: Floating zZz OR "Chupi~!" / "Nono~!" speech bubble
+        # 8. Unscaled Overlays: Floating zZz when sleeping
         if model.is_sleeping and model.zzz_particles:
             self._draw_zzz_particles(painter, model.zzz_particles)
-        elif model.voice_state == VoiceState.SPEAKING:
-            tag_y = (cy - 44.0) if self.variant == "phoebe" else (cy - 36.0)
-            self._draw_meme_speech_tag(painter, cx, tag_y, model.pulse_phase)
 
     # ============================================================
     # CUBE & CHARACTER COMPONENTS
@@ -343,25 +340,48 @@ class ChubbyMemeRenderer(BaseCharacterRenderer):
                          top_col: QColor, mid_col: QColor, bot_col: QColor, show_tear: bool = False):
         outline_col = QColor("#3B231A") if self.variant == "phoebe" else QColor("#27272A")
 
-        # Startled / Crying eyes when dragged or snot bubble popped
-        if model.is_dragging or is_popping_bubble:
+        # 1. DRAGGING / DIZZY: Swirly '@ @' dizzy eyes + glistening blue tear drop
+        if is_dizzy:
             painter.setBrush(QBrush(QColor("#FFFFFF")))
             painter.setPen(QPen(outline_col, 1.8))
-            painter.drawEllipse(QRectF(center.x() - 6.5, center.y() - 6.5, 13.0, 13.0))
+            painter.drawEllipse(QRectF(center.x() - 6.8, center.y() - 6.8, 13.6, 13.6))
+
+            spiral_pen = QPen(outline_col, 1.6, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap)
+            painter.setPen(spiral_pen)
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            sp = QPainterPath()
+            steps = 22
+            for s in range(steps):
+                t = (s / float(steps - 1)) * (math.pi * 2.8)
+                r_cur = 0.8 + (s / float(steps - 1)) * 4.8
+                px = center.x() + math.cos(t) * r_cur
+                py = center.y() + math.sin(t) * r_cur
+                if s == 0:
+                    sp.moveTo(px, py)
+                else:
+                    sp.lineTo(px, py)
+            painter.drawPath(sp)
+
+            painter.setBrush(QBrush(QColor(56, 189, 248, 235)))
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.drawEllipse(QRectF(center.x() + 4.0, center.y() + 2.2, 4.4, 6.0))
+            return
+
+        # 2. WAKING UP / BUBBLE POP: Wide startled 'O O' eyes with contracted pupil & shine dot
+        if is_waking_up or is_popping_bubble:
+            painter.setBrush(QBrush(QColor("#FFFFFF")))
+            painter.setPen(QPen(outline_col, 1.9))
+            painter.drawEllipse(QRectF(center.x() - 6.8, center.y() - 6.8, 13.6, 13.6))
 
             painter.setBrush(QBrush(mid_col))
             painter.setPen(Qt.PenStyle.NoPen)
-            painter.drawEllipse(QRectF(center.x() - 3.0, center.y() - 3.0, 6.0, 6.0))
+            painter.drawEllipse(QRectF(center.x() - 3.2, center.y() - 3.2, 6.4, 6.4))
             painter.setBrush(QBrush(QColor("#FFFFFF")))
-            painter.drawEllipse(QRectF(center.x() - 1.5, center.y() - 1.8, 2.2, 2.2))
-
-            if show_tear or model.is_dragging:
-                painter.setBrush(QBrush(QColor(56, 189, 248, 230)))
-                painter.drawEllipse(QRectF(center.x() + 3.8, center.y() + 2.5, 4.2, 5.8))
+            painter.drawEllipse(QRectF(center.x() - 1.6, center.y() - 2.0, 2.3, 2.3))
             return
 
-        # Happy '^ ^' arches when speaking or waking up
-        if is_dizzy or is_waking_up or model.voice_state == VoiceState.SPEAKING:
+        # 3. SPEAKING: Happy '^ ^' arches when speaking
+        if model.voice_state == VoiceState.SPEAKING:
             pen = QPen(outline_col, 2.5, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap)
             painter.setPen(pen)
             painter.setBrush(Qt.BrushStyle.NoBrush)
@@ -441,9 +461,23 @@ class ChubbyMemeRenderer(BaseCharacterRenderer):
         pen = QPen(outline_col, 1.8, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap)
         painter.setPen(pen)
 
-        if is_popping_bubble or model.is_dragging:
+        if is_dizzy:
+            # Wavy flustered crying mouth ('﹏') when dragged/dizzy
+            wavy = QPainterPath()
+            wavy.moveTo(cx - 5.2, cy + 0.5)
+            wavy.quadTo(cx - 2.6, cy - 2.2, cx, cy + 0.5)
+            wavy.quadTo(cx + 2.6, cy + 3.0, cx + 5.2, cy + 0.2)
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawPath(wavy)
+        elif is_waking_up or is_popping_bubble:
+            # Surprised rounded-triangle mouth ('△' / 'Hơ?!') when woken up
+            tri = QPainterPath()
+            tri.moveTo(cx, cy - 2.2)
+            tri.quadTo(cx + 4.2, cy - 0.2, cx + 3.2, cy + 3.0)
+            tri.quadTo(cx, cy + 3.8, cx - 3.2, cy + 3.0)
+            tri.quadTo(cx - 4.2, cy - 0.2, cx, cy - 2.2)
             painter.setBrush(QBrush(QColor("#FB7185")))
-            painter.drawEllipse(QRectF(cx - 3.5, cy - 1.5, 7.0, 5.5))
+            painter.drawPath(tri)
         elif model.voice_state == VoiceState.SPEAKING:
             h = 2.5 + model.mouth_open * 5.0
             painter.setBrush(QBrush(QColor("#F43F5E")))
@@ -590,12 +624,26 @@ class ChubbyMemeRenderer(BaseCharacterRenderer):
 
         r = 6.8  # Radius of each round ball hand (diameter ~13.6px)
 
-        if model.is_dragging or is_startled:
-            # Waving round hands frantically in the air!
-            wave = math.sin(now * 24.0) * 4.0
+        if model.is_dragging or (now < model.dizzy_end_time):
+            # Waving round hands frantically high in the air + flying sweat drops!
+            wave = math.sin(now * 24.0) * 4.5
             positions = [
-                (cx - 27.0, face_cy - 1.0 + wave),
-                (cx + 27.0, face_cy - 1.0 - wave),
+                (cx - 28.0, face_cy - 3.0 + wave),
+                (cx + 28.0, face_cy - 3.0 - wave),
+            ]
+            sweat_bob = (now * 7.0) % 1.0
+            painter.save()
+            painter.setBrush(QBrush(QColor(56, 189, 248, 210)))
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.drawEllipse(QRectF(cx - 36.0 - sweat_bob * 3.0, face_cy - 18.0 + sweat_bob * 4.0, 3.8, 5.6))
+            painter.drawEllipse(QRectF(cx + 32.0 + sweat_bob * 3.0, face_cy - 18.0 + sweat_bob * 4.0, 3.8, 5.6))
+            painter.restore()
+        elif is_startled:
+            # Waking up: Left round hand rubbing sleepy eye, right hand startled up!
+            rub = math.sin(now * 16.0) * 1.8
+            positions = [
+                (cx - 15.0 + rub, face_cy + 1.5),
+                (cx + 23.5, face_cy + 5.0 - abs(rub)),
             ]
         elif model.is_sleeping and model.cling_edge is None:
             # Resting round hands peacefully in front of the cube
@@ -685,15 +733,33 @@ class ChubbyMemeRenderer(BaseCharacterRenderer):
         painter.drawPolygon(star)
         painter.restore()
 
-    def _draw_meme_speech_tag(self, painter: QPainter, cx: float, top_y: float, pulse_phase: float):
+    def _draw_meme_speech_tag(
+        self,
+        painter: QPainter,
+        cx: float,
+        top_y: float,
+        pulse_phase: float,
+        override_text: str | None = None,
+        mode: str = "talk",
+    ):
         painter.save()
         bob = math.sin(pulse_phase * 4.0) * 2.0
-        text = "Chupi~!" if self.variant == "phoebe" else "Nono~!"
-        bg_col = QColor(254, 243, 199, 235) if self.variant == "phoebe" else QColor(255, 228, 230, 235)
-        border_col = QColor("#F59E0B") if self.variant == "phoebe" else QColor("#E11D48")
-        text_col = QColor("#92400E") if self.variant == "phoebe" else QColor("#9F1239")
+        text = override_text or ("Chupi~!" if self.variant == "phoebe" else "Nono~!")
+        if mode == "drag":
+            bg_col = QColor(254, 226, 226, 240)
+            border_col = QColor("#EF4444")
+            text_col = QColor("#991B1B")
+        elif mode == "wakeup":
+            bg_col = QColor(254, 249, 195, 240)
+            border_col = QColor("#F59E0B")
+            text_col = QColor("#92400E")
+        else:
+            bg_col = QColor(254, 243, 199, 235) if self.variant == "phoebe" else QColor(255, 228, 230, 235)
+            border_col = QColor("#F59E0B") if self.variant == "phoebe" else QColor("#E11D48")
+            text_col = QColor("#92400E") if self.variant == "phoebe" else QColor("#9F1239")
 
-        pill_rect = QRectF(cx - 26.0, max(2.0, top_y - 8.0 + bob), 52.0, 16.0)
+        w = max(52.0, len(text) * 6.0)
+        pill_rect = QRectF(cx - w / 2.0, max(2.0, top_y - 8.0 + bob), w, 16.0)
         painter.setBrush(QBrush(bg_col))
         painter.setPen(QPen(border_col, 1.4))
         painter.drawRoundedRect(pill_rect, 8.0, 8.0)

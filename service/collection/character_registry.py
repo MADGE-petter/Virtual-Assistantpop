@@ -43,6 +43,9 @@ class CharacterDef:
     skin_dir: Optional[str] = None
     price_override: Optional[int] = None
     in_gacha: bool = True
+    is_exclusive: bool = False
+    exclusive_title: Optional[str] = None
+    exclusive_badge: Optional[str] = None
 
     @property
     def price(self) -> int:
@@ -110,7 +113,7 @@ _BUILTINS: List[CharacterDef] = [
               "eye": "#052E16", "ears": "none", "tail": "none", "extras": ["drip", "shine"],
               "alpha": 210, "light_body": True},
     ),
-    # ---------------- Epic ----------------
+    # ---------------- Epic (Tím - Tối đa cho nhân vật thường) ----------------
     CharacterDef(
         id="ice_princess", name="Công Chúa Băng Kem", rarity="epic",
         description="Công chúa xứ kem tuyết, vương miện pha lê và áo choàng băng giá.",
@@ -126,22 +129,33 @@ _BUILTINS: List[CharacterDef] = [
               "eye": "#38BDF8", "ears": "fins", "tail": "none",
               "extras": ["visor", "chest_plate", "wheels", "transform_morph"]},
     ),
-    # ---------------- Legendary ----------------
     CharacterDef(
-        id="star_dragon", name="Rồng Sao", rarity="legendary",
+        id="star_dragon", name="Rồng Sao", rarity="epic",
         description="Rồng con sinh ra từ dải ngân hà, vảy lấp lánh như sao.",
         spec={"shape": "round", "body": "#1E1B4B", "body2": "#0F0A2E", "accent": "#818CF8",
               "eye": "#FCD34D", "ears": "horns", "tail": "dragon",
               "extras": ["dragon_wings", "star_scales", "orbit_stars"]},
     ),
-    # ---------------- Mythic ----------------
+    # ---------------- Legendary (Vàng - Bọn Chibi meme) ----------------
     CharacterDef(
-        id="phoebe_chuby", name="Phoebe Chupi", rarity="mythic", kind="phoebe_chuby",
+        id="phoebe_chuby", name="Phoebe Chupi", rarity="legendary", kind="phoebe_chuby",
         description="Meme Phoebe Chupi tròn ủm siêu đáng yêu với đôi má bánh bao phúng phính, bím tóc nơ xanh-trắng và tiếng kêu 'Chupi~!' chữa lành vô tận.",
     ),
     CharacterDef(
-        id="nono_chubby", name="Nono (Phruonuo)", rarity="mythic", kind="nono_chubby",
+        id="nono_chubby", name="Nono (Phruonuo)", rarity="legendary", kind="nono_chubby",
         description="Bé Nono bánh bao núng nính (Phrolova Chubby) với tóc xám bạc buộc hai bên, hoa bỉ ngạn đỏ và băng bịt mắt trắng, biểu cảm ngơ ngác siêu cưng.",
+    ),
+    # ---------------- Mythic (Đỏ - Duy nhất Aemeath Thần Thoại) ----------------
+    CharacterDef(
+        id="aemeath_idol",
+        name="Aemeath (Thiên Thần Idol)",
+        rarity="mythic",
+        kind="aemeath_idol",
+        description="🌟 THIÊN THẦN IDOL ĐỘC QUYỀN: Nhân vật duy nhất sở hữu trọn bộ hoạt ảnh GIF 19 Frames nguyên bản sống động nhất! Tự động bắt nhịp âm thanh hệ thống để quẩy 2 gậy concert lightstick cực cháy khi bật nhạc/YouTube, mắt sao lấp lánh và biểu cảm phong phú.",
+        price_override=25000,
+        is_exclusive=True,
+        exclusive_title="ĐỘC QUYỀN ÂM NHẠC ★ THẦN THOẠI TỐI THƯỢNG",
+        exclusive_badge="♪ GIF 19 Frames ♪",
     ),
 ]
 
@@ -166,7 +180,8 @@ class CharacterRegistry:
         self._chars = {c.id: c for c in _BUILTINS}
         for skin in self._scan_skin_packs():
             if skin.id in self._chars:
-                print(f"[CharacterRegistry] Skin id '{skin.id}' trùng nhân vật có sẵn, bỏ qua.")
+                if self._chars[skin.id].skin_dir is None:
+                    self._chars[skin.id].skin_dir = skin.skin_dir
                 continue
             self._chars[skin.id] = skin
 
@@ -209,6 +224,9 @@ class CharacterRegistry:
                         skin_dir=folder,
                         price_override=int(price) if isinstance(price, (int, float)) else None,
                         in_gacha=bool(data.get("in_gacha", True)),
+                        is_exclusive=bool(data.get("is_exclusive", False)),
+                        exclusive_title=data.get("exclusive_title"),
+                        exclusive_badge=data.get("exclusive_badge"),
                     ))
                 except Exception as e:
                     print(f"[CharacterRegistry] Lỗi đọc skin '{name}': {e}")

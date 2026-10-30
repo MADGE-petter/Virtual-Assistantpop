@@ -47,6 +47,9 @@ class MascotModel:
         self.mouth_open: float = 0.0
         self.ear_wiggle_angle: float = 0.0
 
+        # Music / YouTube Cheering Mode (Lightstick Wotagei State - 100% Auto-Detected)
+        self.is_playing_music: bool = False
+
         # Autonomous Idle & Sleep System
         self.last_user_activity: float = time.time()
         self.last_cursor_pos: QPoint = QPoint()

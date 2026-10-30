@@ -15,7 +15,9 @@ from service.collection.character_registry import (
 from service.collection.gacha_engine import PITY_THRESHOLD, GachaEngine
 
 # ---------------- Economy constants ----------------
-EGG_PRICE = 300
+EGG_PRICE = 200
+ROLL_SINGLE_COST = 200
+ROLL_FIVE_COST = 1000
 DAILY_COINS = 50
 VOICE_COINS_PER_COMMAND = 5
 VOICE_COINS_DAILY_CAP = 100
@@ -28,6 +30,7 @@ class OpenResult:
     is_new: bool
     shards_gained: int
     pity_after: int
+    is_bonus: bool = False
 
 
 @dataclass
@@ -182,23 +185,110 @@ class CollectionService:
             self.repo.log(self.user_key, "buy_egg", "coin", -cost)
             return ActionOutcome(True, f"Đã mua {qty} trứng.")
 
-    def open_egg(self) -> Optional[OpenResult]:
+    def open_egg(self, featured_id: Optional[str] = None) -> Optional[OpenResult]:
         with self._lock:
             w = self.wallet()
-            if not self.is_admin and w["eggs"] <= 0:
-                return None
-            char, new_pity = self.engine.roll(self.registry.gacha_pool(), int(w["pity"]))
+            use_coin = False
+            if not self.is_admin:
+                if w["eggs"] <= 0:
+                    if w["coins"] < ROLL_SINGLE_COST:
+                        return None
+                    use_coin = True
+            char, new_pity = self.engine.roll(
+                self.registry.gacha_pool(),
+                int(w["pity"]),
+                featured_id=featured_id,
+            )
             is_new = (char.id not in self.repo.get_owned(self.user_key)) if self.is_admin else (char.id not in self.owned())
             self.repo.add_owned(self.user_key, char.id)
             shards = 0 if is_new else RARITY_INFO[char.rarity]["shard_gain"]
             if not self.is_admin:
-                self.repo.update_wallet(self.user_key, eggs=w["eggs"] - 1, pity=new_pity,
-                                        shards=w["shards"] + shards,
-                                        total_opened=w["total_opened"] + 1)
-            self.repo.log(self.user_key, "open_egg", "egg", -1, char.id)
+                if use_coin:
+                    self.repo.update_wallet(
+                        self.user_key,
+                        coins=w["coins"] - ROLL_SINGLE_COST,
+                        pity=new_pity,
+                        shards=w["shards"] + shards,
+                        total_opened=w["total_opened"] + 1,
+                    )
+                    self.repo.log(self.user_key, "roll_coin", "coin", -ROLL_SINGLE_COST, char.id)
+                else:
+                    self.repo.update_wallet(
+                        self.user_key,
+                        eggs=w["eggs"] - 1,
+                        pity=new_pity,
+                        shards=w["shards"] + shards,
+                        total_opened=w["total_opened"] + 1,
+                    )
+                    self.repo.log(self.user_key, "open_egg", "egg", -1, char.id)
             if shards:
                 self.repo.log(self.user_key, "duplicate", "shard", shards, char.id)
-            return OpenResult(char, is_new, shards, new_pity)
+            return OpenResult(char, is_new, shards, new_pity, is_bonus=False)
+
+    def roll_with_coins(
+        self,
+        count: int = 1,
+        featured_id: Optional[str] = None,
+    ) -> tuple[ActionOutcome, List[OpenResult]]:
+        """
+        Direct coin gacha roll:
+        - count == 1: 200 Xu -> 1 roll.
+        - count == 5: 1,000 Xu -> 5 rolls + 1 Bonus Random Rate roll (min_rarity='rare').
+        """
+        with self._lock:
+            w = self.wallet()
+            cost = ROLL_FIVE_COST if count >= 5 else (ROLL_SINGLE_COST * count)
+            if not self.is_admin and int(w["coins"]) < cost:
+                needed = cost - int(w["coins"])
+                return (
+                    ActionOutcome(False, f"Bạn còn thiếu {needed:,} Xu (Cần {cost:,} Xu, hiện có {int(w['coins']):,} Xu)."),
+                    [],
+                )
+
+            pool = self.registry.gacha_pool()
+            pity = int(w["pity"])
+            shards_total = int(w["shards"])
+            total_opened = int(w["total_opened"])
+            owned_set = set(self.repo.get_owned(self.user_key).keys())
+
+            results: List[OpenResult] = []
+            for _ in range(count):
+                char, pity = self.engine.roll(pool, pity, featured_id=featured_id)
+                is_new = char.id not in owned_set
+                owned_set.add(char.id)
+                self.repo.add_owned(self.user_key, char.id)
+                shards = 0 if is_new else RARITY_INFO[char.rarity]["shard_gain"]
+                shards_total += shards
+                total_opened += 1
+                results.append(OpenResult(char, is_new, shards, pity, is_bonus=False))
+
+            # Nếu quay gói 5 lần (1,000 Xu): Tặng thêm +1 lượt Rate ngẫu nhiên (tối thiểu Hiếm+)
+            if count >= 5:
+                bonus_char, pity = self.engine.roll(
+                    pool,
+                    pity,
+                    featured_id=featured_id,
+                    min_rarity="rare",
+                )
+                is_new_b = bonus_char.id not in owned_set
+                owned_set.add(bonus_char.id)
+                self.repo.add_owned(self.user_key, bonus_char.id)
+                shards_b = 0 if is_new_b else RARITY_INFO[bonus_char.rarity]["shard_gain"]
+                shards_total += shards_b
+                total_opened += 1
+                results.append(OpenResult(bonus_char, is_new_b, shards_b, pity, is_bonus=True))
+
+            if not self.is_admin:
+                self.repo.update_wallet(
+                    self.user_key,
+                    coins=int(w["coins"]) - cost,
+                    pity=pity,
+                    shards=shards_total,
+                    total_opened=total_opened,
+                )
+                self.repo.log(self.user_key, f"roll_x{count}", "coin", -cost)
+
+            return ActionOutcome(True, "Triệu hồi thành công!"), results
 
     def buy_character(self, char_id: str) -> ActionOutcome:
         with self._lock:
