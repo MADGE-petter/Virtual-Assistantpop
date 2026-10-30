@@ -136,17 +136,6 @@ _BUILTINS: List[CharacterDef] = [
     ),
     # ---------------- Mythic ----------------
     CharacterDef(
-        id="cosmic_phoenix", name="Phượng Hoàng Vũ Trụ", rarity="mythic",
-        description="Phượng hoàng tái sinh từ tinh vân, cánh lửa đổi màu cầu vồng.",
-        spec={"shape": "round", "body": "#7C2D12", "body2": "#431407", "accent": "#FB923C",
-              "eye": "#FDE047", "ears": "crest", "tail": "phoenix",
-              "extras": ["flame_wings", "halo", "rainbow_aura", "orbit_stars"]},
-    ),
-    CharacterDef(
-        id="white_fox_girl", name="Hồ Ly Bạch Tâm", rarity="mythic", kind="fox_girl",
-        description="Thiếu nữ thú nhân cáo trắng đáng yêu mặc áo len trắng dài họa tiết trái tim. Khi ngủ sẽ hóa thành cáo bông cuộn tròn hoặc ngủ gật phồng bong bóng mũi.",
-    ),
-    CharacterDef(
         id="phoebe_chuby", name="Phoebe Chupi", rarity="mythic", kind="phoebe_chuby",
         description="Meme Phoebe Chupi tròn ủm siêu đáng yêu với đôi má bánh bao phúng phính, bím tóc nơ xanh-trắng và tiếng kêu 'Chupi~!' chữa lành vô tận.",
     ),

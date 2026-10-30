@@ -35,6 +35,8 @@ class MascotController:
                 self.model.trigger_wake_up(pop_bubble=True)
                 if self.model.voice_state == VoiceState.SLEEPING:
                     self.model.voice_state = VoiceState.READY
+                if hasattr(self.widget, "play_character_sfx"):
+                    self.widget.play_character_sfx()
             else:
                 self.model.trigger_wake_up()
             event.accept()

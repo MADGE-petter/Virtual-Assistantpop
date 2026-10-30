@@ -133,11 +133,45 @@ class MiniMascotWidget(QWidget):
 
     def wake_up(self):
         """Wake up mascot and restore full 45 FPS performance."""
+        was_sleeping = self.model.is_sleeping
         self.model.trigger_wake_up(pop_bubble=True)
         if self.model.is_power_saving:
             self.model.is_power_saving = False
             self.timer.setInterval(22)
+        if was_sleeping:
+            self.play_character_sfx()
         self.update()
+
+    def play_character_sfx(self, char_id: str | None = None):
+        """Play Phoebe Chupi or Nono authentic voice clip asynchronously when equipped or woken up."""
+        import os
+        import threading
+        cid = char_id
+        if not cid and self.painter.current_character:
+            cid = self.painter.current_character.id
+        if cid not in ("phoebe_chuby", "nono_chubby"):
+            return
+
+        try:
+            from utils.paths import resource_path
+            sample_name = "phoebe_chupi.wav" if cid == "phoebe_chuby" else "nono_chubby.wav"
+            wav_path = resource_path(os.path.join("voice-models", "samples", sample_name))
+            if not os.path.isfile(wav_path):
+                return
+
+            def _play():
+                try:
+                    import soundfile as sf
+                    import sounddevice as sd
+                    data, sr = sf.read(wav_path)
+                    sd.play(data, sr)
+                    sd.wait()
+                except Exception:
+                    pass
+
+            threading.Thread(target=_play, daemon=True).start()
+        except Exception:
+            pass
 
     # ============================================================
     # ANIMATION TICK
@@ -281,7 +315,11 @@ class MiniMascotWidget(QWidget):
 
     def set_character(self, char_def):
         """Update active character skin."""
+        prev_id = self.painter.current_character.id if self.painter.current_character else None
         self.painter.set_character(char_def)
+        new_id = char_def.id if char_def else None
+        if new_id and new_id != prev_id and new_id in ("phoebe_chuby", "nono_chubby"):
+            self.play_character_sfx(new_id)
         self.update()
 
     def open_collection_dialog(self):

@@ -342,12 +342,73 @@ class AudioService:
             self._mic_warmup()
             self.gate_lock.release()
     
+    def _get_equipped_character_id(self) -> str:
+        """Return currently equipped mascot character ID."""
+        try:
+            from service.collection import get_collection_service
+            svc = get_collection_service()
+            char = svc.equipped()
+            return char.id if char else "pop"
+        except Exception:
+            return "pop"
+
+    def play_mascot_sfx(self, char_id: Optional[str] = None) -> None:
+        """Play Phoebe Chupi ('Phoebe Chupi!') or Nono ('Nono~!') authentic voice sample asynchronously."""
+        cid = char_id or self._get_equipped_character_id()
+        if cid not in ("phoebe_chuby", "nono_chubby"):
+            return
+
+        sample_file = "phoebe_chupi.wav" if cid == "phoebe_chuby" else "nono_chubby.wav"
+        sample_path = os.path.join(self.models_dir, "samples", sample_file)
+        if not os.path.isfile(sample_path):
+            return
+
+        def _worker():
+            try:
+                if sf is not None:
+                    data, sr_rate = sf.read(sample_path)
+                    import sounddevice as sd
+                    sd.play(data, sr_rate)
+                    sd.wait()
+                elif PLAYSOUND_AVAILABLE and playsound is not None:
+                    playsound.playsound(sample_path, True)
+            except Exception as e:
+                print(f"[AudioService] SFX play error: {e}")
+
+        threading.Thread(target=_worker, daemon=True).start()
+
+    def _apply_character_voice_clone(self, audio: "np.ndarray", sr_rate: int, char_id: str) -> "np.ndarray":
+        """Transform TTS audio pitch & timbre to match Phoebe Chupi (~452Hz) or Nono (~422Hz) authentic voice."""
+        if char_id not in ("phoebe_chuby", "nono_chubby") or np is None:
+            return audio
+        try:
+            import librosa
+            # Phoebe Chupi: ~452Hz (+5.8 semitones) | Nono (Nuonuo): ~422Hz (+4.6 semitones)
+            n_steps = 5.8 if char_id == "phoebe_chuby" else 4.6
+            shifted = librosa.effects.pitch_shift(
+                y=audio.astype(np.float32),
+                sr=sr_rate,
+                n_steps=n_steps
+            )
+            # Gentle high-shelf brightness boost for crisp anime vocal timbre
+            pre_emphasis = 0.18 if char_id == "phoebe_chuby" else 0.14
+            bright = np.append(shifted[0], shifted[1:] - pre_emphasis * shifted[:-1])
+            peak = np.max(np.abs(bright))
+            if peak > 0:
+                bright = bright / peak * 0.92
+            return bright.astype(np.float32)
+        except Exception as e:
+            print(f"[AudioService] Voice clone transform warning: {e}")
+            return audio
+
     def _synthesize_and_play(self, text: str):
-        """Synthesize with MeloTTS Vietnamese and play."""
+        """Synthesize with MeloTTS Vietnamese, apply character voice clone DSP, and play."""
         self._load_tts_model()
         if self._tts_engine is None:
             raise RuntimeError("TTS engine not initialized")
         
+        char_id = self._get_equipped_character_id()
+        tts_speed = 1.08 if char_id == "phoebe_chuby" else (1.03 if char_id == "nono_chubby" else 1.0)
         temp_path = os.path.join(tempfile.gettempdir(), f"tts_output_{int(time.time()*1000)}.wav")
         
         # Generate audio using MeloTTS
@@ -355,7 +416,7 @@ class AudioService:
             text=text,
             speaker_id=self._tts_speaker_id,
             output_path=temp_path,
-            speed=1.0,
+            speed=tts_speed,
             quiet=True
         )
         
@@ -363,6 +424,12 @@ class AudioService:
             raise RuntimeError("soundfile not installed")
             
         audio, sr = sf.read(temp_path)
+        if char_id in ("phoebe_chuby", "nono_chubby"):
+            audio = self._apply_character_voice_clone(audio, sr, char_id)
+            try:
+                sf.write(temp_path, audio, sr)
+            except Exception:
+                pass
         
         # Play directly with sounddevice
         try:
