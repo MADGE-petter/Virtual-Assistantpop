@@ -545,6 +545,10 @@ class InventoryTab(QWidget):
                 """)
 
     def _on_pose_selected(self, mode: str):
+        char = self.service.registry.get(self.selected_id or "pop")
+        is_ex = bool(char and (getattr(char, "is_exclusive", False) or char.id == "aemeath_idol"))
+        if mode == "music" and not is_ex:
+            mode = "idle"
         self._active_pose = mode
         self._update_pose_styles()
         self.insp_preview.set_preview_mode(mode)
@@ -647,7 +651,8 @@ class InventoryTab(QWidget):
 
     def _on_card_selected(self, char_id: str):
         if self.selected_id != char_id:
-            self._active_pose = "idle"
+            if self._active_pose == "music" and char_id != "aemeath_idol":
+                self._active_pose = "idle"
             self._update_pose_styles()
         self.selected_id = char_id
         self.refresh()
@@ -682,6 +687,7 @@ class InventoryTab(QWidget):
                 border-radius: 5px;
             """)
             if "music" in self._pose_buttons:
+                self._pose_buttons["music"].setVisible(True)
                 self._pose_buttons["music"].setText("♪ Nhạc (19f) ♪")
         else:
             self.insp_rarity.setStyleSheet(f"""
@@ -694,7 +700,7 @@ class InventoryTab(QWidget):
                 border-radius: 4px;
             """)
             if "music" in self._pose_buttons:
-                self._pose_buttons["music"].setText("Nhạc/YT")
+                self._pose_buttons["music"].setVisible(False)
         self.insp_preview.set_character(char)
         self.insp_desc.setText(char.description)
 

@@ -25,10 +25,22 @@ class MascotController:
         self.detector.start()
 
     def _update_music_state(self, now: float):
-        """Updates music state: 100% automatic detection via MusicDetector."""
+        """Updates music state: 100% automatic detection via MusicDetector (only for characters with music support)."""
         model = self.model
         # Speaking voice always takes priority over music mode
         if model.voice_state == VoiceState.SPEAKING:
+            return
+
+        # Only Aemeath / exclusive characters with music animations support music state
+        current_char = None
+        if hasattr(self.widget, "painter") and hasattr(self.widget.painter, "current_character"):
+            current_char = self.widget.painter.current_character
+
+        has_music_support = bool(
+            current_char and (getattr(current_char, "is_exclusive", False) or current_char.id == "aemeath_idol")
+        )
+        if not has_music_support:
+            model.is_playing_music = False
             return
 
         if self.detector is not None:
