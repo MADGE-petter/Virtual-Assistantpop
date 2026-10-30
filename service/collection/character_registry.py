@@ -145,17 +145,15 @@ _BUILTINS: List[CharacterDef] = [
         id="nono_chubby", name="Nono (Phruonuo)", rarity="legendary", kind="nono_chubby",
         description="Bé Nono bánh bao núng nính (Phrolova Chubby) với tóc xám bạc buộc hai bên, hoa bỉ ngạn đỏ và băng bịt mắt trắng, biểu cảm ngơ ngác siêu cưng.",
     ),
-    # ---------------- Mythic (Đỏ - Duy nhất Aemeath Thần Thoại) ----------------
+    # ---------------- Mythic (Đỏ - Duy nhất Aemeath) ----------------
     CharacterDef(
         id="aemeath_idol",
         name="Aemeath (Thiên Thần Idol)",
         rarity="mythic",
         kind="aemeath_idol",
-        description="🌟 THIÊN THẦN IDOL ĐỘC QUYỀN: Nhân vật duy nhất sở hữu trọn bộ hoạt ảnh GIF 19 Frames nguyên bản sống động nhất! Tự động bắt nhịp âm thanh hệ thống để quẩy 2 gậy concert lightstick cực cháy khi bật nhạc/YouTube, mắt sao lấp lánh và biểu cảm phong phú.",
-        price_override=25000,
+        description="Thiên thần Idol tóc hồng phấn với kẹp tóc cánh chim sao vàng, vòng hào quang băng lam, đôi mắt sao lấp lánh và 2 gậy cổ vũ phát sáng rực rỡ.",
+        price_override=20000,
         is_exclusive=True,
-        exclusive_title="ĐỘC QUYỀN ÂM NHẠC ★ THẦN THOẠI TỐI THƯỢNG",
-        exclusive_badge="♪ GIF 19 Frames ♪",
     ),
 ]
 

@@ -169,23 +169,22 @@ class InventoryCard(QFrame):
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setFixedHeight(140)
 
-        is_exclusive = getattr(char, "is_exclusive", False) or (char.id == "aemeath_idol")
         r_info = RARITY_INFO.get(char.rarity, {})
-        r_color = "#F43F5E" if is_exclusive else r_info.get("color", "#9CA3AF")
-        r_label = "★ TỐI THƯỢNG ★" if is_exclusive else r_info.get("label", "Thường")
+        r_color = r_info.get("color", "#9CA3AF")
+        r_label = r_info.get("label", "Thường")
 
         if is_selected:
-            bg_col = "#2F1E2A" if is_exclusive else "#282D3A"
-            border_style = "2px solid #F43F5E" if is_exclusive else "1.5px solid #5B8BB2"
+            bg_col = "#2F1E2A" if char.rarity == "mythic" else "#282D3A"
+            border_style = "1.5px solid #F43F5E" if char.rarity == "mythic" else "1.5px solid #5B8BB2"
         elif is_equipped:
-            bg_col = "#2A1826" if is_exclusive else "#242934"
-            border_style = "2px solid #F43F5E" if is_exclusive else "1.5px solid #4A7C6B"
+            bg_col = "#2A1826" if char.rarity == "mythic" else "#242934"
+            border_style = "1.5px solid #F43F5E" if char.rarity == "mythic" else "1.5px solid #4A7C6B"
         elif is_owned:
-            bg_col = "#241622" if is_exclusive else "#22252E"
-            border_style = "1.5px solid #F43F5E" if is_exclusive else "1px solid #2E323E"
+            bg_col = "#241622" if char.rarity == "mythic" else "#22252E"
+            border_style = "1px solid #F43F5E" if char.rarity == "mythic" else "1px solid #2E323E"
         else:
-            bg_col = "#1E131C" if is_exclusive else "#1C1F26"
-            border_style = "1px solid #701A28" if is_exclusive else "1px solid #262932"
+            bg_col = "#1E131C" if char.rarity == "mythic" else "#1C1F26"
+            border_style = "1px solid #701A28" if char.rarity == "mythic" else "1px solid #262932"
 
         self.setStyleSheet(f"""
             InventoryCard {{
@@ -194,8 +193,8 @@ class InventoryCard(QFrame):
                 border-radius: 9px;
             }}
             InventoryCard:hover {{
-                background: {"#382030" if is_exclusive else "#2A2F3D"};
-                border: 1.5px solid {"#FDA4AF" if is_exclusive else "#5B8BB2"};
+                background: {"#382030" if char.rarity == "mythic" else "#2A2F3D"};
+                border: 1.5px solid {"#FDA4AF" if char.rarity == "mythic" else "#5B8BB2"};
             }}
             InventoryCard QLabel {{
                 border: none;
@@ -212,39 +211,15 @@ class InventoryCard(QFrame):
         top_row.setSpacing(4)
 
         tag = QLabel(r_label)
-        if is_exclusive:
-            tag.setStyleSheet("""
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #881337, stop:0.5 #F43F5E, stop:1 #D97706);
-                color: #FFFFFF;
-                font-weight: 800;
-                font-size: 8px;
-                padding: 2px 6px;
-                border-radius: 4px;
-            """)
-        else:
-            tag.setStyleSheet(f"""
-                background: #181A20;
-                color: {r_color};
-                font-weight: 700;
-                font-size: 9px;
-                padding: 2px 6px;
-                border-radius: 4px;
-            """)
+        tag.setStyleSheet(f"""
+            background: #181A20;
+            color: {r_color};
+            font-weight: 700;
+            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 4px;
+        """)
         top_row.addWidget(tag)
-
-        if is_exclusive:
-            music_badge = QLabel("♪ Nhạc")
-            music_badge.setStyleSheet("""
-                background: #3B0764;
-                color: #F0ABFC;
-                font-size: 8px;
-                font-weight: 700;
-                padding: 2px 4px;
-                border-radius: 3px;
-                border: 0.5px solid #A855F7;
-            """)
-            top_row.addWidget(music_badge)
-
         top_row.addStretch()
 
         if is_equipped:
@@ -271,7 +246,7 @@ class InventoryCard(QFrame):
 
         # Mascot Avatar Preview (64x64)
         self.preview = CharacterPreviewWidget(
-            char, size=64, animated=(char.rarity in ("mythic", "legendary") or is_exclusive)
+            char, size=64, animated=(char.rarity in ("mythic", "legendary"))
         )
         layout.addWidget(self.preview, alignment=Qt.AlignmentFlag.AlignCenter)
 
@@ -669,38 +644,25 @@ class InventoryTab(QWidget):
         equipped_id = equipped_char.id if equipped_char else "pop"
         is_equipped = (char.id == equipped_id)
 
-        is_exclusive = getattr(char, "is_exclusive", False) or (char.id == "aemeath_idol")
         r_info = RARITY_INFO.get(char.rarity, {})
-        r_color = "#F43F5E" if is_exclusive else r_info.get("color", "#9CA3AF")
-        r_label = "★ ĐỘC QUYỀN ÂM NHẠC — THẦN THOẠI TỐI THƯỢNG ★" if is_exclusive else r_info.get("label", "Thường").upper()
+        r_color = r_info.get("color", "#9CA3AF")
+        r_label = r_info.get("label", "Thường")
 
         self.insp_title.setText(char.name)
-        self.insp_rarity.setText(r_label)
-        if is_exclusive:
-            self.insp_rarity.setStyleSheet("""
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #881337, stop:0.5 #F43F5E, stop:1 #D97706);
-                color: #FFFFFF;
-                border: 1px solid #FDA4AF;
-                font-size: 9.5px;
-                font-weight: 800;
-                padding: 4px 10px;
-                border-radius: 5px;
-            """)
-            if "music" in self._pose_buttons:
-                self._pose_buttons["music"].setVisible(True)
-                self._pose_buttons["music"].setText("♪ Nhạc (19f) ♪")
-        else:
-            self.insp_rarity.setStyleSheet(f"""
-                background: #181A20;
-                color: {r_color};
-                border: 1px solid #2E323E;
-                font-size: 10px;
-                font-weight: 700;
-                padding: 3px 8px;
-                border-radius: 4px;
-            """)
-            if "music" in self._pose_buttons:
-                self._pose_buttons["music"].setVisible(False)
+        self.insp_rarity.setText(r_label.upper())
+        self.insp_rarity.setStyleSheet(f"""
+            background: #181A20;
+            color: {r_color};
+            border: 1px solid #2E323E;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 4px;
+        """)
+        if "music" in self._pose_buttons:
+            has_music = bool(char and (getattr(char, "is_exclusive", False) or char.id == "aemeath_idol"))
+            self._pose_buttons["music"].setVisible(has_music)
+            self._pose_buttons["music"].setText("Nhạc/YT")
         self.insp_preview.set_character(char)
         self.insp_desc.setText(char.description)
 

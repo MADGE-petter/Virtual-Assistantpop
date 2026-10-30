@@ -369,10 +369,9 @@ class GachaStageWidget(QWidget):
         is_new = res.is_new
         shards_gained = res.shards_gained
 
-        is_ex = bool(char and (getattr(char, "is_exclusive", False) or char.id == "aemeath_idol"))
         r_info = RARITY_INFO.get(char.rarity, {})
-        r_col = QColor("#F43F5E") if is_ex else QColor(r_info.get("color", "#6BA3BE"))
-        r_label = "★ THẦN THOẠI TỐI THƯỢNG ★" if is_ex else r_info.get("label", "Thường")
+        r_col = QColor(r_info.get("color", "#6BA3BE"))
+        r_label = r_info.get("label", "Thường")
 
         float_y = math.sin(self.phase * 2.2) * 3.5
         bounce_scale = 0.75 + 0.25 * math.sin(self.reveal_bounce * math.pi / 2.0)
@@ -445,24 +444,20 @@ class GachaStageWidget(QWidget):
         for idx, res in enumerate(self._current_results):
             char = res.character
             total_shards += res.shards_gained
-            is_ex = bool(char and (getattr(char, "is_exclusive", False) or char.id == "aemeath_idol"))
             r_info = RARITY_INFO.get(char.rarity, {})
-            r_col = QColor("#F43F5E") if is_ex else QColor(r_info.get("color", "#6BA3BE"))
-            r_label = "★ TỐI THƯỢNG ★" if is_ex else r_info.get("label", "Thường")
+            r_col = QColor(r_info.get("color", "#6BA3BE"))
+            r_label = r_info.get("label", "Thường")
             is_bonus = getattr(res, "is_bonus", False)
 
             ix = start_x + idx * (card_w + 12.0)
             iy = card_y
 
-            painter.setBrush(QBrush(QColor("#241622" if is_ex else ("#28241E" if is_bonus else "#22252E"))))
-            border_c = QColor("#F43F5E") if is_ex else (QColor("#D4A359") if is_bonus else QColor(r_col.red(), r_col.green(), r_col.blue(), 145))
-            painter.setPen(QPen(border_c, 2.0 if is_ex else (1.8 if is_bonus else 1.4)))
+            painter.setBrush(QBrush(QColor("#241622" if char.rarity == "mythic" else ("#28241E" if is_bonus else "#22252E"))))
+            border_c = QColor("#D4A359") if is_bonus else QColor(r_col.red(), r_col.green(), r_col.blue(), 145)
+            painter.setPen(QPen(border_c, 1.8 if is_bonus else 1.4))
             painter.drawRoundedRect(QRectF(ix, iy, card_w, card_h), 10.0, 10.0)
 
-            if is_ex:
-                badge_text = "★ ĐỘC QUYỀN ★" if res.is_new else f"★ +{res.shards_gained} Mảnh"
-                painter.setPen(QColor("#F43F5E"))
-            elif is_bonus:
+            if is_bonus:
                 badge_text = "★ +1 RATE" if res.is_new else f"★ +{res.shards_gained} Mảnh"
                 painter.setPen(QColor("#D4A359"))
             else:

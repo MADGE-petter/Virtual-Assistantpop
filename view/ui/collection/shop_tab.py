@@ -37,21 +37,21 @@ class CharacterShopCard(QFrame):
         self.shards = shards
 
         r_info = RARITY_INFO.get(char.rarity, {})
-        is_exclusive = getattr(char, "is_exclusive", False) or (char.id == "aemeath_idol")
-        r_color = "#F43F5E" if is_exclusive else r_info.get("color", "#9CA3AF")
-        r_label = "★ TỐI THƯỢNG ★" if is_exclusive else r_info.get("label", "Thường")
+        r_info = RARITY_INFO.get(char.rarity, {})
+        r_color = r_info.get("color", "#9CA3AF")
+        r_label = r_info.get("label", "Thường")
         shard_cost = r_info.get("shard_cost", 100)
 
         self.setFixedHeight(216)
-        bg_col = "#241622" if is_exclusive else "#22252E"
-        border_col = "#F43F5E" if is_exclusive else ("#4A7C6B" if is_equipped else "#2E323E")
-        hover_bg = "#321C2C" if is_exclusive else "#272B36"
-        hover_border = "#FDA4AF" if is_exclusive else "#5B8BB2"
+        bg_col = "#241622" if char.rarity == "mythic" else ("#22252E" if is_owned else "#1F222A")
+        border_col = "#F43F5E" if char.rarity == "mythic" else ("#4A7C6B" if is_equipped else "#2E323E")
+        hover_bg = "#321C2C" if char.rarity == "mythic" else "#272B36"
+        hover_border = "#FDA4AF" if char.rarity == "mythic" else "#5B8BB2"
 
         self.setStyleSheet(f"""
             CharacterShopCard {{
                 background: {bg_col};
-                border: {"1.5px solid " + border_col if is_exclusive else "1px solid " + border_col};
+                border: {"1.5px solid " + border_col if char.rarity == "mythic" else "1px solid " + border_col};
                 border-radius: 10px;
             }}
             CharacterShopCard:hover {{
@@ -73,39 +73,15 @@ class CharacterShopCard(QFrame):
         top_row.setSpacing(4)
 
         tag = QLabel(r_label)
-        if is_exclusive:
-            tag.setStyleSheet("""
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #881337, stop:0.5 #F43F5E, stop:1 #D97706);
-                color: #FFFFFF;
-                font-size: 8.5px;
-                font-weight: 800;
-                padding: 2px 7px;
-                border-radius: 4px;
-            """)
-        else:
-            tag.setStyleSheet(f"""
-                background: #181A20;
-                color: {r_color};
-                font-size: 10px;
-                font-weight: 700;
-                padding: 2px 7px;
-                border-radius: 4px;
-            """)
+        tag.setStyleSheet(f"""
+            background: #181A20;
+            color: {r_color};
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 4px;
+        """)
         top_row.addWidget(tag)
-
-        if is_exclusive:
-            music_tag = QLabel("♪ 19f GIF")
-            music_tag.setStyleSheet("""
-                background: #3B0764;
-                color: #F0ABFC;
-                font-size: 8px;
-                font-weight: 700;
-                padding: 2px 5px;
-                border-radius: 3px;
-                border: 0.5px solid #A855F7;
-            """)
-            top_row.addWidget(music_tag)
-
         top_row.addStretch()
 
         if is_owned:
@@ -124,7 +100,7 @@ class CharacterShopCard(QFrame):
         self.preview = CharacterPreviewWidget(
             char,
             size=72,
-            animated=(char.rarity in ("mythic", "legendary") or is_exclusive),
+            animated=(char.rarity in ("mythic", "legendary")),
         )
         layout.addWidget(self.preview, alignment=Qt.AlignmentFlag.AlignCenter)
 
