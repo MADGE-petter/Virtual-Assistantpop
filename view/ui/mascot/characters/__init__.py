@@ -15,9 +15,9 @@ def create_renderer_for_character(char_def: Optional[CharacterDef]) -> BaseChara
     if char_def.kind == "phoebe_chuby":
         from view.ui.mascot.characters.chubby_meme_renderer import ChubbyMemeRenderer
         return ChubbyMemeRenderer("phoebe")
-    if char_def.kind == "nono_chubby":
-        from view.ui.mascot.characters.chubby_meme_renderer import ChubbyMemeRenderer
-        return ChubbyMemeRenderer("nono")
+    if char_def.kind in ("phrolova", "nono_chubby"):
+        from view.ui.mascot.characters.phrolova_renderer import PhrolovaRenderer
+        return PhrolovaRenderer(char_def.skin_dir)
     if char_def.kind == "aemeath_idol":
         from view.ui.mascot.characters.pink_idol_renderer import PinkIdolRenderer
         return PinkIdolRenderer(char_def.skin_dir)

@@ -634,7 +634,7 @@ class InventoryTab(QWidget):
 
     def _on_card_selected(self, char_id: str):
         if self.selected_id != char_id:
-            if self._active_pose == "music" and char_id != "aemeath_idol":
+            if self._active_pose == "music" and char_id not in ("aemeath_idol", "nono_chubby"):
                 self._active_pose = "idle"
             self._update_pose_styles()
         self.selected_id = char_id
@@ -668,7 +668,7 @@ class InventoryTab(QWidget):
             border-radius: 4px;
         """)
         if "music" in self._pose_buttons:
-            has_music = bool(char and (getattr(char, "is_exclusive", False) or char.id == "aemeath_idol"))
+            has_music = bool(char and (getattr(char, "is_exclusive", False) or char.id in ("aemeath_idol", "nono_chubby")))
             self._pose_buttons["music"].setVisible(has_music)
             self._pose_buttons["music"].setText("Nhạc/YT")
         self.insp_preview.set_character(char)

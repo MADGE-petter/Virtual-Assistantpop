@@ -142,8 +142,9 @@ _BUILTINS: List[CharacterDef] = [
         description="Meme Phoebe Chupi tròn ủm siêu đáng yêu với đôi má bánh bao phúng phính, bím tóc nơ xanh-trắng và tiếng kêu 'Chupi~!' chữa lành vô tận.",
     ),
     CharacterDef(
-        id="nono_chubby", name="Nono (Phruonuo)", rarity="legendary", kind="nono_chubby",
-        description="Bé Nono bánh bao núng nính (Phrolova Chubby) với tóc xám bạc buộc hai bên, hoa bỉ ngạn đỏ và băng bịt mắt trắng, biểu cảm ngơ ngác siêu cưng.",
+        id="nono_chubby", name="Phrolova (Ponova)", rarity="legendary", kind="phrolova",
+        description="Resonator Phrolova (Ponova) Chibi siêu dễ thương từ Wuthering Waves với mái tóc bạch kim gợn sóng, váy đỏ kiêu kỳ và trọn bộ hoạt ảnh GIF: đứng nháy mắt, gật đầu trò chuyện, quẩy tay cổ vũ và kéo violin cực nghệ.",
+        skin_dir=resource_path("skins/phrolova"),
     ),
     # ---------------- Mythic (Đỏ - Duy nhất Aemeath) ----------------
     CharacterDef(
