@@ -160,9 +160,17 @@ class MiniMascotWidget(QWidget):
         try:
             from utils.paths import resource_path
             from utils.sound_player import play_wav_safely
-            sample_name = "nono_chubby.wav" if cid == "nono_chubby" else "phoebe_chupi.wav"
+            if cid == "aemeath_idol":
+                sample_name = "aemeath_idol.wav"
+            elif cid == "nono_chubby":
+                sample_name = "nono_chubby.wav"
+            elif cid == "phoebe_chuby":
+                sample_name = "phoebe_chupi.wav"
+            else:
+                return
             wav_path = resource_path(os.path.join("voice-models", "samples", sample_name))
-            play_wav_safely(wav_path)
+            if os.path.isfile(wav_path):
+                play_wav_safely(wav_path)
         except Exception:
             pass
 

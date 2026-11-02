@@ -353,12 +353,20 @@ class AudioService:
             return "pop"
 
     def play_mascot_sfx(self, char_id: Optional[str] = None) -> None:
-        """Play Phoebe Chupi ('Phoebe Chupi!') or Nono ('Nono~!') authentic voice sample asynchronously."""
+        """Play Phoebe Chupi, Nono, or Aemeath authentic voice sample asynchronously."""
         cid = char_id or self._get_equipped_character_id()
-        if cid not in ("phoebe_chuby", "nono_chubby"):
+        if cid not in ("phoebe_chuby", "nono_chubby", "aemeath_idol"):
             return
 
-        sample_file = "phoebe_chupi.wav" if cid == "phoebe_chuby" else "nono_chubby.wav"
+        if cid == "aemeath_idol":
+            sample_file = "aemeath_idol.wav"
+        elif cid == "phoebe_chuby":
+            sample_file = "phoebe_chupi.wav"
+        elif cid == "nono_chubby":
+            sample_file = "nono_chubby.wav"
+        else:
+            return
+
         sample_path = os.path.join(self.models_dir, "samples", sample_file)
         if not os.path.isfile(sample_path):
             return
@@ -378,20 +386,28 @@ class AudioService:
         threading.Thread(target=_worker, daemon=True).start()
 
     def _apply_character_voice_clone(self, audio: "np.ndarray", sr_rate: int, char_id: str) -> "np.ndarray":
-        """Transform TTS audio pitch & timbre to match Phoebe Chupi (~452Hz) or Nono (~422Hz) authentic voice."""
-        if char_id not in ("phoebe_chuby", "nono_chubby") or np is None:
+        """Transform TTS audio pitch & timbre to match Phoebe Chupi (~452Hz), Nono (~422Hz), or Aemeath Idol (~440Hz) authentic voice."""
+        if char_id not in ("phoebe_chuby", "nono_chubby", "aemeath_idol") or np is None:
             return audio
         try:
             import librosa
-            # Phoebe Chupi: ~452Hz (+5.8 semitones) | Nono (Nuonuo): ~422Hz (+4.6 semitones)
-            n_steps = 5.8 if char_id == "phoebe_chuby" else 4.6
+            if char_id == "phoebe_chuby":
+                n_steps = 5.8
+                pre_emphasis = 0.18
+            elif char_id == "nono_chubby":
+                n_steps = 4.6
+                pre_emphasis = 0.14
+            elif char_id == "aemeath_idol":
+                n_steps = 5.0
+                pre_emphasis = 0.15
+            else:
+                return audio
+
             shifted = librosa.effects.pitch_shift(
                 y=audio.astype(np.float32),
                 sr=sr_rate,
                 n_steps=n_steps
             )
-            # Gentle high-shelf brightness boost for crisp anime vocal timbre
-            pre_emphasis = 0.18 if char_id == "phoebe_chuby" else 0.14
             bright = np.append(shifted[0], shifted[1:] - pre_emphasis * shifted[:-1])
             peak = np.max(np.abs(bright))
             if peak > 0:
@@ -408,7 +424,7 @@ class AudioService:
             raise RuntimeError("TTS engine not initialized")
         
         char_id = self._get_equipped_character_id()
-        tts_speed = 1.08 if char_id == "phoebe_chuby" else (1.03 if char_id == "nono_chubby" else 1.0)
+        tts_speed = 1.08 if char_id == "phoebe_chuby" else (1.05 if char_id == "aemeath_idol" else (1.03 if char_id == "nono_chubby" else 1.0))
         temp_path = os.path.join(tempfile.gettempdir(), f"tts_output_{int(time.time()*1000)}.wav")
         
         # Generate audio using MeloTTS
@@ -424,7 +440,7 @@ class AudioService:
             raise RuntimeError("soundfile not installed")
             
         audio, sr = sf.read(temp_path)
-        if char_id in ("phoebe_chuby", "nono_chubby"):
+        if char_id in ("phoebe_chuby", "nono_chubby", "aemeath_idol"):
             audio = self._apply_character_voice_clone(audio, sr, char_id)
             try:
                 sf.write(temp_path, audio, sr)
