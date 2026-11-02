@@ -53,6 +53,10 @@ class PhrolovaRenderer(BaseCharacterRenderer):
         self._drag_delays: List[float] = []
         self._drag_total_time: float = 0.0
 
+        self._music_frames: List[QPixmap] = []
+        self._music_delays: List[float] = []
+        self._music_total_time: float = 0.0
+
         self._load_sprites()
 
     @staticmethod
@@ -100,6 +104,7 @@ class PhrolovaRenderer(BaseCharacterRenderer):
         idle_gif = os.path.join(self.skin_dir, "idle.gif")
         talk_gif = os.path.join(self.skin_dir, "talk.gif")
         drag_gif = os.path.join(self.skin_dir, "drag.gif")
+        music_gif = os.path.join(self.skin_dir, "music.gif")
         music_png = os.path.join(self.skin_dir, "music.png")
 
         idle_png = os.path.join(self.skin_dir, "idle.png")
@@ -136,8 +141,12 @@ class PhrolovaRenderer(BaseCharacterRenderer):
         elif os.path.isfile(drag_png):
             self._drag_pm = QPixmap(drag_png)
 
-        # 4. Music PNG (violin)
-        if os.path.isfile(music_png):
+        # 4. Music GIF & PNG (violin performance)
+        if os.path.isfile(music_gif):
+            self._music_frames, self._music_delays, self._music_total_time = self._load_gif_frames(music_gif)
+            if self._music_frames:
+                self._music_pm = self._music_frames[0]
+        elif os.path.isfile(music_png):
             pm = QPixmap(music_png)
             if not pm.isNull():
                 self._music_pm = pm
@@ -238,7 +247,7 @@ class PhrolovaRenderer(BaseCharacterRenderer):
             model, is_speaking, is_music, is_dragging_or_dizzy, is_waking_up, now
         )
         if active_pm is not None and not active_pm.isNull():
-            target_size = 102.0 if is_music else 96.0
+            target_size = 98.0
             scaled = active_pm.scaled(
                 int(target_size), int(target_size),
                 Qt.AspectRatioMode.KeepAspectRatio,
@@ -246,27 +255,7 @@ class PhrolovaRenderer(BaseCharacterRenderer):
             )
             draw_x = cx - scaled.width() / 2.0
             draw_y = cy - scaled.height() / 2.0
-
-            if is_music:
-                # Rounded badge with crimson border for the violin sticker
-                painter.save()
-                clip_path = QPainterPath()
-                clip_path.addRoundedRect(QRectF(draw_x, draw_y, scaled.width(), scaled.height()), 14, 14)
-                painter.setClipPath(clip_path)
-                painter.drawPixmap(int(draw_x), int(draw_y), scaled)
-                painter.restore()
-
-                # Elegant glowing neon crimson border
-                painter.save()
-                pulse_border = (math.sin(model.pulse_phase * 3.5) + 1.0) / 2.0
-                border_alpha = int(180 + pulse_border * 75)
-                pen = QPen(QColor(244, 63, 94, border_alpha), 2.0)
-                painter.setPen(pen)
-                painter.setBrush(Qt.BrushStyle.NoBrush)
-                painter.drawRoundedRect(QRectF(draw_x, draw_y, scaled.width(), scaled.height()), 14, 14)
-                painter.restore()
-            else:
-                painter.drawPixmap(int(draw_x), int(draw_y), scaled)
+            painter.drawPixmap(int(draw_x), int(draw_y), scaled)
 
         # 1.5. Foreground Floating Notes & Twinkling Sparkles (when playing music)
         if is_music:
@@ -305,7 +294,11 @@ class PhrolovaRenderer(BaseCharacterRenderer):
                     return frame
             return self._drag_pm or self._idle_pm
         if is_music:
-            # Violin sticker emote
+            # Animated violin performance GIF!
+            if self._music_frames:
+                frame = self._get_animated_frame(self._music_frames, self._music_delays, self._music_total_time, now)
+                if frame:
+                    return frame
             return self._music_pm or self._idle_pm
         if is_speaking:
             # Chibi nodding & talking GIF
