@@ -1,8 +1,10 @@
 {
   "id": "nono_chubby",
   "name": "Phrolova (Ponova)",
-  "rarity": "legendary",
-  "price": 10000,
-  "description": "Resonator Phrolova (Ponova) Chibi siêu dễ thương từ Wuthering Waves với mái tóc bạch kim gợn sóng, váy đỏ kiêu kỳ và trọn bộ hoạt ảnh GIF: đứng nháy mắt, gật đầu trò chuyện, quẩy tay cổ vũ và kéo violin cực nghệ.",
+  "rarity": "mythic",
+  "price": 20000,
+  "description": "Resonator Phrolova (Ponova) Thần Thoại từ Wuthering Waves với mái tóc bạch kim gợn sóng kiêu kỳ, trang phục gothic đỏ đen rực rỡ và trọn bộ hoạt ảnh GIF: đứng nháy mắt, gật đầu trò chuyện, quẩy tay cổ vũ và độc tấu violin cực nghệ.",
+  "is_exclusive": true,
   "in_gacha": true
 }
+

@@ -141,12 +141,7 @@ _BUILTINS: List[CharacterDef] = [
         id="phoebe_chuby", name="Phoebe Chupi", rarity="legendary", kind="phoebe_chuby",
         description="Meme Phoebe Chupi tròn ủm siêu đáng yêu với đôi má bánh bao phúng phính, bím tóc nơ xanh-trắng và tiếng kêu 'Chupi~!' chữa lành vô tận.",
     ),
-    CharacterDef(
-        id="nono_chubby", name="Phrolova (Ponova)", rarity="legendary", kind="phrolova",
-        description="Resonator Phrolova (Ponova) Chibi siêu dễ thương từ Wuthering Waves với mái tóc bạch kim gợn sóng, váy đỏ kiêu kỳ và trọn bộ hoạt ảnh GIF: đứng nháy mắt, gật đầu trò chuyện, quẩy tay cổ vũ và kéo violin cực nghệ.",
-        skin_dir=resource_path("skins/phrolova"),
-    ),
-    # ---------------- Mythic (Đỏ - Duy nhất Aemeath) ----------------
+    # ---------------- Mythic (Đỏ - Tối thượng & Độc quyền) ----------------
     CharacterDef(
         id="aemeath_idol",
         name="Aemeath (Thiên Thần Idol)",
@@ -155,6 +150,16 @@ _BUILTINS: List[CharacterDef] = [
         description="Thiên thần Idol tóc hồng phấn với kẹp tóc cánh chim sao vàng, vòng hào quang băng lam, đôi mắt sao lấp lánh và 2 gậy cổ vũ phát sáng rực rỡ.",
         price_override=20000,
         is_exclusive=True,
+    ),
+    CharacterDef(
+        id="nono_chubby",
+        name="Phrolova (Ponova)",
+        rarity="mythic",
+        kind="phrolova",
+        description="Resonator Phrolova (Ponova) Thần Thoại từ Wuthering Waves với mái tóc bạch kim gợn sóng kiêu kỳ, trang phục gothic đỏ đen rực rỡ và trọn bộ hoạt ảnh GIF: đứng nháy mắt, gật đầu trò chuyện, quẩy tay cổ vũ và độc tấu violin cực nghệ.",
+        price_override=20000,
+        is_exclusive=True,
+        skin_dir=resource_path("skins/phrolova"),
     ),
 ]
 

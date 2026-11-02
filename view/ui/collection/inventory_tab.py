@@ -521,8 +521,8 @@ class InventoryTab(QWidget):
 
     def _on_pose_selected(self, mode: str):
         char = self.service.registry.get(self.selected_id or "pop")
-        is_ex = bool(char and (getattr(char, "is_exclusive", False) or char.id == "aemeath_idol"))
-        if mode == "music" and not is_ex:
+        has_music = bool(char and (getattr(char, "is_exclusive", False) or char.id in ("aemeath_idol", "nono_chubby") or char.rarity == "mythic"))
+        if mode == "music" and not has_music:
             mode = "idle"
         self._active_pose = mode
         self._update_pose_styles()

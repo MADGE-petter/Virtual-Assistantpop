@@ -229,12 +229,16 @@ class PhrolovaRenderer(BaseCharacterRenderer):
             is_speaking, is_music, is_dragging_or_dizzy, is_waking_up
         )
 
+        # 0.5. Background Acoustic Sound Waves (when playing music)
+        if is_music:
+            self._draw_music_soundwaves(painter, cx, cy, now)
+
         # 1. Draw Active Sprite
         active_pm = self._select_active_pixmap(
             model, is_speaking, is_music, is_dragging_or_dizzy, is_waking_up, now
         )
         if active_pm is not None and not active_pm.isNull():
-            target_size = 96.0
+            target_size = 102.0 if is_music else 96.0
             scaled = active_pm.scaled(
                 int(target_size), int(target_size),
                 Qt.AspectRatioMode.KeepAspectRatio,
@@ -242,7 +246,31 @@ class PhrolovaRenderer(BaseCharacterRenderer):
             )
             draw_x = cx - scaled.width() / 2.0
             draw_y = cy - scaled.height() / 2.0
-            painter.drawPixmap(int(draw_x), int(draw_y), scaled)
+
+            if is_music:
+                # Rounded badge with crimson border for the violin sticker
+                painter.save()
+                clip_path = QPainterPath()
+                clip_path.addRoundedRect(QRectF(draw_x, draw_y, scaled.width(), scaled.height()), 14, 14)
+                painter.setClipPath(clip_path)
+                painter.drawPixmap(int(draw_x), int(draw_y), scaled)
+                painter.restore()
+
+                # Elegant glowing neon crimson border
+                painter.save()
+                pulse_border = (math.sin(model.pulse_phase * 3.5) + 1.0) / 2.0
+                border_alpha = int(180 + pulse_border * 75)
+                pen = QPen(QColor(244, 63, 94, border_alpha), 2.0)
+                painter.setPen(pen)
+                painter.setBrush(Qt.BrushStyle.NoBrush)
+                painter.drawRoundedRect(QRectF(draw_x, draw_y, scaled.width(), scaled.height()), 14, 14)
+                painter.restore()
+            else:
+                painter.drawPixmap(int(draw_x), int(draw_y), scaled)
+
+        # 1.5. Foreground Floating Notes & Twinkling Sparkles (when playing music)
+        if is_music:
+            self._draw_music_notes_and_sparkles(painter, cx, cy, now)
 
         # 2. Sleeping Snot Bubble OR Pop Effect
         nose_x = cx + 2.0
@@ -379,3 +407,79 @@ class PhrolovaRenderer(BaseCharacterRenderer):
             painter.setFont(font)
             painter.drawText(int(p["x"]), int(p["y"]), "z")
         painter.restore()
+
+    def _draw_music_soundwaves(self, painter: QPainter, cx: float, cy: float, now: float):
+        """Draws concentric acoustic resonant soundwaves expanding from the violin."""
+        painter.save()
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        vx = cx + 8.0
+        vy = cy + 12.0
+        for i in range(3):
+            t = (now * 1.3 + i * 0.33) % 1.0
+            rx = 16.0 + t * 46.0
+            ry = 10.0 + t * 28.0
+            alpha = int(160 * (1.0 - t) * (1.0 - t))
+            if alpha > 8:
+                pen = QPen(QColor(244, 63, 94, alpha), max(0.8, 2.0 - t * 1.2))
+                painter.setPen(pen)
+                painter.setBrush(Qt.BrushStyle.NoBrush)
+                painter.drawEllipse(QPointF(vx, vy), rx, ry)
+        painter.restore()
+
+    def _draw_music_notes_and_sparkles(self, painter: QPainter, cx: float, cy: float, now: float):
+        """Draws floating animated musical notes and twinkling gothic star sparkles."""
+        painter.save()
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        # 1. Twinkling 4-point star sparkles
+        sparkles = [
+            (-44.0, -28.0, 0.0),
+            (42.0, -22.0, 0.28),
+            (-36.0, 20.0, 0.55),
+            (40.0, 14.0, 0.78),
+            (-14.0, -42.0, 0.42),
+            (16.0, -44.0, 0.88),
+        ]
+        for sx_off, sy_off, s_phase in sparkles:
+            twinkle = (math.sin(now * 4.2 + s_phase * 6.28) + 1.0) / 2.0
+            if twinkle > 0.15:
+                s_sz = 1.8 + twinkle * 3.6
+                s_alpha = int(220 * twinkle)
+                px = cx + sx_off
+                py = cy + sy_off
+                painter.setPen(Qt.PenStyle.NoPen)
+                painter.setBrush(QBrush(QColor(253, 224, 71, s_alpha)))
+                star_path = QPainterPath()
+                star_path.moveTo(px, py - s_sz)
+                star_path.quadTo(px, py, px + s_sz, py)
+                star_path.quadTo(px, py, px, py + s_sz)
+                star_path.quadTo(px, py, px - s_sz, py)
+                star_path.quadTo(px, py, px, py - s_sz)
+                painter.drawPath(star_path)
+
+        # 2. Floating Animated Musical Notes (♪, ♫, ♬, ♩)
+        notes = [
+            ("♪", -32.0, 0.0, 15, QColor(244, 63, 94)),
+            ("♫", 28.0, 0.22, 17, QColor(253, 164, 175)),
+            ("♬", -20.0, 0.48, 14, QColor(245, 158, 11)),
+            ("♩", 36.0, 0.72, 13, QColor(244, 63, 94)),
+            ("♫", -6.0, 0.38, 16, QColor(253, 164, 175)),
+            ("♪", 18.0, 0.86, 14, QColor(251, 191, 36)),
+        ]
+        font = painter.font()
+        for glyph, base_dx, time_off, f_size, col in notes:
+            t = (now * 0.75 + time_off) % 1.0
+            nx = cx + base_dx + math.sin(now * 3.2 + time_off * 6.28) * 8.5
+            ny = cy + 12.0 - t * 65.0
+            alpha = int(240 * math.sin(t * math.pi))
+            if alpha > 12:
+                font.setPixelSize(f_size)
+                font.setBold(True)
+                painter.setFont(font)
+                painter.setPen(QColor(255, 255, 255, int(alpha * 0.65)))
+                painter.drawText(int(nx - 1), int(ny - 1), glyph)
+                painter.setPen(QColor(col.red(), col.green(), col.blue(), alpha))
+                painter.drawText(int(nx), int(ny), glyph)
+
+        painter.restore()
+
