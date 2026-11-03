@@ -1,0 +1,123 @@
+"""Conversation Controller - Thin wrapper for ConversationService (backward compatibility)."""
+
+from typing import Callable, Optional
+
+from controller.interfaces import (
+    IActionHandler,
+    IAudioService,
+    ISqlService,
+    IUserController,
+)
+from service.conversation_service import ConversationService
+
+
+class ConversationController:
+    """Thin wrapper - delegates to ConversationService."""
+    
+    def __init__(
+        self,
+        audio_service: IAudioService,
+        sql_service: ISqlService,
+        action_handler: IActionHandler,
+        user_controller: IUserController,
+    ):
+        self.service = ConversationService(
+            audio_service,
+            sql_service,
+            action_handler,
+            user_controller,
+        )
+        self.on_permission_requested: Optional[Callable] = None
+        self.on_file_preview_requested: Optional[Callable] = None
+        self.on_error: Optional[Callable[[str], None]] = None
+
+    def init_intent_service(self):
+        self.service.init_intent_service()
+
+    def start_session(self) -> None:
+        self.service.start_session()
+
+    def end_session(self) -> None:
+        self.service.end_session()
+
+    def run_main_loop(
+        self,
+        get_input_callback: Callable[[], Optional[str]],
+        on_idle_callback: Optional[Callable] = None,
+        idle_timeout: int = 15,
+    ) -> None:
+        self.service.run_main_loop(
+            get_input_callback=get_input_callback,
+            on_idle_callback=on_idle_callback,
+            idle_timeout=idle_timeout,
+        )
+
+    def run_first_interaction(
+        self,
+        get_input_callback: Callable[[], Optional[str]],
+        speak_callback: Optional[Callable] = None,
+        from_wake_up: bool = False,
+    ) -> None:
+        self.service.run_first_interaction(
+            get_input_callback=get_input_callback,
+            speak_callback=speak_callback,
+            from_wake_up=from_wake_up,
+        )
+
+    def stop_conversation(self) -> None:
+        self.service.stop_conversation()
+
+    def set_assistant_active(self, active: bool) -> None:
+        self.service.set_assistant_active(active)
+        
+    def set_model(self, model_name: str) -> None:
+        self.service.set_model(model_name)
+    
+    # ============ MVC PUBLIC API ============
+    
+    def handle_user_message(self, text: str):
+        """Handle user message from View (text input)."""
+        # Run in background thread to avoid blocking UI
+        import threading
+        threading.Thread(
+            target=self._process_user_message,
+            args=(text,),
+            daemon=True
+        ).start()
+    
+    def _process_user_message(self, text: str):
+        """Process user message in background."""
+        try:
+            result = self.service.process_exchange(
+                user_input=text,
+                speak_callback=self.service.audio.speak,
+                user_name=getattr(self.service.user, 'display_name', 'bạn') or 'bạn',
+                session_id=str(self.service._session_id or "default")
+            )
+            # Route back structured UI requests to PopController via callbacks if they exist
+            if hasattr(result, 'needs_permission') and result.needs_permission:
+                if hasattr(self, 'on_permission_requested') and callable(self.on_permission_requested):
+                    self.on_permission_requested(result.confirmation_title, result.summary_text, result.tool_name, result.tool_args)
+            
+            if hasattr(result, 'tool_name') and result.tool_name == "file_search" and not result.needs_permission:
+                if hasattr(self, 'on_file_preview_requested') and callable(self.on_file_preview_requested):
+                    self.on_file_preview_requested(result.tool_args.get("files", []))
+                    
+        except Exception as e:
+            print(f"[ConversationController] Error processing message: {e}")
+            import traceback
+            traceback.print_exc()
+            error_msg = f"⚠️ Lỗi xử lý: {e}"
+            if hasattr(self, 'on_error') and callable(self.on_error):
+                self.on_error(error_msg)
+            elif hasattr(self.service, 'audio') and hasattr(self.service.audio, 'view') and self.service.audio.view:
+                self.service.audio.view.update_bot_text(error_msg)
+    
+    def stop_generation(self):
+        """Stop current generation."""
+        self.service.stop_generation()
+    
+    def start_new_conversation(self):
+        """Start a new conversation session."""
+        self.service.end_session()
+        self.service.start_session()

@@ -1,0 +1,418 @@
+import os
+from PyQt6.QtCore import Qt, pyqtSignal, QStringListModel, QUrl, QTimer
+from PyQt6.QtGui import QDesktopServices
+from PyQt6.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
+    QPushButton, QScrollArea, QFrame, QMessageBox, QCompleter,
+    QProgressBar
+)
+
+from view.ui.styles import DesignTokens
+from view.ui.icons import get_brand_logo_pixmap
+from view.ui.settings.settings_config import HFSearchThread, HFModelDownloadThread
+from view.ui.settings.quantization_dialog import QuantizationDialog
+
+
+class DownloadTabWidget(QWidget):
+    """Tab Tải & Tìm kiếm Model chuyên biệt từ Hugging Face với tính năng chọn phiên bản Quantization."""
+    
+    modelDownloaded = pyqtSignal()
+
+    def __init__(self, user_settings: dict, parent=None):
+        super().__init__(parent)
+        self.user_settings = user_settings
+        self.download_thread = None
+        self.search_thread = None
+        self._pending_search_query = None
+        self.search_timer = QTimer(self)
+        self.search_timer.setSingleShot(True)
+        self.search_timer.setInterval(250)
+        self.search_timer.timeout.connect(self._run_debounced_search)
+        self._setup_ui()
+
+    def _setup_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(32, 28, 32, 28)
+        layout.setSpacing(18)
+
+        # Header Title Bar
+        title_box = QVBoxLayout()
+        title_box.setSpacing(6)
+
+        title_row = QHBoxLayout()
+        title = QLabel("Tìm Kiếm & Tải Model từ Hugging Face")
+        title.setStyleSheet(f"font-size: 20px; font-weight: 700; color: {DesignTokens.TEXT_MAIN}; letter-spacing: 0.5px;")
+
+        badge = QLabel("HUGGING FACE HUB")
+        badge.setStyleSheet(
+            f"background: rgba(0, 255, 170, 0.12); color: {DesignTokens.CYAN_ACCENT}; font-size: 11px; "
+            f"font-weight: 700; border-radius: 4px; padding: 2px 8px; border: 1px solid rgba(0, 255, 170, 0.25);"
+        )
+        title_row.addWidget(title)
+        title_row.addWidget(badge)
+        title_row.addStretch()
+
+        desc = QLabel("Khám phá hàng ngàn mô hình AI GGUF trên Hugging Face Hub và tự do lựa chọn phiên bản Quantization tối ưu")
+        desc.setStyleSheet(f"color: {DesignTokens.TEXT_MUTED}; font-size: 13px;")
+
+        title_box.addLayout(title_row)
+        title_box.addWidget(desc)
+        layout.addLayout(title_box)
+
+        # Search Bar
+        search_card = QFrame()
+        search_card.setObjectName("searchCard")
+        search_card.setStyleSheet(
+            f"#searchCard {{ background: transparent; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; "
+            f"border-radius: 12px; }}"
+            f"#searchCard:hover {{ background: rgba(255, 255, 255, 0.03); border-color: {DesignTokens.BORDER_GRADIENT_HOVER}; }}"
+            f"#searchCard QLabel {{ border: none; background: transparent; }}"
+        )
+        sb_layout = QHBoxLayout(search_card)
+        sb_layout.setContentsMargins(14, 5, 6, 5)
+        sb_layout.setSpacing(12)
+
+        from view.ui.icons import create_vector_icon
+        search_icon = QLabel()
+        search_icon.setPixmap(create_vector_icon("search", "#96D7E9", 16).pixmap(16, 16))
+        search_icon.setFixedSize(20, 20)
+        search_icon.setStyleSheet("background: transparent; border: none;")
+
+        self.input_search = QLineEdit()
+        self.input_search.setPlaceholderText("Nhập tên model (VD: Llama-3.2, Qwen2.5, Gemma-2, DeepSeek, Mistral...)...")
+        self.input_search.setStyleSheet(
+            f"QLineEdit {{ background: transparent; border: none; color: {DesignTokens.TEXT_MAIN}; font-size: 13px; padding: 6px 4px; }}"
+        )
+        self.input_search.textChanged.connect(self._on_search_text_changed)
+        self.input_search.returnPressed.connect(self._on_search_models_clicked)
+
+        # QCompleter setup
+        self.completer_model = QStringListModel()
+        self.completer = QCompleter(self.completer_model, self)
+        self.completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self.completer.setFilterMode(Qt.MatchFlag.MatchContains)
+        self.completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
+        self.completer.activated.connect(self._on_completer_activated)
+        self.input_search.setCompleter(self.completer)
+
+        self.btn_search = QPushButton("Tìm Kiếm")
+        self.btn_search.setFixedHeight(34)
+        self.btn_search.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_search.setStyleSheet(
+            f"QPushButton {{ background: {DesignTokens.GRADIENT_BLUE_GREEN}; "
+            f"color: #040812; font-weight: 700; font-size: 11px; border: none; "
+            f"border-radius: 6px; padding: 0 16px; }}"
+            f"QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #0077D6, stop:1 #00E699); }}"
+            f"QPushButton:pressed {{ background: #00B88B; }}"
+        )
+        self.btn_search.clicked.connect(self._on_search_models_clicked)
+
+        sb_layout.addWidget(search_icon)
+        sb_layout.addWidget(self.input_search, stretch=1)
+        sb_layout.addWidget(self.btn_search)
+        layout.addWidget(search_card)
+
+        # Download Progress Card (Hidden by default, shown during download)
+        self.progress_frame = QFrame()
+        self.progress_frame.setObjectName("dlProgressFrame")
+        self.progress_frame.setStyleSheet(
+            f"#dlProgressFrame {{ background: transparent; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; "
+            f"border-radius: 12px; }}"
+            f"#dlProgressFrame QLabel {{ border: none; background: transparent; padding: 0px; }}"
+        )
+        self.progress_frame.hide()
+        pf_layout = QVBoxLayout(self.progress_frame)
+        pf_layout.setContentsMargins(16, 14, 16, 14)
+        pf_layout.setSpacing(8)
+
+        self.dl_title_lbl = QLabel("Đang chuẩn bị tải...")
+        self.dl_title_lbl.setStyleSheet(f"font-weight: 700; font-size: 13px; color: {DesignTokens.CYAN_ACCENT};")
+
+        self.dl_progress_bar = QProgressBar()
+        self.dl_progress_bar.setFixedHeight(8)
+        self.dl_progress_bar.setStyleSheet(
+            f"QProgressBar {{ background: {DesignTokens.SURFACE_3}; border: none; border-radius: 4px; text-align: center; }}"
+            f"QProgressBar::chunk {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #008EFF, stop:1 #00FFAA); border-radius: 4px; }}"
+        )
+        self.dl_progress_bar.setValue(0)
+        self.dl_progress_bar.setTextVisible(False)
+
+        pf_bottom = QHBoxLayout()
+        self.dl_info_lbl = QLabel("Đang kết nối đến Hugging Face Resolve CDN...")
+        self.dl_info_lbl.setStyleSheet(f"font-size: 12px; color: {DesignTokens.TEXT_SECONDARY};")
+
+        self.dl_cancel_btn = QPushButton("Hủy Tải")
+        self.dl_cancel_btn.setFixedHeight(28)
+        self.dl_cancel_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.dl_cancel_btn.setStyleSheet(
+            f"QPushButton {{ background: rgba(255, 75, 110, 0.12); color: {DesignTokens.CORAL_ACCENT}; "
+            f"border: 1px solid rgba(255, 75, 110, 0.3); border-radius: 6px; padding: 0 14px; font-size: 12px; font-weight: 600; }}"
+            f"QPushButton:hover {{ background: rgba(255, 75, 110, 0.25); color: #FFFFFF; border-color: {DesignTokens.CORAL_ACCENT}; }}"
+        )
+        self.dl_cancel_btn.clicked.connect(self._cancel_download)
+
+        pf_bottom.addWidget(self.dl_info_lbl, stretch=1)
+        pf_bottom.addWidget(self.dl_cancel_btn)
+
+        pf_layout.addWidget(self.dl_title_lbl)
+        pf_layout.addWidget(self.dl_progress_bar)
+        pf_layout.addLayout(pf_bottom)
+
+        layout.addWidget(self.progress_frame)
+
+        # Search Results Status Label
+        self.status_lbl = QLabel("Nhập từ khóa phía trên để bắt đầu tìm kiếm mô hình...")
+        self.status_lbl.setStyleSheet(f"font-size: 13px; font-weight: 600; color: {DesignTokens.TEXT_MUTED}; margin-top: 4px;")
+        layout.addWidget(self.status_lbl)
+
+        # Scroll Area for Search Results
+        self.scroll_models = QScrollArea()
+        self.scroll_models.setWidgetResizable(True)
+        self.scroll_models.setFrameShape(QFrame.Shape.NoFrame)
+
+        self.cards_container = QWidget()
+        self.cards_layout = QVBoxLayout(self.cards_container)
+        self.cards_layout.setContentsMargins(0, 0, 0, 0)
+        self.cards_layout.setSpacing(12)
+
+        self.scroll_models.setWidget(self.cards_container)
+        layout.addWidget(self.scroll_models, stretch=1)
+
+    def _clear_cards_layout(self):
+        while self.cards_layout.count():
+            item = self.cards_layout.takeAt(0)
+            if item is not None:
+                w = item.widget()
+                if w is not None:
+                    w.deleteLater()
+
+    def _on_search_text_changed(self, text: str):
+        query = text.strip()
+        self.search_timer.stop()
+        popup = self.completer.popup()
+        if popup is not None:
+            popup.hide()
+        self.completer_model.setStringList([])
+        if len(query) < 2:
+            self._pending_search_query = None
+            self.status_lbl.setText("Nhập ít nhất 2 ký tự để tìm model...")
+            self._clear_cards_layout()
+            return
+
+        self.status_lbl.setText(f"Đang tìm '{query}' trên Hugging Face...")
+        self.search_timer.start()
+
+    def _run_debounced_search(self):
+        query = self.input_search.text().strip()
+        if len(query) >= 2:
+            self._search_models(query)
+
+    def _on_completer_activated(self, text: str):
+        self.input_search.setText(text)
+        self._search_models(text)
+
+    def _on_search_models_clicked(self):
+        query = self.input_search.text().strip()
+        if query:
+            self._search_models(query)
+
+    def _search_models(self, query: str):
+        self.search_timer.stop()
+        self.status_lbl.setText(f"Đang tìm kiếm '{query}' trên Hugging Face Hub...")
+        self._clear_cards_layout()
+
+        if self.search_thread and self.search_thread.isRunning():
+            self._pending_search_query = query
+            return
+
+        self._start_search(query)
+
+    def _start_search(self, query: str):
+        self.search_thread = HFSearchThread(query, is_suggest=False, parent=self)
+        self.search_thread.resultsFound.connect(
+            lambda models, searched_query=query: self._on_search_results_found(models)
+            if searched_query == self.input_search.text().strip() else None
+        )
+        self.search_thread.searchError.connect(
+            lambda err, searched_query=query: self.status_lbl.setText(f"Lỗi tìm kiếm: {err}")
+            if searched_query == self.input_search.text().strip() else None
+        )
+        self.search_thread.finished.connect(lambda searched_query=query: self._on_search_finished(searched_query))
+        self.search_thread.start()
+
+    def _on_search_finished(self, finished_query: str):
+        self.search_thread = None
+        pending_query = self._pending_search_query
+        self._pending_search_query = None
+        if pending_query and pending_query != finished_query and pending_query == self.input_search.text().strip():
+            self._search_models(pending_query)
+
+    def _on_search_results_found(self, models: list):
+        self.completer_model.setStringList([model["id"] for model in models])
+        self.completer.setCompletionPrefix(self.input_search.text().strip())
+        if self.input_search.hasFocus() and self.completer.completionCount():
+            self.completer.complete()
+        self._clear_cards_layout()
+
+        if not models:
+            self.status_lbl.setText("Không tìm thấy model GGUF nào phù hợp.")
+            return
+
+        self.status_lbl.setText(f"Tìm thấy {len(models)} mô hình GGUF khả dụng trên Hugging Face:")
+        for m in models:
+            card = QFrame()
+            card.setObjectName("modelResultCard")
+            card.setStyleSheet(
+                f"QFrame#modelResultCard {{ background: transparent; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; "
+                f"border-radius: 12px; }}"
+                f"QFrame#modelResultCard:hover {{ border-color: {DesignTokens.BORDER_GRADIENT_HOVER}; background: rgba(255, 255, 255, 0.03); }}"
+                f"QFrame#modelResultCard QLabel {{ border: none; background: transparent; }}"
+            )
+            cl = QVBoxLayout(card)
+            cl.setContentsMargins(16, 14, 16, 14)
+            cl.setSpacing(10)
+            
+            # Top row: Icon + Title + Author
+            top_row = QHBoxLayout()
+            top_row.setSpacing(12)
+            
+            icon_lbl = QLabel()
+            icon_lbl.setPixmap(get_brand_logo_pixmap(m["name"], 34))
+            icon_lbl.setFixedSize(34, 34)
+            top_row.addWidget(icon_lbl)
+            
+            title_box = QVBoxLayout()
+            title_box.setSpacing(3)
+            
+            name_lbl = QLabel(m["name"])
+            name_lbl.setStyleSheet(f"font-size: 14px; font-weight: 650; color: {DesignTokens.TEXT_MAIN};")
+            
+            author_str = m.get('author', 'Community')
+            sub_lbl = QLabel(f"{author_str}  /  {m['id']}")
+            sub_lbl.setStyleSheet(f"font-size: 11px; color: {DesignTokens.TEXT_MUTED};")
+            
+            title_box.addWidget(name_lbl)
+            title_box.addWidget(sub_lbl)
+            top_row.addLayout(title_box, stretch=1)
+            
+            # Downloads Badge
+            dl_count = m.get("downloads", 0)
+            if dl_count > 0:
+                dl_str = f"{dl_count:,}"
+                badge = QLabel(f"{dl_str} downloads")
+                badge.setStyleSheet(
+                    f"color: {DesignTokens.TEXT_MUTED}; padding: 3px 7px; border-radius: 2px; "
+                    f"font-size: 10px; font-weight: 600; border: 1px solid {DesignTokens.BORDER};"
+                )
+                top_row.addWidget(badge, alignment=Qt.AlignmentFlag.AlignTop)
+                
+            cl.addLayout(top_row)
+            
+            # Middle row: Description/Tags
+            mid_row = QHBoxLayout()
+            tags = m.get('tags', 'Language Model').replace('-', ' ').title()
+            tags_lbl = QLabel(f"{tags}  ·  GGUF")
+            tags_lbl.setStyleSheet(f"font-size: 11px; color: {DesignTokens.TEXT_SECONDARY};")
+            tags_lbl.setWordWrap(True)
+            mid_row.addWidget(tags_lbl)
+            cl.addLayout(mid_row)
+            
+            # Bottom row: Action Buttons
+            bot_row = QHBoxLayout()
+            bot_row.addStretch()
+            
+            web_btn = QPushButton("Mở Web")
+            web_btn.setFixedHeight(32)
+            web_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            web_btn.setStyleSheet(
+                f"QPushButton {{ background: transparent; color: {DesignTokens.TEXT_SECONDARY}; "
+                f"border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; border-radius: 6px; padding: 0 12px; font-size: 11px; font-weight: 600; }}"
+                f"QPushButton:hover {{ background: rgba(255, 255, 255, 0.04); border-color: {DesignTokens.BORDER_GRADIENT_HOVER}; color: {DesignTokens.TEXT_MAIN}; }}"
+            )
+            web_btn.clicked.connect(lambda _, url=f"https://huggingface.co/{m['id']}": QDesktopServices.openUrl(QUrl(url)))
+            
+            dl_border = QFrame()
+            dl_border.setObjectName("downloadGradientBorder")
+            dl_border.setFixedHeight(36)
+            dl_border.setStyleSheet(
+                f"QFrame#downloadGradientBorder {{"
+                f"background: {DesignTokens.GRADIENT_BLUE_GREEN};"
+                f"border-radius: 7px; }}"
+            )
+            dl_border_layout = QHBoxLayout(dl_border)
+            dl_border_layout.setContentsMargins(1, 1, 1, 1)
+            dl_border_layout.setSpacing(0)
+
+            dl_btn = QPushButton("Chọn bản & Tải")
+            dl_btn.setFixedHeight(32)
+            dl_btn.setMinimumWidth(120)
+            dl_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            dl_btn.setStyleSheet(
+                f"QPushButton {{ background: #070B14; color: {DesignTokens.CYAN_ACCENT}; font-weight: 700; "
+                f"border: none; border-radius: 6px; padding: 0 14px; font-size: 11px; }}"
+                f"QPushButton:hover {{ background: rgba(0, 255, 170, 0.15); color: #FFFFFF; }}"
+            )
+            dl_btn.clicked.connect(lambda _, repo=m['id'], name=m['name']: self._open_quantization_selector(repo, name))
+            dl_border_layout.addWidget(dl_btn)
+            
+            bot_row.addWidget(web_btn)
+            bot_row.addWidget(dl_border)
+            cl.addLayout(bot_row)
+
+            self.cards_layout.addWidget(card)
+
+        self.cards_layout.addStretch()
+
+    def _open_quantization_selector(self, repo_id: str, model_name: str):
+        dialog = QuantizationDialog(repo_id, model_name, parent=self)
+        dialog.fileSelected.connect(lambda chosen_file: self._start_real_download(repo_id, model_name, chosen_file))
+        dialog.exec()
+
+    def _start_real_download(self, repo_id: str, model_name: str, chosen_file: str | None = None):
+        if self.download_thread and self.download_thread.isRunning():
+            QMessageBox.warning(self, "Đang tải", "Một mô hình khác đang được tải về. Vui lòng chờ hoàn tất hoặc bấm Hủy tải.")
+            return
+
+        target_dir = self.user_settings.get("model_dir", os.path.join(os.getcwd(), "LLM-agents"))
+        self.progress_frame.show()
+        display_name = chosen_file if chosen_file else model_name
+        self.dl_title_lbl.setText(f"Đang tải: {display_name}...")
+        self.dl_progress_bar.setValue(0)
+        self.dl_info_lbl.setText("Đang kết nối đến Hugging Face Resolve CDN...")
+        self.btn_search.setEnabled(False)
+
+        self.download_thread = HFModelDownloadThread(repo_id, target_dir, preferred_file=chosen_file, parent=self)
+        self.download_thread.statusUpdated.connect(lambda status: self.dl_info_lbl.setText(status))
+        self.download_thread.progressChanged.connect(self._on_download_progress)
+        self.download_thread.downloadFinished.connect(self._on_download_finished)
+        self.download_thread.downloadError.connect(self._on_download_error)
+        self.download_thread.start()
+
+    def _on_download_progress(self, percent: int, downloaded_mb: float, total_mb: float, speed_mb_s: float):
+        self.dl_progress_bar.setValue(percent)
+        if total_mb > 0:
+            self.dl_info_lbl.setText(
+                f"{downloaded_mb:.1f} MB / {total_mb:.1f} MB ({percent}%) • Tốc độ: {speed_mb_s:.2f} MB/s"
+            )
+        else:
+            self.dl_info_lbl.setText(f"Đã tải {downloaded_mb:.1f} MB • Tốc độ: {speed_mb_s:.2f} MB/s")
+
+    def _on_download_finished(self, saved_path: str):
+        self.btn_search.setEnabled(True)
+        self.progress_frame.hide()
+        QMessageBox.information(
+            self,
+            "Tải Thành Công",
+            f"Đã tải thành công phiên bản mô hình GGUF về máy:\n{saved_path}\n\nBạn có thể vào tab 'Quản lý Models' để kiểm tra dung lượng và sử dụng ngay!"
+        )
+        self.modelDownloaded.emit()
+
+    def _on_download_error(self, err_msg: str):
+        self.btn_search.setEnabled(True)
+        self.progress_frame.hide()
+        QMessageBox.warning(self, "Thông Báo", err_msg)
+
+    def _cancel_download(self):
+        if self.download_thread and self.download_thread.isRunning():
+            self.download_thread.cancel()
+            self.dl_info_lbl.setText("Đang dừng tải...")
