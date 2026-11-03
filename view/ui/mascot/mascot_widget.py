@@ -66,6 +66,7 @@ class MiniMascotWidget(QWidget):
         if saved_pos:
             self.move(saved_pos)
             self._snap_to_edge_if_near()
+        self._ensure_within_screen_bounds()
 
         # 45 FPS Animation Timer (Auto drops to 10 FPS during sleep to save resources)
         self.timer = QTimer(self)
@@ -107,8 +108,25 @@ class MiniMascotWidget(QWidget):
         """Reload configuration from user settings."""
         self.model.reload_settings()
 
+    def _ensure_within_screen_bounds(self):
+        """Ensure mini mascot is positioned safely inside the visible screen bounds."""
+        screen = QGuiApplication.primaryScreen()
+        if not screen:
+            return
+        avail = screen.availableGeometry()
+        cur_x = self.x()
+        cur_y = self.y()
+        if (
+            cur_x < avail.left()
+            or cur_x > (avail.right() - 50)
+            or cur_y < avail.top()
+            or cur_y > (avail.bottom() - 50)
+        ):
+            self.move(avail.right() - 150, avail.bottom() - 150)
+
     def showEvent(self, a0):
         super().showEvent(a0)
+        self._ensure_within_screen_bounds()
         if not self.timer.isActive():
             self.timer.start(22)
 

@@ -35,3 +35,8 @@ def create_main_window(username):
         import traceback
         traceback.print_exc()
         return None
+
+
+if __name__ == "__main__":
+    import login
+    login.main()

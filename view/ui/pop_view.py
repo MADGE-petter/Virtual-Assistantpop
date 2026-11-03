@@ -164,7 +164,13 @@ class PopView(QMainWindow):
         # Desktop Floating Mini Mascot
         self.mini_mascot = MiniMascotWidget()
         if not self.mini_mascot._settings.value("position", None):
-            self.mini_mascot.move(100, 100)
+            from PyQt6.QtGui import QGuiApplication
+            screen = QGuiApplication.primaryScreen()
+            if screen:
+                avail = screen.availableGeometry()
+                self.mini_mascot.move(avail.right() - 150, avail.bottom() - 150)
+            else:
+                self.mini_mascot.move(100, 100)
         self.mini_mascot.show()
 
     # ============================================================
