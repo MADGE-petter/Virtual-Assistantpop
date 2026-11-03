@@ -8,6 +8,8 @@ datas = [
     ('assets', 'assets'),
     ('tools', 'tools'),
 ]
+if os.path.exists('skins'):
+    datas.append(('skins', 'skins'))
 
 # Database template
 db_path = os.path.join('database', 'conversations.db')
