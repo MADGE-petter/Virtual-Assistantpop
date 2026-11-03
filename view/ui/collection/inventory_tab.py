@@ -528,7 +528,10 @@ class InventoryTab(QWidget):
         self._update_pose_styles()
         self.insp_preview.set_preview_mode(mode)
         if mode in ("talk", "pop_bubble"):
-            self._play_selected_voice_sfx()
+            self._play_selected_voice_sfx(mode)
+        else:
+            from utils.sound_player import stop_sound_safely
+            stop_sound_safely()
 
     def _update_pose_styles(self):
         for k, btn in self._pose_buttons.items():
@@ -561,17 +564,19 @@ class InventoryTab(QWidget):
                     }
                 """)
 
-    def _play_selected_voice_sfx(self):
+    def _play_selected_voice_sfx(self, mode: str = "talk"):
         if self.selected_id not in ("phoebe_chuby", "nono_chubby", "aemeath_idol"):
             return
         try:
             import os
             from utils.paths import resource_path
-            from utils.sound_player import play_wav_safely
+            from utils.sound_player import play_wav_safely, stop_sound_safely
+            stop_sound_safely()
+
             if self.selected_id == "aemeath_idol":
                 sample_name = "aemeath_idol.wav"
             elif self.selected_id == "nono_chubby":
-                sample_name = "nono_chubby.wav"
+                sample_name = "nono_chubby_wake.wav" if mode == "pop_bubble" else "nono_chubby_talk.wav"
             elif self.selected_id == "phoebe_chuby":
                 sample_name = "phoebe_chupi.wav"
             else:
@@ -633,6 +638,8 @@ class InventoryTab(QWidget):
         self._update_inspector()
 
     def _on_card_selected(self, char_id: str):
+        from utils.sound_player import stop_sound_safely
+        stop_sound_safely()
         if self.selected_id != char_id:
             if self._active_pose == "music" and char_id not in ("aemeath_idol", "nono_chubby"):
                 self._active_pose = "idle"

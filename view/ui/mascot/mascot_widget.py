@@ -158,15 +158,18 @@ class MiniMascotWidget(QWidget):
             self.model.is_power_saving = False
             self.timer.setInterval(22)
         if was_sleeping:
-            self.play_character_sfx()
+            self.play_character_sfx(action="wake")
         self.update()
 
     def set_music_mode(self, enabled: bool = True):
         """Set music mode (used for preview/testing)."""
+        if enabled:
+            from utils.sound_player import stop_sound_safely
+            stop_sound_safely()
         self.model.is_playing_music = enabled
         self.update()
 
-    def play_character_sfx(self, char_id: str | None = None):
+    def play_character_sfx(self, char_id: str | None = None, action: str = "talk"):
         """Play Phoebe Chupi, Nono, or Aemeath authentic voice clip safely when equipped or woken up."""
         import os
         cid = char_id
@@ -177,11 +180,13 @@ class MiniMascotWidget(QWidget):
 
         try:
             from utils.paths import resource_path
-            from utils.sound_player import play_wav_safely
+            from utils.sound_player import play_wav_safely, stop_sound_safely
+            stop_sound_safely()
+
             if cid == "aemeath_idol":
                 sample_name = "aemeath_idol.wav"
             elif cid == "nono_chubby":
-                sample_name = "nono_chubby.wav"
+                sample_name = "nono_chubby_wake.wav" if action == "wake" else "nono_chubby_talk.wav"
             elif cid == "phoebe_chuby":
                 sample_name = "phoebe_chupi.wav"
             else:

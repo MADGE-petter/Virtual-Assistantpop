@@ -40,3 +40,19 @@ def play_wav_safely(wav_path: str):
 
     threading.Thread(target=_worker, daemon=True).start()
 
+
+def stop_sound_safely():
+    """Stops any currently playing audio immediately."""
+    if sys.platform == "win32":
+        try:
+            import winsound
+            winsound.PlaySound(None, winsound.SND_PURGE)
+        except Exception:
+            pass
+    try:
+        import sounddevice as sd
+        sd.stop()
+    except Exception:
+        pass
+
+
