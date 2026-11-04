@@ -10,7 +10,7 @@ import time
 import tempfile
 import urllib.request
 import zipfile
-from typing import Optional
+from typing import Any, Optional
 
 try:
     import numpy as np
@@ -385,7 +385,7 @@ class AudioService:
 
         threading.Thread(target=_worker, daemon=True).start()
 
-    def _apply_character_voice_clone(self, audio: "np.ndarray", sr_rate: int, char_id: str) -> "np.ndarray":
+    def _apply_character_voice_clone(self, audio: Any, sr_rate: int, char_id: str) -> Any:
         """Transform TTS audio pitch & timbre to match Phoebe Chupi (~452Hz), Nono (~422Hz), or Aemeath Idol (~440Hz) authentic voice."""
         if char_id not in ("phoebe_chuby", "nono_chubby", "aemeath_idol") or np is None:
             return audio
@@ -641,7 +641,12 @@ class AudioService:
             time.sleep(0.05)
     
     def stop_speaking(self):
-        """Stop current speech."""
+        """Stop current speech immediately."""
+        try:
+            import sounddevice as sd
+            sd.stop()
+        except Exception:
+            pass
         self.is_speaking = False
     
     def is_gate_open(self) -> bool:

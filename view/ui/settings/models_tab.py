@@ -23,7 +23,7 @@ class ModelsTabWidget(QWidget):
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(32, 28, 32, 28)
+        layout.setContentsMargins(28, 24, 28, 24)
         layout.setSpacing(18)
 
         # Header Title Bar
@@ -115,10 +115,13 @@ class ModelsTabWidget(QWidget):
         self.scroll_models = QScrollArea()
         self.scroll_models.setWidgetResizable(True)
         self.scroll_models.setFrameShape(QFrame.Shape.NoFrame)
+        self.scroll_models.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.scroll_models.setStyleSheet("QScrollArea { background: transparent; border: none; }")
 
         self.cards_container = QWidget()
+        self.cards_container.setStyleSheet("background: transparent;")
         self.cards_layout = QVBoxLayout(self.cards_container)
-        self.cards_layout.setContentsMargins(0, 0, 0, 0)
+        self.cards_layout.setContentsMargins(2, 4, 14, 12)
         self.cards_layout.setSpacing(10)
 
         self.scroll_models.setWidget(self.cards_container)

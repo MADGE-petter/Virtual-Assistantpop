@@ -4,7 +4,7 @@ from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
     QPushButton, QScrollArea, QFrame, QMessageBox, QCompleter,
-    QProgressBar
+    QProgressBar, QSizePolicy
 )
 
 from view.ui.styles import DesignTokens
@@ -32,7 +32,7 @@ class DownloadTabWidget(QWidget):
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(32, 28, 32, 28)
+        layout.setContentsMargins(28, 24, 28, 24)
         layout.setSpacing(18)
 
         # Header Title Bar
@@ -169,10 +169,13 @@ class DownloadTabWidget(QWidget):
         self.scroll_models = QScrollArea()
         self.scroll_models.setWidgetResizable(True)
         self.scroll_models.setFrameShape(QFrame.Shape.NoFrame)
+        self.scroll_models.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.scroll_models.setStyleSheet("QScrollArea { background: transparent; border: none; }")
 
         self.cards_container = QWidget()
+        self.cards_container.setStyleSheet("background: transparent;")
         self.cards_layout = QVBoxLayout(self.cards_container)
-        self.cards_layout.setContentsMargins(0, 0, 0, 0)
+        self.cards_layout.setContentsMargins(2, 4, 14, 12)
         self.cards_layout.setSpacing(12)
 
         self.scroll_models.setWidget(self.cards_container)
@@ -262,6 +265,7 @@ class DownloadTabWidget(QWidget):
         for m in models:
             card = QFrame()
             card.setObjectName("modelResultCard")
+            card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
             card.setStyleSheet(
                 f"QFrame#modelResultCard {{ background: transparent; border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; "
                 f"border-radius: 12px; }}"
@@ -286,10 +290,14 @@ class DownloadTabWidget(QWidget):
             
             name_lbl = QLabel(m["name"])
             name_lbl.setStyleSheet(f"font-size: 14px; font-weight: 650; color: {DesignTokens.TEXT_MAIN};")
+            name_lbl.setWordWrap(True)
+            name_lbl.setMinimumWidth(0)
             
             author_str = m.get('author', 'Community')
             sub_lbl = QLabel(f"{author_str}  /  {m['id']}")
             sub_lbl.setStyleSheet(f"font-size: 11px; color: {DesignTokens.TEXT_MUTED};")
+            sub_lbl.setWordWrap(True)
+            sub_lbl.setMinimumWidth(0)
             
             title_box.addWidget(name_lbl)
             title_box.addWidget(sub_lbl)

@@ -177,10 +177,13 @@ class ModelDownloaderDialog(QDialog):
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.scroll_area.setStyleSheet("QScrollArea { background: transparent; border: none; }")
 
         self.card_container = QWidget()
+        self.card_container.setStyleSheet("background: transparent;")
         self.card_layout = QVBoxLayout(self.card_container)
-        self.card_layout.setContentsMargins(0, 0, 0, 0)
+        self.card_layout.setContentsMargins(2, 4, 12, 8)
         self.card_layout.setSpacing(10)
 
         self.scroll_area.setWidget(self.card_container)

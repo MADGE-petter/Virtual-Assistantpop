@@ -62,6 +62,11 @@ class PopController(QObject):
         from service.memory_service import MemoryService
         self.memory = MemoryService(self.sql)
         
+        # Voice IPC Bridge (Native C++ Voice & LLM Engine with Fallback)
+        from service.voice_ipc_bridge import get_voice_ipc_bridge
+        self.voice_ipc = get_voice_ipc_bridge()
+        self.voice_ipc.on_interrupt = self._on_stop_generation
+        
         self.conversation = ConversationController(
             self.audio,
             self.sql,
@@ -163,6 +168,8 @@ class PopController(QObject):
     def _on_stop_generation(self):
         """Handle stop generation request."""
         self.conversation.stop_generation()
+        if hasattr(self, 'voice_ipc') and self.voice_ipc:
+            self.voice_ipc.interrupt()
 
     def _on_new_conversation(self):
         """Handle new conversation request."""
@@ -241,6 +248,8 @@ class PopController(QObject):
     def stop(self):
         """Dừng assistant qua Shutdown Coordinator."""
         self._active = False
+        if hasattr(self, "voice_ipc") and self.voice_ipc:
+            self.voice_ipc.shutdown()
         self.shutdown.stop()
 
     def exit_app(self):
@@ -248,6 +257,8 @@ class PopController(QObject):
         print("[PopController] exit_app called")
         self._active = False
         self._started = False
+        if hasattr(self, "voice_ipc") and self.voice_ipc:
+            self.voice_ipc.shutdown()
         if hasattr(self, "conversation_coordinator"):
             try:
                 self.conversation_coordinator.stop()

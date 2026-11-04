@@ -79,13 +79,26 @@ class LLMFallbackHandler:
             "required": ["action", "response"],
         }
 
-        raw_result_text = llm_service.chat(
-            messages=messages,
-            system_prompt=config.system_prompt,
-            temperature=config.temperature,
-            max_tokens=config.max_tokens,
-            response_format={"type": "json_object", "schema": schema},
-        )
+        try:
+            from service.voice_ipc_bridge import get_voice_ipc_bridge
+            get_voice_ipc_bridge().set_voice_state("THINKING_LLM")
+        except Exception:
+            pass
+
+        try:
+            raw_result_text = llm_service.chat(
+                messages=messages,
+                system_prompt=config.system_prompt,
+                temperature=config.temperature,
+                max_tokens=config.max_tokens,
+                response_format={"type": "json_object", "schema": schema},
+            )
+        finally:
+            try:
+                from service.voice_ipc_bridge import get_voice_ipc_bridge
+                get_voice_ipc_bridge().set_voice_state("IDLE")
+            except Exception:
+                pass
 
         # 2. Parse Structured Output (JSON)
         try:

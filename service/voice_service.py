@@ -303,6 +303,12 @@ class VoiceService:
         self.awaiting_user_response = True
         time.sleep(0.3)
         
+        try:
+            from service.voice_ipc_bridge import get_voice_ipc_bridge
+            get_voice_ipc_bridge().set_voice_state("LISTENING")
+        except Exception:
+            pass
+
         result = self.audio_service.listen()
         if result:
             self.last_interaction_time = time.time()
@@ -310,12 +316,24 @@ class VoiceService:
         else:
             time.sleep(0.2)
         
+        try:
+            from service.voice_ipc_bridge import get_voice_ipc_bridge
+            get_voice_ipc_bridge().set_voice_state("IDLE")
+        except Exception:
+            pass
+
         return result
 
     def speak(self, text: str, update_ui: bool = True):
         """Speak text through audio service."""
         self.awaiting_user_response = False
-        return self.audio_service.speak(text, update_ui=update_ui)
+        try:
+            from service.voice_ipc_bridge import get_voice_ipc_bridge
+            get_voice_ipc_bridge().set_voice_state("SPEAKING_TTS")
+        except Exception:
+            pass
+        res = self.audio_service.speak(text, update_ui=update_ui)
+        return res
 
     def wait_until_speaking_done(self):
         """Wait until current speech finishes."""

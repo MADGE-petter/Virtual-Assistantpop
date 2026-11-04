@@ -161,8 +161,9 @@ class PopView(QMainWindow):
 
         root_layout.addWidget(self.container_box)
 
-        # Desktop Floating Mini Mascot
-        self.mini_mascot = MiniMascotWidget()
+        # Desktop Floating Mini Mascot (Hybrid Architecture: Native C++ IPC with Python fallback)
+        from view.ui.mascot.mascot_ipc_bridge import MascotIpcBridge
+        self.mini_mascot = MascotIpcBridge(self)
         if not self.mini_mascot._settings.value("position", None):
             from PyQt6.QtGui import QGuiApplication
             screen = QGuiApplication.primaryScreen()
