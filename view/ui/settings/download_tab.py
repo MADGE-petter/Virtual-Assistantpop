@@ -500,8 +500,10 @@ class DownloadTabWidget(QWidget):
             return
         while self.hero_action_box.count():
             item = self.hero_action_box.takeAt(0)
-            if item and item.widget():
-                item.widget().deleteLater()
+            if item is not None:
+                w = item.widget()
+                if w is not None:
+                    w.deleteLater()
 
         if self._is_lfm3_17b_installed():
             ready_lbl = QLabel("✓ Đã Sẵn Sàng")
