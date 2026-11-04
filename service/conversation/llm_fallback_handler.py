@@ -30,6 +30,36 @@ class LLMFallbackHandler:
 
         logger.info(f"[LLMFallbackHandler] Calling LLM for: {user_input[:30]}...")
 
+        # ----------------------------------------------------
+        # KIỂM TRA ĐÍNH KÈM HÌNH ẢNH: KÍCH HOẠT CHUỖI 3 MODEL
+        # ----------------------------------------------------
+        try:
+            from service.model_orchestrator import get_model_orchestrator, find_attached_images
+            image_paths = find_attached_images(user_input)
+            if image_paths:
+                logger.info(f"[LLMFallbackHandler] Detected {len(image_paths)} attached images. Executing Tri-Model Orchestrator...")
+                orchestrator = get_model_orchestrator()
+                orch_result = orchestrator.process_multimodal_request(
+                    user_prompt=user_input,
+                    image_paths=image_paths,
+                    router_llm_service=llm_service,
+                    session_id=session_id,
+                )
+                pipeline_data = json.dumps([
+                    {
+                        "step_id": s.step_id,
+                        "title": s.title,
+                        "content": s.content,
+                        "model": s.model_name,
+                        "duration": s.duration_s
+                    }
+                    for s in orch_result.steps
+                ], ensure_ascii=False)
+                payload = f"<pipeline>{pipeline_data}</pipeline>\n{orch_result.text}"
+                return ActionResult(text=payload)
+        except Exception as orch_err:
+            logger.error(f"[LLMFallbackHandler] Tri-Model Orchestrator error: {orch_err}. Falling back to standard LLM.")
+
         if hasattr(llm_service, 'is_model_available'):
             avail, err_detail = llm_service.is_model_available()
             if not avail:

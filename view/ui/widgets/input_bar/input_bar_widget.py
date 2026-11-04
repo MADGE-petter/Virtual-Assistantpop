@@ -204,13 +204,16 @@ class InputBarWidget(QWidget):
         self.model_combo.clear()
 
         # Item 0: Auto
-        self.model_combo.addItem("Auto")
-        self.model_combo.setItemData(0, "Tự động chọn mô hình phù hợp", Qt.ItemDataRole.ToolTipRole)
+        self.model_combo.addItem("Auto (Điều phối)")
+        self.model_combo.setItemData(0, "Tự động phân tích và điều phối mô hình phù hợp (LFM3 1.7B)", Qt.ItemDataRole.ToolTipRole)
 
         # Local model items
         for i, m in enumerate(models, 1):
-            self.model_combo.addItem(m)
-            self.model_combo.setItemData(i, m, Qt.ItemDataRole.ToolTipRole)
+            display_name = m
+            if "lfm" in m.lower() and "1.7" in m.lower():
+                display_name = f"{m}  [Khuyên dùng]"
+            self.model_combo.addItem(display_name)
+            self.model_combo.setItemData(i, f"Sử dụng mô hình: {m}", Qt.ItemDataRole.ToolTipRole)
 
         # Hub item: Model++
         hub_idx = self.model_combo.count()

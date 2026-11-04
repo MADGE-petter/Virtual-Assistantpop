@@ -127,11 +127,26 @@ class MessageBubbleWidget(QWidget):
             header_layout.addWidget(name_lbl)
             header_layout.addWidget(time_lbl)
             header_layout.addStretch()
+            card_layout.addLayout(header_layout)
 
-            text_lbl = QLabel(self.msg.text)
+            # Check if message contains Tri-Model Pipeline metadata
+            import json
+            import re
+            pipeline_match = re.search(r"<pipeline>(.*?)</pipeline>", self.msg.text, flags=re.DOTALL)
+            if pipeline_match:
+                pipeline_json = pipeline_match.group(1).strip()
+                clean_text = re.sub(r"<pipeline>.*?</pipeline>", "", self.msg.text, flags=re.DOTALL).strip()
+                try:
+                    steps_data = json.loads(pipeline_json)
+                    self._render_pipeline_card(card_layout, steps_data)
+                except Exception:
+                    pass
+            else:
+                clean_text = self.msg.text
+
+            text_lbl = QLabel(clean_text)
             text_lbl.setWordWrap(True)
             text_lbl.setStyleSheet(f"color: {DesignTokens.TEXT_MAIN}; font-size: 14px; line-height: 1.5;")
-            card_layout.addLayout(header_layout)
             card_layout.addWidget(text_lbl)
 
             if is_model_missing:
@@ -195,7 +210,9 @@ class MessageBubbleWidget(QWidget):
                     if a == "copy":
                         cb = QApplication.clipboard()
                         if cb:
-                            cb.setText(self.msg.text)
+                            import re
+                            copy_text = re.sub(r"<pipeline>.*?</pipeline>", "", self.msg.text, flags=re.DOTALL).strip()
+                            cb.setText(copy_text)
                     elif a == "retry":
                         self.retryRequested.emit(self.msg.id)
                     self.actionClicked.emit(a, self.msg.id)
@@ -311,6 +328,104 @@ class MessageBubbleWidget(QWidget):
         toggle_btn.clicked.connect(_toggle)
         card_layout.addWidget(toggle_btn)
         card_layout.addWidget(content_box)
+
+    def _render_pipeline_card(self, card_layout: QVBoxLayout, steps: list):
+        """Render collapsible Tri-Model Pipeline Execution Card (LFM3 1.7B -> LFM3-VL -> DeepSeek)."""
+        if not steps:
+            return
+
+        pipeline_frame = QFrame()
+        pipeline_frame.setObjectName("pipelineContainer")
+        pipeline_frame.setStyleSheet(
+            "QFrame#pipelineContainer { background: rgba(0, 255, 170, 0.05); border: 1px solid rgba(0, 255, 170, 0.25); border-radius: 10px; margin-bottom: 4px; }"
+            "QFrame#pipelineContainer QLabel { border: none; background: transparent; }"
+        )
+        pf_layout = QVBoxLayout(pipeline_frame)
+        pf_layout.setContentsMargins(10, 8, 10, 8)
+        pf_layout.setSpacing(6)
+
+        # Header Toggle Button
+        toggle_btn = QPushButton("⚡ Chuỗi phối hợp 3 Model: LFM3 1.7B ➔ LFM3-VL ➔ DeepSeek (Bấm xem chi tiết ▶)")
+        toggle_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        toggle_btn.setStyleSheet(
+            "QPushButton { border: none; background: transparent; color: #00FFAA; font-size: 11px; font-weight: 700; text-align: left; padding: 2px 0; } "
+            "QPushButton:hover { color: #38BDF8; }"
+        )
+
+        details_container = QWidget()
+        details_container.setStyleSheet("background: transparent; border: none;")
+        dc_layout = QVBoxLayout(details_container)
+        dc_layout.setContentsMargins(2, 6, 2, 4)
+        dc_layout.setSpacing(8)
+        details_container.hide()
+
+        for s in steps:
+            step_box = QFrame()
+            step_box.setStyleSheet(
+                "QFrame { background: rgba(8, 14, 26, 0.70); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 6px; }"
+                "QFrame QLabel { border: none; background: transparent; }"
+            )
+            s_layout = QVBoxLayout(step_box)
+            s_layout.setContentsMargins(8, 6, 8, 6)
+            s_layout.setSpacing(4)
+
+            s_title_row = QHBoxLayout()
+            s_title = QLabel(s.get("title", "Bước xử lý"))
+            s_title.setStyleSheet("font-size: 11px; font-weight: 700; color: #94A3B8;")
+
+            dur = s.get("duration", 0)
+            dur_lbl = QLabel(f"{dur}s" if dur > 0 else "")
+            dur_lbl.setStyleSheet("font-size: 10px; color: #64748B;")
+
+            s_title_row.addWidget(s_title)
+            s_title_row.addStretch()
+            if dur > 0:
+                s_title_row.addWidget(dur_lbl)
+            s_layout.addLayout(s_title_row)
+
+            content_text = s.get("content", "")
+            if "<think>" in content_text:
+                import re
+                think_m = re.search(r"<think>(.*?)</think>", content_text, flags=re.DOTALL)
+                if think_m:
+                    think_body = think_m.group(1).strip()
+                    res_body = re.sub(r"<think>.*?</think>", "", content_text, flags=re.DOTALL).strip()
+
+                    think_box = QLabel(f"<i>[Thinking Process]:\n{think_body}</i>")
+                    think_box.setWordWrap(True)
+                    think_box.setStyleSheet("font-size: 11px; color: #A7F3D0; background: rgba(0, 255, 170, 0.06); border-radius: 4px; padding: 4px;")
+                    s_layout.addWidget(think_box)
+
+                    if res_body:
+                        res_lbl = QLabel(res_body)
+                        res_lbl.setWordWrap(True)
+                        res_lbl.setStyleSheet("font-size: 11px; color: #CBD5E1;")
+                        s_layout.addWidget(res_lbl)
+                else:
+                    s_lbl = QLabel(content_text)
+                    s_lbl.setWordWrap(True)
+                    s_lbl.setStyleSheet("font-size: 11px; color: #CBD5E1;")
+                    s_layout.addWidget(s_lbl)
+            else:
+                s_lbl = QLabel(content_text)
+                s_lbl.setWordWrap(True)
+                s_lbl.setStyleSheet("font-size: 11px; color: #CBD5E1;")
+                s_layout.addWidget(s_lbl)
+
+            dc_layout.addWidget(step_box)
+
+        def _toggle_pipeline():
+            if details_container.isHidden():
+                details_container.show()
+                toggle_btn.setText("⚡ Chuỗi phối hợp 3 Model: LFM3 1.7B ➔ LFM3-VL ➔ DeepSeek (Thu gọn ▼)")
+            else:
+                details_container.hide()
+                toggle_btn.setText("⚡ Chuỗi phối hợp 3 Model: LFM3 1.7B ➔ LFM3-VL ➔ DeepSeek (Bấm xem chi tiết ▶)")
+
+        toggle_btn.clicked.connect(_toggle_pipeline)
+        pf_layout.addWidget(toggle_btn)
+        pf_layout.addWidget(details_container)
+        card_layout.addWidget(pipeline_frame)
 
     def animate_fade_in(self):
         """Smooth subtle fade-in animation for newly appended message bubbles."""

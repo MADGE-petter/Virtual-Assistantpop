@@ -59,6 +59,60 @@ class DownloadTabWidget(QWidget):
         title_box.addWidget(desc)
         layout.addLayout(title_box)
 
+        # ----------------------------------------------------
+        # HERO BANNER: GỢI Ý TẢI LFM3 1.7B (BỘ ĐIỀU PHỐI KHUYÊN DÙNG)
+        # ----------------------------------------------------
+        self.hero_banner = QFrame()
+        self.hero_banner.setObjectName("heroRouterBanner")
+        self.hero_banner.setStyleSheet(
+            f"#heroRouterBanner {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 rgba(0, 142, 255, 0.12), stop:1 rgba(0, 255, 170, 0.12)); "
+            f"border: 1px solid rgba(0, 255, 170, 0.35); border-radius: 14px; }}"
+            f"#heroRouterBanner QLabel {{ border: none; background: transparent; }}"
+        )
+        hero_layout = QHBoxLayout(self.hero_banner)
+        hero_layout.setContentsMargins(16, 14, 16, 14)
+        hero_layout.setSpacing(16)
+
+        # Brand Logo
+        hero_icon = QLabel()
+        hero_icon.setPixmap(get_brand_logo_pixmap("LiquidAI LFM3", 42))
+        hero_icon.setFixedSize(42, 42)
+        hero_layout.addWidget(hero_icon)
+
+        # Info Box
+        hero_info = QVBoxLayout()
+        hero_info.setSpacing(4)
+
+        hero_title_row = QHBoxLayout()
+        hero_title_row.setSpacing(8)
+
+        hero_title = QLabel("LFM3 1.7B — Bộ Điều Phối Trung Tâm (Router Khuyên Dùng)")
+        hero_title.setStyleSheet(f"font-size: 14px; font-weight: 700; color: {DesignTokens.TEXT_MAIN};")
+
+        hero_badge = QLabel("KHUYÊN DÙNG HỆ THỐNG")
+        hero_badge.setStyleSheet(
+            f"background: rgba(0, 255, 170, 0.18); color: {DesignTokens.CYAN_ACCENT}; font-size: 10px; "
+            f"font-weight: 700; border-radius: 4px; padding: 2px 7px; border: 1px solid rgba(0, 255, 170, 0.4);"
+        )
+        hero_title_row.addWidget(hero_title)
+        hero_title_row.addWidget(hero_badge)
+        hero_title_row.addStretch()
+
+        hero_desc = QLabel("Mô hình 1.7B siêu nhẹ (~1.2GB RAM), phản hồi dưới 0.3s. Đóng vai trò Host điều phối chuỗi Vision (LFM3-VL đọc ảnh) và Suy luận (DeepSeek Thinking).")
+        hero_desc.setStyleSheet(f"font-size: 12px; color: {DesignTokens.TEXT_SECONDARY};")
+        hero_desc.setWordWrap(True)
+
+        hero_info.addLayout(hero_title_row)
+        hero_info.addWidget(hero_desc)
+        hero_layout.addLayout(hero_info, stretch=1)
+
+        # Action Button or Ready Badge
+        self.hero_action_box = QHBoxLayout()
+        hero_layout.addLayout(self.hero_action_box)
+        self._update_hero_banner_action()
+
+        layout.addWidget(self.hero_banner)
+
         # Search Bar
         search_card = QFrame()
         search_card.setObjectName("searchCard")
@@ -408,6 +462,7 @@ class DownloadTabWidget(QWidget):
     def _on_download_finished(self, saved_path: str):
         self.btn_search.setEnabled(True)
         self.progress_frame.hide()
+        self._update_hero_banner_action()
         QMessageBox.information(
             self,
             "Tải Thành Công",
@@ -424,3 +479,45 @@ class DownloadTabWidget(QWidget):
         if self.download_thread and self.download_thread.isRunning():
             self.download_thread.cancel()
             self.dl_info_lbl.setText("Đang dừng tải...")
+
+    # ==================== HERO ROUTER HELPERS ====================
+
+    def _is_lfm3_17b_installed(self) -> bool:
+        """Kiểm tra xem model LFM3 1.7B đã có trong thư mục LLM-agents hay chưa."""
+        target_dir = self.user_settings.get("model_dir", os.path.join(os.getcwd(), "LLM-agents"))
+        if not os.path.exists(target_dir):
+            return False
+        for root, _, files in os.walk(target_dir):
+            for f in files:
+                fn = f.lower()
+                if fn.endswith(".gguf") and ("lfm" in fn and "1.7b" in fn):
+                    return True
+        return False
+
+    def _update_hero_banner_action(self):
+        """Cập nhật nút bấm hoặc huy hiệu trạng thái trên Banner khuyên dùng LFM3 1.7B."""
+        if not hasattr(self, "hero_action_box"):
+            return
+        while self.hero_action_box.count():
+            item = self.hero_action_box.takeAt(0)
+            if item and item.widget():
+                item.widget().deleteLater()
+
+        if self._is_lfm3_17b_installed():
+            ready_lbl = QLabel("✓ Đã Sẵn Sàng")
+            ready_lbl.setStyleSheet(
+                f"background: rgba(0, 255, 170, 0.15); color: {DesignTokens.CYAN_ACCENT}; font-size: 11px; "
+                f"font-weight: 700; border-radius: 8px; padding: 7px 14px; border: 1px solid rgba(0, 255, 170, 0.35);"
+            )
+            self.hero_action_box.addWidget(ready_lbl)
+        else:
+            quick_dl_btn = QPushButton("⚡ Tải Nhanh 1.7B")
+            quick_dl_btn.setFixedHeight(34)
+            quick_dl_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            quick_dl_btn.setStyleSheet(
+                f"QPushButton {{ background: {DesignTokens.GRADIENT_BLUE_GREEN}; color: #040812; "
+                f"font-weight: 700; font-size: 12px; border: none; border-radius: 8px; padding: 0 16px; }}"
+                f"QPushButton:hover {{ background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #0077D6, stop:1 #00E699); }}"
+            )
+            quick_dl_btn.clicked.connect(lambda: self._open_quantization_selector("LiquidAI/LFM3-1.7B-GGUF", "LFM3-1.7B-GGUF"))
+            self.hero_action_box.addWidget(quick_dl_btn)

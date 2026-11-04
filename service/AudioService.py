@@ -316,9 +316,16 @@ class AudioService:
 
         self.is_speaking = True
         try:
+            # Lọc bỏ các thẻ metadata kỹ thuật trước khi đưa vào bộ đọc TTS
+            import re
+            speech_text = re.sub(r"<pipeline>.*?</pipeline>", "", text, flags=re.DOTALL)
+            speech_text = re.sub(r"<think>.*?</think>", "", speech_text, flags=re.DOTALL).strip()
+            if not speech_text:
+                speech_text = "Đã hoàn thành phân tích hình ảnh và yêu cầu của bạn."
+
             if SHERPA_AVAILABLE:
                 try:
-                    self._synthesize_and_play(text)
+                    self._synthesize_and_play(speech_text)
                 except Exception as tts_err:
                     print(f"[AudioService] TTS synthesis warning: {tts_err}")
                     time.sleep(min(3.0, len(text) * 0.05))
