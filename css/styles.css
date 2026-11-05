@@ -536,10 +536,12 @@ body {
   transition: all 0.3s;
 }
 .about-highlight:hover { border-color: var(--border-glow); transform: translateX(6px); }
-.about-highlight .ah-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; }
-.about-highlight .ah-icon.purple { background: rgba(139,92,246,0.12); }
-.about-highlight .ah-icon.blue { background: rgba(59,130,246,0.12); }
-.about-highlight .ah-icon.cyan { background: rgba(6,182,212,0.12); }
+.about-highlight .ah-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.about-highlight .ah-icon.purple { background: rgba(139,92,246,0.14); border: 1px solid rgba(139,92,246,0.3); }
+.about-highlight .ah-icon.blue { background: rgba(0,204,255,0.14); border: 1px solid rgba(0,204,255,0.3); }
+.about-highlight .ah-icon.cyan { background: rgba(6,182,212,0.14); border: 1px solid rgba(6,182,212,0.3); }
+.about-highlight .ah-icon.emerald { background: rgba(0,255,170,0.14); border: 1px solid rgba(0,255,170,0.3); }
+.about-highlight .ah-icon svg { width: 22px; height: 22px; }
 .about-highlight .ah-text strong { display: block; font-size: 0.95rem; margin-bottom: 2px; }
 .about-highlight .ah-text span { font-size: 0.82rem; color: var(--text-tertiary); }
 @media (max-width: 900px) { .about-grid { grid-template-columns: 1fr; gap: 40px; } }
@@ -637,13 +639,57 @@ body {
    DOWNLOAD / CTA
    ============================================ */
 .download-section { text-align: center; }
-.download-cards { display: flex; gap: 18px; justify-content: center; margin-top: 50px; flex-wrap: wrap; }
-.download-card { background: var(--bg-elevated); border: 1px solid var(--border-default); border-radius: var(--radius-lg); padding: 32px; width: 260px; transition: all 0.4s var(--ease-out-expo); }
-.download-card:hover { border-color: var(--border-glow); transform: translateY(-5px); box-shadow: 0 20px 50px rgba(139,92,246,0.1); }
-.download-card .dc-icon { font-size: 2.5rem; margin-bottom: 16px; }
-.download-card h4 { font-family: 'Space Grotesk', sans-serif; font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; }
-.download-card p { color: var(--text-secondary); font-size: 0.85rem; line-height: 1.6; margin-bottom: 20px; }
-.download-card .btn { width: 100%; justify-content: center; }
+.download-cards {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  align-items: stretch;
+  margin-top: 50px;
+  flex-wrap: wrap;
+}
+.download-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  padding: 36px 30px;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.4s var(--ease-out-expo);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+.download-card:hover {
+  border-color: var(--border-glow);
+  transform: translateY(-5px);
+  box-shadow: 0 20px 50px rgba(0, 255, 170, 0.15);
+}
+.download-card .dc-icon {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.download-card .dc-icon svg {
+  display: block;
+}
+.download-card h4 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.download-card p {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.6;
+  margin-bottom: 28px;
+  flex: 1;
+}
+.download-card .btn {
+  width: 100%;
+  justify-content: center;
+  margin-top: auto;
+}
 
 /* ============================================
    FOOTER
@@ -941,3 +987,307 @@ body {
   }
 }
 
+
+
+/* ============================================
+   Mascot Cards & Embedded Rate Gems
+   Matches PyQt Collection Dialog
+   ============================================ */
+
+.mascot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 28px;
+  margin-top: 48px;
+}
+
+.mascot-card {
+  position: relative;
+  background: rgba(13, 17, 26, 0.82);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-lg);
+  padding: 32px 24px 38px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: all 0.35s var(--ease-out-expo);
+  overflow: visible;
+}
+
+.mascot-card:hover {
+  transform: translateY(-6px);
+  background: rgba(17, 24, 39, 0.92);
+}
+
+/* Card Rarity Variants */
+.mascot-card.mythic {
+  border-color: rgba(244, 63, 94, 0.45);
+  box-shadow: 0 4px 24px rgba(244, 63, 94, 0.1);
+}
+.mascot-card.mythic:hover {
+  border-color: #F43F5E;
+  box-shadow: 0 12px 36px rgba(244, 63, 94, 0.25);
+}
+
+.mascot-card.legendary {
+  border-color: rgba(245, 158, 11, 0.45);
+  box-shadow: 0 4px 24px rgba(245, 158, 11, 0.1);
+}
+.mascot-card.legendary:hover {
+  border-color: #F59E0B;
+  box-shadow: 0 12px 36px rgba(245, 158, 11, 0.25);
+}
+
+.mascot-card.epic {
+  border-color: rgba(139, 92, 246, 0.45);
+  box-shadow: 0 4px 24px rgba(139, 92, 246, 0.1);
+}
+.mascot-card.epic:hover {
+  border-color: #8B5CF6;
+  box-shadow: 0 12px 36px rgba(139, 92, 246, 0.25);
+}
+
+.mascot-card.rare {
+  border-color: rgba(6, 182, 212, 0.45);
+  box-shadow: 0 4px 24px rgba(6, 182, 212, 0.1);
+}
+.mascot-card.rare:hover {
+  border-color: #06B6D4;
+  box-shadow: 0 12px 36px rgba(6, 182, 212, 0.25);
+}
+
+.mascot-card.common {
+  border-color: rgba(16, 185, 129, 0.45);
+  box-shadow: 0 4px 24px rgba(16, 185, 129, 0.1);
+}
+.mascot-card.common:hover {
+  border-color: #10B981;
+  box-shadow: 0 12px 36px rgba(16, 185, 129, 0.25);
+}
+
+/* Mascot Avatar Stage */
+.mascot-stage {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(17, 24, 39, 0.9) 0%, rgba(8, 12, 18, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  position: relative;
+  transition: transform 0.3s ease;
+}
+
+.mascot-card:hover .mascot-stage {
+  transform: scale(1.08);
+}
+
+.mascot-avatar {
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6));
+}
+
+.mascot-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 12px;
+}
+
+.badge-mythic {
+  background: rgba(244, 63, 94, 0.15);
+  color: #FB7185;
+  border: 1px solid rgba(244, 63, 94, 0.4);
+}
+.badge-legendary {
+  background: rgba(245, 158, 11, 0.15);
+  color: #FBBF24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+.badge-epic {
+  background: rgba(139, 92, 246, 0.15);
+  color: #C084FC;
+  border: 1px solid rgba(139, 92, 246, 0.4);
+}
+.badge-rare {
+  background: rgba(6, 182, 212, 0.15);
+  color: #67E8F9;
+  border: 1px solid rgba(6, 182, 212, 0.4);
+}
+.badge-common {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34D399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.mascot-name {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.mascot-desc {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.mascot-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.meta-tag {
+  font-size: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 3px 8px;
+  border-radius: 6px;
+  color: var(--text-tertiary);
+}
+
+/* Embedded Rate Gem Socket & Faceted Jewel */
+.card-gem-socket {
+  position: absolute;
+  bottom: -13px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #06090e;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.85);
+  transition: all 0.3s ease;
+}
+
+.mascot-card:hover .card-gem-socket {
+  transform: translateX(-50%) scale(1.15);
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+.faceted-gem {
+  width: 14px;
+  height: 16px;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  position: relative;
+}
+
+.gem-glow {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0.65;
+  filter: blur(4px);
+}
+
+.gem-mythic {
+  background: linear-gradient(135deg, #FFE4E6 0%, #F43F5E 45%, #9F1239 100%);
+  box-shadow: 0 0 10px rgba(244, 63, 94, 0.8);
+}
+.gem-glow-mythic { background: radial-gradient(circle, #F43F5E 0%, transparent 70%); }
+
+.gem-legendary {
+  background: linear-gradient(135deg, #FEF3C7 0%, #F59E0B 45%, #B45309 100%);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.8);
+}
+.gem-glow-legendary { background: radial-gradient(circle, #F59E0B 0%, transparent 70%); }
+
+.gem-epic {
+  background: linear-gradient(135deg, #EDE9FE 0%, #8B5CF6 45%, #5B21B6 100%);
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.8);
+}
+.gem-glow-epic { background: radial-gradient(circle, #8B5CF6 0%, transparent 70%); }
+
+.gem-rare {
+  background: linear-gradient(135deg, #CFFAFE 0%, #06B6D4 45%, #0E7490 100%);
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.8);
+}
+.gem-glow-rare { background: radial-gradient(circle, #06B6D4 0%, transparent 70%); }
+
+.gem-common {
+  background: linear-gradient(135deg, #D1FAE5 0%, #10B981 45%, #047857 100%);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.8);
+}
+.gem-glow-common { background: radial-gradient(circle, #10B981 0%, transparent 70%); }
+
+.gem-sparkle {
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  box-shadow: 0 0 3px #FFFFFF;
+}
+
+/* Quickstart Terminal Box */
+.terminal-card {
+  max-width: 780px;
+  margin: 40px auto 0 auto;
+  background: rgba(8, 12, 18, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+}
+
+.terminal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.terminal-dots {
+  display: flex;
+  gap: 7px;
+}
+.terminal-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+}
+.dot-red { background: #FF5F56; }
+.dot-yellow { background: #FFBD2E; }
+.dot-green { background: #27C93F; }
+
+.terminal-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+
+.terminal-body {
+  padding: 24px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.92rem;
+  line-height: 1.8;
+  color: #E2E8F0;
+  text-align: left;
+}
+
+.terminal-comment { color: #64748B; }
+.terminal-cmd { color: #00FFAA; font-weight: 500; }
