@@ -102,25 +102,23 @@ class HFModelDownloadThread(QThread):
     def run(self):
         temp_path: str | None = None
         try:
-            self.statusUpdated.emit("Đang phân tích danh sách file GGUF trong repository...")
             os.makedirs(self.target_dir, exist_ok=True)
 
-            # 1. Tìm các file .gguf trong repo Hugging Face
-            api_url = f"https://huggingface.co/api/models/{self.repo_id}/tree/main"
-            req = urllib.request.Request(api_url, headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req, timeout=12) as resp:
-                tree_data = json.loads(resp.read().decode('utf-8'))
-
-            gguf_files = [f['path'] for f in tree_data if isinstance(f, dict) and f.get('path', '').endswith('.gguf')]
-            
-            if not gguf_files:
-                raise Exception(f"Không tìm thấy file .gguf nào trong repository '{self.repo_id}'.")
-
-            # Chọn file GGUF tốt nhất (Ưu tiên Q4_K_M hoặc file được chọn)
-            chosen_file = None
-            if self.preferred_file and self.preferred_file in gguf_files:
+            # Nếu đã chỉ định file cụ thể, tải trực tiếp không cần quét lại API tree
+            if self.preferred_file:
                 chosen_file = self.preferred_file
             else:
+                self.statusUpdated.emit("Đang phân tích danh sách file GGUF trong repository...")
+                api_url = f"https://huggingface.co/api/models/{self.repo_id}/tree/main"
+                req = urllib.request.Request(api_url, headers={'User-Agent': 'Mozilla/5.0'})
+                with urllib.request.urlopen(req, timeout=12) as resp:
+                    tree_data = json.loads(resp.read().decode('utf-8'))
+
+                gguf_files = [f['path'] for f in tree_data if isinstance(f, dict) and f.get('path', '').endswith('.gguf')]
+                if not gguf_files:
+                    raise Exception(f"Không tìm thấy file .gguf nào trong repository '{self.repo_id}'.")
+
+                chosen_file = None
                 for f in gguf_files:
                     if "q4_k_m" in f.lower() or "q4_0" in f.lower():
                         chosen_file = f

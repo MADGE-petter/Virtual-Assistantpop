@@ -100,9 +100,8 @@ class StarfieldWidget(QWidget):
 
     def _animate(self):
         """Update star twinkling phase so only ~4-6 stars pop up ('lấp ló') at a time, rotating 45° before turning off."""
-        if not self.isVisible():
-            if self.timer.isActive():
-                self.timer.stop()
+        win = self.window()
+        if not self.isVisible() or (win and win.isMinimized()):
             return
 
         for star in self.stars:
@@ -133,6 +132,10 @@ class StarfieldWidget(QWidget):
         self._init_stars()
 
     def paintEvent(self, a0):
+        win = self.window()
+        if win and win.isMinimized():
+            return
+
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 

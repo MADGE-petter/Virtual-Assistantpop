@@ -37,8 +37,13 @@ class DatabaseManager:
         """
         conn = None
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = sqlite3.connect(self.db_path, timeout=15.0)
             conn.row_factory = sqlite3.Row
+            conn.execute("PRAGMA journal_mode = WAL;")
+            conn.execute("PRAGMA synchronous = NORMAL;")
+            conn.execute("PRAGMA busy_timeout = 10000;")
+            conn.execute("PRAGMA mmap_size = 268435456;")
+            conn.execute("PRAGMA cache_size = -32000;")
             yield conn
         except Exception as e:
             if conn:

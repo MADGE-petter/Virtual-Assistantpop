@@ -14,7 +14,6 @@ from view.ui.widgets.input_bar import (
 from view.ui.widgets.right_panel_widget import RightPanelWidget
 from view.ui.mascot import MiniMascotWidget
 from view.ui.widgets.starfield_widget import StarfieldWidget
-from view.ui.widgets.model_downloader_dialog import ModelDownloaderDialog
 
 __all__ = [
     "SidebarWidget",
@@ -29,5 +28,4 @@ __all__ = [
     "RightPanelWidget",
     "MiniMascotWidget",
     "StarfieldWidget",
-    "ModelDownloaderDialog",
 ]

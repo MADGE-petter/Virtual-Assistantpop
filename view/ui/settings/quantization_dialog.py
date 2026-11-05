@@ -11,49 +11,7 @@ from PyQt6.QtWidgets import (
 
 from view.ui.styles import DesignTokens
 from view.ui.icons import get_brand_logo_pixmap, create_vector_icon, get_vector_pixmap
-
-
-def get_system_hardware_info() -> dict:
-    """Đọc thông tin cấu hình phần cứng: RAM và Card đồ họa (Card rời NVIDIA hoặc Card Onboard)."""
-    import psutil
-    mem = psutil.virtual_memory()
-    total_ram_gb = mem.total / (1024 ** 3)
-    avail_ram_gb = mem.available / (1024 ** 3)
-    
-    gpu_info = {
-        "has_discrete_gpu": False,
-        "gpu_name": "Card Onboard (Intel / AMD)",
-        "vram_gb": 0.0
-    }
-    
-    # 1. Kiểm tra card NVIDIA qua pynvml
-    try:
-        import warnings
-        warnings.filterwarnings('ignore', message=r'.*pynvml.*')
-        import pynvml
-        pynvml.nvmlInit()
-        handle = pynvml.nvmlDeviceGetHandleByIndex(0)
-        gpu_name = pynvml.nvmlDeviceGetName(handle)
-        mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
-        gpu_info["has_discrete_gpu"] = True
-        gpu_info["gpu_name"] = str(gpu_name)
-        gpu_info["vram_gb"] = float(int(mem_info.total)) / (1024 ** 3)
-    except Exception:
-        # 2. Fallback WMI để lấy tên Card đồ họa Onboard
-        try:
-            import wmi
-            w = wmi.WMI()
-            controllers = [g.Name for g in w.Win32_VideoController() if g.Name]
-            if controllers:
-                gpu_info["gpu_name"] = controllers[0]
-        except Exception:
-            pass
-
-    return {
-        "total_ram_gb": total_ram_gb,
-        "avail_ram_gb": avail_ram_gb,
-        "gpu": gpu_info
-    }
+from utils.hardware_info import get_system_hardware_info
 
 
 def evaluate_compatibility(size_mb: float, hw: dict) -> dict:

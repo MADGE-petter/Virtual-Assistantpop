@@ -1,5 +1,3 @@
-import platform
-import psutil
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QPainter, QLinearGradient, QPen, QBrush, QFont
 from PyQt6.QtWidgets import (
@@ -7,6 +5,8 @@ from PyQt6.QtWidgets import (
     QFrame, QApplication, QScrollArea, QSizePolicy, QGraphicsDropShadowEffect
 )
 from view.ui.styles import DesignTokens
+from view.ui.icons import get_vector_pixmap
+from utils.hardware_info import get_system_hardware_info
 
 
 class GradientLabel(QLabel):
@@ -92,37 +92,14 @@ class AboutTabWidget(QWidget):
         layout.addLayout(title_box)
 
         # --------------------------------------------------------
-        # 2. Retrieve Hardware Info Safely
+        # 2. Retrieve Hardware Info Safely via Central Utility
         # --------------------------------------------------------
-        os_info = f"{platform.system()} {platform.release()} ({platform.architecture()[0]})"
-        cpu_info = f"{platform.processor() or 'Intel / AMD Processor'} ({psutil.cpu_count(logical=True)} Threads)"
-        
-        ram_bytes = psutil.virtual_memory().total
-        ram_gb = round(ram_bytes / (1024**3))
-        ram_avail = round(psutil.virtual_memory().available / (1024**3), 1)
-        ram_info = f"{ram_gb} GB RAM (Khả dụng: {ram_avail} GB)"
-
-        try:
-            disk = psutil.disk_usage('C:\\') if platform.system() == "Windows" else psutil.disk_usage('/')
-            disk_total = round(disk.total / (1024**3))
-            disk_free = round(disk.free / (1024**3))
-            disk_info = f"{disk_free} GB trống / {disk_total} GB (Ổ đĩa C:)"
-        except Exception:
-            disk_info = "Không thể đọc dữ liệu ổ đĩa"
-
-        gpu_info = "Intel / AMD Graphics"
-        try:
-            import pynvml
-            pynvml.nvmlInit()
-            handle = pynvml.nvmlDeviceGetHandleByIndex(0)
-            gpu_name = pynvml.nvmlDeviceGetName(handle)
-            if isinstance(gpu_name, bytes):
-                gpu_name = gpu_name.decode('utf-8')
-            mem = pynvml.nvmlDeviceGetMemoryInfo(handle)
-            vram_gb = round(float(int(mem.total)) / (1024**3), 1)
-            gpu_info = f"{gpu_name} ({vram_gb} GB VRAM)"
-        except Exception:
-            pass
+        hw = get_system_hardware_info()
+        os_info = hw["os_info"]
+        cpu_info = hw["cpu_info"]
+        ram_info = hw["ram_display_str"]
+        disk_info = hw["disk_info"]
+        gpu_info = hw["gpu"]["display_str"]
 
         screen = QApplication.primaryScreen()
         res_str = f"{screen.geometry().width()} × {screen.geometry().height()} px ({screen.depth()} bit)" if screen else "1920 × 1080 px"

@@ -144,23 +144,40 @@ class ModelOrchestrator:
         from service.llm_service import get_optimal_threads
 
         threads = get_optimal_threads(0)
-        logger.info(f"[ModelOrchestrator] On-demand loading: {Path(model_path).name} (n_ctx={n_ctx})...")
+        n_batch = min(512, n_ctx)
+        logger.info(f"[ModelOrchestrator] On-demand loading: {Path(model_path).name} (n_ctx={n_ctx}, n_batch={n_batch})...")
         try:
+            # 1. Thử tải với FlashAttention để giảm 30-50% VRAM
             return Llama(
                 model_path=model_path,
                 n_ctx=n_ctx,
                 n_gpu_layers=-1,
                 n_threads=threads,
+                n_batch=n_batch,
+                flash_attn=True,
                 verbose=False,
             )
         except Exception:
-            return Llama(
-                model_path=model_path,
-                n_ctx=n_ctx,
-                n_gpu_layers=0,
-                n_threads=threads,
-                verbose=False,
-            )
+            try:
+                # 2. Fallback tiêu chuẩn GPU
+                return Llama(
+                    model_path=model_path,
+                    n_ctx=n_ctx,
+                    n_gpu_layers=-1,
+                    n_threads=threads,
+                    n_batch=n_batch,
+                    verbose=False,
+                )
+            except Exception:
+                # 3. Fallback CPU
+                return Llama(
+                    model_path=model_path,
+                    n_ctx=n_ctx,
+                    n_gpu_layers=0,
+                    n_threads=threads,
+                    n_batch=n_batch,
+                    verbose=False,
+                )
 
     def _schedule_unload_vision(self, delay_seconds: float = 60.0):
         if self._vision_unload_timer:

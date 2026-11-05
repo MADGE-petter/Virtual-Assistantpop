@@ -35,6 +35,8 @@ ENV/
 # Database - KHÔNG upload database lên GitHub
 conversations.db
 *.db
+*.db-wal
+*.db-shm
 database/*.db
 
 # Config files - KHÔNG upload config lên GitHub

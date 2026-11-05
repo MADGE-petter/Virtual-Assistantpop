@@ -253,36 +253,53 @@ class LLMService:
                 actual_gpu_layers = 0
 
             threads = get_optimal_threads(self.n_threads)
+            n_batch = min(512, self.n_ctx)
 
             logger.info(
                 f"[LLMService] Loading model from {self.model_path} "
-                f"(n_gpu_layers={actual_gpu_layers}, main_gpu={self.main_gpu}, n_threads={threads})..."
+                f"(n_gpu_layers={actual_gpu_layers}, main_gpu={self.main_gpu}, n_threads={threads}, n_batch={n_batch})..."
             )
             try:
+                # Ưu tiên FlashAttention-2 để tiết kiệm 30-50% VRAM cho KV Cache
                 self._llm = Llama(
                     model_path=self.model_path,
                     n_ctx=self.n_ctx,
                     n_gpu_layers=actual_gpu_layers,
                     main_gpu=self.main_gpu,
                     n_threads=threads,
+                    n_batch=n_batch,
+                    flash_attn=True,
                     verbose=self.verbose,
                 )
-            except Exception as load_err:
-                if actual_gpu_layers != 0:
-                    logger.warning(
-                        f"[LLMService] Loading with GPU failed ({load_err}). "
-                        f"Retrying with CPU fallback (n_gpu_layers=0)..."
-                    )
+            except Exception:
+                try:
+                    # Fallback nếu llama-cpp chưa hỗ trợ flash_attn
                     self._llm = Llama(
                         model_path=self.model_path,
                         n_ctx=self.n_ctx,
-                        n_gpu_layers=0,
-                        main_gpu=0,
+                        n_gpu_layers=actual_gpu_layers,
+                        main_gpu=self.main_gpu,
                         n_threads=threads,
+                        n_batch=n_batch,
                         verbose=self.verbose,
                     )
-                else:
-                    raise load_err
+                except Exception as load_err:
+                    if actual_gpu_layers != 0:
+                        logger.warning(
+                            f"[LLMService] Loading with GPU failed ({load_err}). "
+                            f"Retrying with CPU fallback (n_gpu_layers=0)..."
+                        )
+                        self._llm = Llama(
+                            model_path=self.model_path,
+                            n_ctx=self.n_ctx,
+                            n_gpu_layers=0,
+                            main_gpu=0,
+                            n_threads=threads,
+                            n_batch=n_batch,
+                            verbose=self.verbose,
+                        )
+                    else:
+                        raise load_err
             logger.info("[LLMService] Model loaded successfully.")
             return self._llm
 

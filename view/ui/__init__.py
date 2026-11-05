@@ -3,10 +3,9 @@ from view.ui.styles import DesignTokens, STYLE_SHEET
 from view.ui.icons import get_pop_logo_icon, get_pop_logo_pixmap, create_vector_icon, get_brand_logo_pixmap, get_brand_logo_icon
 from view.ui.widgets import (
     SidebarWidget, ChatAreaWidget, InputBarWidget,
-    RightPanelWidget, MiniMascotWidget, StarfieldWidget,
-    ModelDownloaderDialog
+    RightPanelWidget, MiniMascotWidget, StarfieldWidget
 )
-from view.ui.settings import SettingsDialog, load_user_settings, save_user_settings
+from view.ui.settings import SettingsDialog, SettingsWidget, load_user_settings, save_user_settings
 
 __all__ = [
     "PopView",
@@ -23,8 +22,8 @@ __all__ = [
     "RightPanelWidget",
     "MiniMascotWidget",
     "StarfieldWidget",
-    "ModelDownloaderDialog",
     "SettingsDialog",
+    "SettingsWidget",
     "load_user_settings",
     "save_user_settings",
 ]
