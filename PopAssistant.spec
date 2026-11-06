@@ -10,6 +10,8 @@ datas = [
 ]
 if os.path.exists('skins'):
     datas.append(('skins', 'skins'))
+if os.path.exists('native/bin'):
+    datas.append(('native/bin', 'native/bin'))
 
 # Database template
 db_path = os.path.join('database', 'conversations.db')
@@ -76,7 +78,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['tkinter'],
+    excludes=['tkinter', 'matplotlib', 'IPython', 'pytest', 'unittest'],
     noarchive=False,
     optimize=1,
 )

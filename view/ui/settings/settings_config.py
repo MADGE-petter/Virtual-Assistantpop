@@ -23,7 +23,12 @@ DEFAULT_SETTINGS = {
     "voice_device": "cpu",
     "llm_device": "gpu",
     "llm_gpu_layers": -1,
-    "llm_main_gpu": 0
+    "llm_main_gpu": 0,
+    "use_cloud_api": False,
+    "cloud_provider": "deepseek",
+    "cloud_api_key": "",
+    "cloud_base_url": "https://api.deepseek.com/v1",
+    "cloud_model": "deepseek-chat"
 }
 
 

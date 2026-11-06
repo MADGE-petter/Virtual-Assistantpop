@@ -18,6 +18,7 @@ from view.ui.collection.character_preview_widget import CharacterPreviewWidget
 from view.ui.mascot.characters import create_renderer_for_character
 from view.ui.mascot.characters.base_character_renderer import BaseCharacterRenderer
 from view.ui.mascot.mascot_model import MascotModel
+from view.ui.collection.gem_utils import draw_embedded_gem
 
 
 class InteractiveCharacterStage(QWidget):
@@ -131,9 +132,9 @@ class InteractiveCharacterStage(QWidget):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
 
-        # Flat 2D circular stage background
-        painter.setPen(QPen(QColor("#2A2E39"), 1.2))
-        painter.setBrush(QBrush(QColor("#22252E")))
+        # Cosmic Black 2D circular stage background with subtle white ring
+        painter.setPen(QPen(QColor(255, 255, 255, 25), 1.0))
+        painter.setBrush(QBrush(QColor(8, 12, 18, 230)))
         painter.drawEllipse(QRectF(4.0, 4.0, self._size - 8.0, self._size - 8.0))
 
         if self._renderer:
@@ -167,34 +168,34 @@ class InventoryCard(QFrame):
         super().__init__(parent)
         self.char = char
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setFixedHeight(140)
+        self.setFixedHeight(144)
 
         r_info = RARITY_INFO.get(char.rarity, {})
         r_color = r_info.get("color", "#9CA3AF")
         r_label = r_info.get("label", "Thường")
 
         if is_selected:
-            bg_col = "#2F1E2A" if char.rarity == "mythic" else "#282D3A"
-            border_style = "1.5px solid #F43F5E" if char.rarity == "mythic" else "1.5px solid #5B8BB2"
+            bg_col = "#1B121A" if char.rarity == "mythic" else "#141C2A"
+            border_style = "2px solid #F43F5E" if char.rarity == "mythic" else "2px solid #FFFFFF"
         elif is_equipped:
-            bg_col = "#2A1826" if char.rarity == "mythic" else "#242934"
-            border_style = "1.5px solid #F43F5E" if char.rarity == "mythic" else "1.5px solid #4A7C6B"
+            bg_col = "#180F17" if char.rarity == "mythic" else "#0B1516"
+            border_style = "1.5px solid #F43F5E" if char.rarity == "mythic" else "1.5px solid #00FFAA"
         elif is_owned:
-            bg_col = "#241622" if char.rarity == "mythic" else "#22252E"
-            border_style = "1px solid #F43F5E" if char.rarity == "mythic" else "1px solid #2E323E"
+            bg_col = "#140C13" if char.rarity == "mythic" else "#090D16"
+            border_style = "1px solid rgba(244, 63, 94, 0.6)" if char.rarity == "mythic" else "1px solid rgba(255, 255, 255, 0.14)"
         else:
-            bg_col = "#1E131C" if char.rarity == "mythic" else "#1C1F26"
-            border_style = "1px solid #701A28" if char.rarity == "mythic" else "1px solid #262932"
+            bg_col = "#0D080C" if char.rarity == "mythic" else "#060910"
+            border_style = "1px solid rgba(244, 63, 94, 0.25)" if char.rarity == "mythic" else "1px solid rgba(255, 255, 255, 0.07)"
 
         self.setStyleSheet(f"""
             InventoryCard {{
                 background: {bg_col};
                 border: {border_style};
-                border-radius: 9px;
+                border-radius: 12px;
             }}
             InventoryCard:hover {{
-                background: {"#382030" if char.rarity == "mythic" else "#2A2F3D"};
-                border: 1.5px solid {"#FDA4AF" if char.rarity == "mythic" else "#5B8BB2"};
+                background: {"#241421" if char.rarity == "mythic" else "#101624"};
+                border: 1.5px solid {"#FDA4AF" if char.rarity == "mythic" else "rgba(255, 255, 255, 0.45)"};
             }}
             InventoryCard QLabel {{
                 border: none;
@@ -212,12 +213,13 @@ class InventoryCard(QFrame):
 
         tag = QLabel(r_label)
         tag.setStyleSheet(f"""
-            background: #181A20;
+            background: rgba(0, 0, 0, 0.7);
             color: {r_color};
             font-weight: 700;
             font-size: 9px;
-            padding: 2px 6px;
-            border-radius: 4px;
+            padding: 2px 7px;
+            border-radius: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
         """)
         top_row.addWidget(tag)
         top_row.addStretch()
@@ -225,21 +227,21 @@ class InventoryCard(QFrame):
         if is_equipped:
             eq_badge = QLabel("Đang dùng")
             eq_badge.setStyleSheet("""
-                background: #3A6B5C;
-                color: #F3F4F6;
+                background: #00FFAA;
+                color: #000000;
                 font-size: 9px;
-                font-weight: 700;
+                font-weight: 800;
                 border-radius: 4px;
-                padding: 2px 5px;
+                padding: 2px 6px;
             """)
             top_row.addWidget(eq_badge)
         elif is_owned:
             cnt_badge = QLabel(f"x{count}" if count > 1 else "Đã mở")
-            cnt_badge.setStyleSheet("color: #9CA3AF; font-size: 9px; font-weight: 600;")
+            cnt_badge.setStyleSheet("color: #E2E8F0; font-size: 9px; font-weight: 700;")
             top_row.addWidget(cnt_badge)
         else:
             lock_badge = QLabel("Chưa mở")
-            lock_badge.setStyleSheet("color: #6B7280; font-size: 9px; font-weight: 600;")
+            lock_badge.setStyleSheet("color: #64748B; font-size: 9px; font-weight: 600;")
             top_row.addWidget(lock_badge)
 
         layout.addLayout(top_row)
@@ -253,9 +255,18 @@ class InventoryCard(QFrame):
         # Character Name
         name_lbl = QLabel(char.name)
         name_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        name_col = "#E5E7EB" if is_owned else "#6B7280"
+        name_col = "#FFFFFF" if is_owned else "#64748B"
         name_lbl.setStyleSheet(f"font-size: 12px; font-weight: 700; color: {name_col};")
         layout.addWidget(name_lbl)
+
+    def paintEvent(self, a0):
+        super().paintEvent(a0)
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        r_info = RARITY_INFO.get(self.char.rarity, {})
+        r_col = QColor(r_info.get("color", "#9CA3AF"))
+        # Khảm viên ngọc phát sáng theo Rate ở đáy thẻ
+        draw_embedded_gem(painter, float(self.width()) / 2.0, float(self.height()) - 5.0, r_col, size=9.0)
 
     def mousePressEvent(self, a0):
         if a0 is not None and a0.button() == Qt.MouseButton.LeftButton:
@@ -291,12 +302,12 @@ class InventoryTab(QWidget):
         # ============================================================
         toolbar = QFrame()
         toolbar.setObjectName("invToolbar")
-        toolbar.setFixedHeight(44)
+        toolbar.setFixedHeight(46)
         toolbar.setStyleSheet("""
             QFrame#invToolbar {
-                background: #22252E;
-                border: 1px solid #2E323E;
-                border-radius: 9px;
+                background: #080C14;
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                border-radius: 11px;
             }
             QFrame#invToolbar QLabel {
                 border: none;
@@ -327,7 +338,7 @@ class InventoryTab(QWidget):
         tb_layout.addStretch()
 
         self.progress_label = QLabel("Sưu tập: 0/0")
-        self.progress_label.setStyleSheet("color: #D1D5DB; font-size: 11px; font-weight: 600;")
+        self.progress_label.setStyleSheet("color: #FFFFFF; font-size: 11px; font-weight: 700;")
         tb_layout.addWidget(self.progress_label)
 
         self.progress_bar = QProgressBar()
@@ -335,12 +346,12 @@ class InventoryTab(QWidget):
         self.progress_bar.setTextVisible(False)
         self.progress_bar.setStyleSheet("""
             QProgressBar {
-                background: #14161B;
+                background: rgba(255, 255, 255, 0.08);
                 border-radius: 3px;
                 border: none;
             }
             QProgressBar::chunk {
-                background: #3D6B8E;
+                background: #FFFFFF;
                 border-radius: 3px;
             }
         """)
@@ -357,9 +368,40 @@ class InventoryTab(QWidget):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
-        scroll.setStyleSheet("background: transparent;")
+        scroll.setStyleSheet("""
+            QScrollArea {
+                background: transparent;
+                border: none;
+            }
+            QScrollBar:vertical {
+                background: transparent;
+                width: 8px;
+                margin: 4px 2px 4px 2px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical {
+                background: rgba(255, 255, 255, 0.22);
+                min-height: 36px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: rgba(255, 255, 255, 0.50);
+            }
+            QScrollBar::handle:vertical:pressed {
+                background: rgba(255, 255, 255, 0.75);
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0px;
+                background: none;
+                border: none;
+            }
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                background: none;
+            }
+        """)
 
         self.grid_container = QWidget()
+        self.grid_container.setStyleSheet("background: transparent;")
         self.grid_layout = QGridLayout(self.grid_container)
         self.grid_layout.setContentsMargins(0, 0, 4, 0)
         self.grid_layout.setSpacing(10)
@@ -367,15 +409,15 @@ class InventoryTab(QWidget):
         scroll.setWidget(self.grid_container)
         body_layout.addWidget(scroll, stretch=1)
 
-        # Right: Flat 2D Character Studio Panel (300px)
+        # Right: Flat 2D Character Studio Panel (300px, Bo góc 14px)
         self.inspector = QFrame()
         self.inspector.setObjectName("inspectorFrame")
         self.inspector.setFixedWidth(300)
         self.inspector.setStyleSheet("""
             QFrame#inspectorFrame {
-                background: #22252E;
-                border: 1px solid #2E323E;
-                border-radius: 10px;
+                background: #080C14;
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                border-radius: 14px;
             }
             QFrame#inspectorFrame QLabel {
                 border: none;
@@ -389,7 +431,7 @@ class InventoryTab(QWidget):
         # Top Header: Character Name + Rarity Pill
         hdr_row = QHBoxLayout()
         self.insp_title = QLabel("Chi Tiết Nhân Vật")
-        self.insp_title.setStyleSheet("font-size: 15px; font-weight: 800; color: #F3F4F6;")
+        self.insp_title.setStyleSheet("font-size: 16px; font-weight: 800; color: #FFFFFF;")
         hdr_row.addWidget(self.insp_title)
         hdr_row.addStretch()
 
@@ -399,17 +441,17 @@ class InventoryTab(QWidget):
         insp_layout.addLayout(hdr_row)
 
         self.insp_count = QLabel("")
-        self.insp_count.setStyleSheet("font-size: 11px; font-weight: 600; color: #9CA3AF;")
+        self.insp_count.setStyleSheet("font-size: 11px; font-weight: 600; color: #94A3B8;")
         insp_layout.addWidget(self.insp_count)
 
-        # Flat Recessed Studio Stage Box (#1C1F26)
+        # Studio Stage Box (Bo góc 12px)
         stage_box = QFrame()
         stage_box.setObjectName("studioStageBox")
         stage_box.setStyleSheet("""
             QFrame#studioStageBox {
-                background: #1C1F26;
-                border: 1px solid #2A2E39;
-                border-radius: 8px;
+                background: #030509;
+                border: 1px solid rgba(255, 255, 255, 0.10);
+                border-radius: 12px;
             }
         """)
         stage_box_layout = QVBoxLayout(stage_box)
@@ -419,7 +461,7 @@ class InventoryTab(QWidget):
         self.insp_preview = InteractiveCharacterStage(size=140)
         stage_box_layout.addWidget(self.insp_preview, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        # Flat 2D 6-button Pose & Voice bar inside Stage Box
+        # 6-button Pose & Voice bar inside Stage Box
         pose_row = QHBoxLayout()
         pose_row.setSpacing(3)
         poses = [
@@ -444,34 +486,34 @@ class InventoryTab(QWidget):
         # Description
         self.insp_desc = QLabel("Chọn một nhân vật bên trái để xem chi tiết, thử biểu cảm và trang bị.")
         self.insp_desc.setWordWrap(True)
-        self.insp_desc.setStyleSheet("font-size: 11px; color: #9CA3AF; line-height: 1.35;")
+        self.insp_desc.setStyleSheet("font-size: 11px; color: #94A3B8; line-height: 1.4;")
         insp_layout.addWidget(self.insp_desc)
 
         insp_layout.addStretch()
 
-        # Flat 2D Primary Equip Button
+        # Primary Equip Button (Bo góc 8px, Trắng + Đen)
         self.equip_btn = QPushButton("Trang Bị Nhân Vật")
         self.equip_btn.setFixedHeight(38)
         self.equip_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.equip_btn.setStyleSheet("""
             QPushButton {
-                background: #3D6B8E;
-                color: #F3F4F6;
+                background: #FFFFFF;
+                color: #000000;
                 font-size: 13px;
-                font-weight: 700;
-                border-radius: 7px;
+                font-weight: 800;
+                border-radius: 8px;
                 border: none;
             }
             QPushButton:hover {
-                background: #487CA3;
+                background: #E2E8F0;
             }
             QPushButton:pressed {
-                background: #335978;
+                background: #CBD5E1;
             }
             QPushButton:disabled {
-                background: #1C1F26;
-                color: #6B7280;
-                border: 1px solid #2A2E39;
+                background: rgba(255, 255, 255, 0.04);
+                color: #475569;
+                border: 1px solid rgba(255, 255, 255, 0.06);
             }
         """)
         self.equip_btn.clicked.connect(self._on_equip_clicked)
@@ -493,29 +535,30 @@ class InventoryTab(QWidget):
             if k == self.current_filter:
                 btn.setStyleSheet("""
                     QPushButton {
-                        background: #3D6B8E;
-                        color: #F3F4F6;
+                        background: #FFFFFF;
+                        color: #000000;
                         font-size: 11px;
-                        font-weight: 700;
-                        border-radius: 5px;
+                        font-weight: 800;
+                        border-radius: 7px;
                         border: none;
-                        padding: 0 11px;
+                        padding: 0 12px;
                     }
                 """)
             else:
                 btn.setStyleSheet("""
                     QPushButton {
-                        background: #1C1F26;
-                        color: #9CA3AF;
+                        background: rgba(255, 255, 255, 0.04);
+                        color: #94A3B8;
                         font-size: 11px;
                         font-weight: 600;
-                        border-radius: 5px;
-                        border: 1px solid #2A2E39;
-                        padding: 0 11px;
+                        border-radius: 7px;
+                        border: 1px solid rgba(255, 255, 255, 0.10);
+                        padding: 0 12px;
                     }
                     QPushButton:hover {
-                        background: #2B2F3A;
-                        color: #E5E7EB;
+                        background: rgba(255, 255, 255, 0.12);
+                        color: #FFFFFF;
+                        border-color: rgba(255, 255, 255, 0.30);
                     }
                 """)
 
@@ -538,11 +581,11 @@ class InventoryTab(QWidget):
             if k == self._active_pose:
                 btn.setStyleSheet("""
                     QPushButton {
-                        background: #3D6B8E;
-                        color: #F3F4F6;
+                        background: #FFFFFF;
+                        color: #000000;
                         font-size: 10px;
-                        font-weight: 700;
-                        border-radius: 5px;
+                        font-weight: 800;
+                        border-radius: 6px;
                         border: none;
                         padding: 0 6px;
                     }
@@ -550,17 +593,18 @@ class InventoryTab(QWidget):
             else:
                 btn.setStyleSheet("""
                     QPushButton {
-                        background: #22252E;
-                        color: #9CA3AF;
+                        background: rgba(255, 255, 255, 0.05);
+                        color: #CBD5E1;
                         font-size: 10px;
                         font-weight: 600;
-                        border-radius: 5px;
-                        border: 1px solid #2E323E;
+                        border-radius: 6px;
+                        border: 1px solid rgba(255, 255, 255, 0.10);
                         padding: 0 6px;
                     }
                     QPushButton:hover {
-                        background: #2B2F3A;
-                        color: #E5E7EB;
+                        background: rgba(255, 255, 255, 0.14);
+                        color: #FFFFFF;
+                        border-color: rgba(255, 255, 255, 0.25);
                     }
                 """)
 
@@ -666,13 +710,13 @@ class InventoryTab(QWidget):
         self.insp_title.setText(char.name)
         self.insp_rarity.setText(r_label.upper())
         self.insp_rarity.setStyleSheet(f"""
-            background: #181A20;
+            background: rgba(0, 0, 0, 0.7);
             color: {r_color};
-            border: 1px solid #2E323E;
+            border: 1px solid rgba(255, 255, 255, 0.16);
             font-size: 10px;
-            font-weight: 700;
-            padding: 3px 8px;
-            border-radius: 4px;
+            font-weight: 800;
+            padding: 3px 9px;
+            border-radius: 5px;
         """)
         if "music" in self._pose_buttons:
             has_music = bool(char and (getattr(char, "is_exclusive", False) or char.id in ("aemeath_idol", "nono_chubby")))
@@ -686,13 +730,49 @@ class InventoryTab(QWidget):
             if is_equipped:
                 self.equip_btn.setEnabled(False)
                 self.equip_btn.setText("Đang Đồng Hành Trên Màn Hình")
+                self.equip_btn.setStyleSheet("""
+                    QPushButton:disabled {
+                        background: rgba(0, 255, 170, 0.12);
+                        color: #00FFAA;
+                        border: 1.5px solid #00FFAA;
+                        font-size: 13px;
+                        font-weight: 800;
+                        border-radius: 8px;
+                    }
+                """)
             else:
                 self.equip_btn.setEnabled(True)
                 self.equip_btn.setText("Trang Bị Nhân Vật")
+                self.equip_btn.setStyleSheet("""
+                    QPushButton {
+                        background: #FFFFFF;
+                        color: #000000;
+                        font-size: 13px;
+                        font-weight: 800;
+                        border-radius: 8px;
+                        border: none;
+                    }
+                    QPushButton:hover {
+                        background: #E2E8F0;
+                    }
+                    QPushButton:pressed {
+                        background: #CBD5E1;
+                    }
+                """)
         else:
             self.insp_count.setText(f"Chưa mở khóa  •  Giá: {char.price:,} Xu hoặc {r_info.get('shard_cost', 100)} Mảnh")
             self.equip_btn.setEnabled(False)
             self.equip_btn.setText("Chưa Sở Hữu")
+            self.equip_btn.setStyleSheet("""
+                QPushButton:disabled {
+                    background: rgba(255, 255, 255, 0.04);
+                    color: #64748B;
+                    border: 1px solid rgba(255, 255, 255, 0.06);
+                    font-size: 13px;
+                    font-weight: 700;
+                    border-radius: 8px;
+                }
+            """)
 
     def _on_equip_clicked(self):
         if not self.selected_id:

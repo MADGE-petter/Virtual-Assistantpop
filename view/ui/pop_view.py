@@ -137,9 +137,12 @@ class PopView(QMainWindow):
 
         self.chat_area = ChatAreaWidget(self.center_stack, user_name=self.user_name)
         self.settings_page = SettingsWidget(self.user_name, initial_tab=0, parent=self.center_stack)
+        from view.ui.editor.code_editor_window import CodeEditorStudioWidget
+        self.code_editor_page = CodeEditorStudioWidget(self.center_stack)
 
         self.center_stack.addWidget(self.chat_area)
         self.center_stack.addWidget(self.settings_page)
+        self.center_stack.addWidget(self.code_editor_page)
 
         # 4. Right Telemetry Panel
         self.right_panel = RightPanelWidget(self.container_box)
@@ -202,6 +205,10 @@ class PopView(QMainWindow):
         self.sidebar.settingsTabSelected.connect(self.navigation.open_settings_page)
         self.sidebar.memoryClicked.connect(lambda: self.navigation.open_settings_page(5))
         self.sidebar.logoutRequested.connect(self._handle_logout_requested)
+        self.sidebar.codeEditorRequested.connect(self.navigation.show_code_editor_view)
+        self.sidebar.toggleExplorerRequested.connect(lambda: self.code_editor_page.explorer_widget.setVisible(not self.code_editor_page.explorer_widget.isVisible()))
+        self.sidebar.toggleTerminalRequested.connect(lambda: self.code_editor_page._toggle_terminal())
+        self.sidebar.toggleAIPanelRequested.connect(lambda: self.code_editor_page._toggle_ai_panel())
 
         # Chat Area Events
         self.chat_area.sendMessage.connect(self._on_user_send_message)
@@ -209,6 +216,7 @@ class PopView(QMainWindow):
         self.chat_area.stopGeneration.connect(lambda: self.stopGeneration.emit())
         self.chat_area.switchModel.connect(lambda m: self.switchModel.emit(m))
         self.chat_area.openSettings.connect(lambda: self.navigation.open_settings_page(0))
+        self.chat_area.openCodeStudio.connect(self.navigation.show_code_editor_view)
         self.chat_area.toggleRightPanel.connect(self.navigation.toggle_right_panel)
         self.right_panel.closeRequested.connect(self.navigation.toggle_right_panel)
         self.chat_area.windowMinimize.connect(self.showMinimized)
@@ -216,6 +224,13 @@ class PopView(QMainWindow):
         self.chat_area.windowMaximize.connect(self.window_mgr.toggle_maximize)
         self.chat_area.windowClose.connect(self.close)
         self.chat_area.executeToolRequested.connect(self._on_execute_tool)
+
+        # Code Studio Window Events
+        if hasattr(self, 'code_editor_page') and self.code_editor_page:
+            self.code_editor_page.windowHideToMascot.connect(self.window_mgr.switch_to_mini_mascot)
+            self.code_editor_page.windowMinimize.connect(self.showMinimized)
+            self.code_editor_page.windowMaximize.connect(self.window_mgr.toggle_maximize)
+            self.code_editor_page.windowClose.connect(self.close)
 
         # Settings Events
         if hasattr(self.settings_page, 'backToChatRequested'):
@@ -230,6 +245,10 @@ class PopView(QMainWindow):
     def _handle_settings_changed(self):
         if hasattr(self, 'mini_mascot') and self.mini_mascot:
             self.mini_mascot.reload_settings()
+
+    def _open_code_editor(self):
+        """Switch central view to the embedded POP Code Studio."""
+        self.navigation.show_code_editor_view()
 
     # ============================================================
     # PUBLIC MVC INTERFACE (Called by Controller & Services)

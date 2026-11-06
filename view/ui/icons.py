@@ -158,6 +158,19 @@ def create_vector_icon(icon_type: str, color_hex: str = "#96D7E9", size: int = 2
         painter.drawLine(QPointF(s * 0.5, pad), QPointF(s * 0.5, s - pad))
         painter.drawLine(QPointF(pad, s * 0.5), QPointF(s - pad, s * 0.5))
 
+    elif icon_type in ("code", "editor"):
+        # Code brackets </>
+        path = QPainterPath()
+        path.moveTo(s * 0.36, s * 0.30)
+        path.lineTo(s * 0.18, s * 0.50)
+        path.lineTo(s * 0.36, s * 0.70)
+        path.moveTo(s * 0.64, s * 0.30)
+        path.lineTo(s * 0.82, s * 0.50)
+        path.lineTo(s * 0.64, s * 0.70)
+        path.moveTo(s * 0.56, s * 0.24)
+        path.lineTo(s * 0.44, s * 0.76)
+        painter.drawPath(path)
+
     elif icon_type in ("attachment", "paperclip"):
         # Classic sleek paperclip
         path = QPainterPath()
@@ -402,6 +415,16 @@ def create_vector_icon(icon_type: str, color_hex: str = "#96D7E9", size: int = 2
         # Overlapping squares
         painter.drawRect(QRectF(s * 0.35, pad, s * 0.52, s * 0.52))
         painter.drawRect(QRectF(pad, s * 0.35, s * 0.52, s * 0.52))
+
+    elif icon_type in ("play", "run"):
+        # Sharp right-pointing play triangle
+        path = QPainterPath()
+        path.moveTo(s * 0.35, pad * 1.1)
+        path.lineTo(s * 0.78, s * 0.5)
+        path.lineTo(s * 0.35, s - pad * 1.1)
+        path.closeSubpath()
+        painter.setBrush(QBrush(color))
+        painter.drawPath(path)
 
     elif icon_type in ("mini_mascot", "pip", "float", "mascot"):
         # Pip / Mini mascot floating badge icon

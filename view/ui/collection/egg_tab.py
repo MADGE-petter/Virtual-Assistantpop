@@ -23,6 +23,7 @@ from view.ui.collection.character_preview_widget import CharacterPreviewWidget
 from view.ui.mascot.characters import create_renderer_for_character
 from view.ui.mascot.characters.base_character_renderer import BaseCharacterRenderer
 from view.ui.mascot.mascot_model import MascotModel
+from view.ui.collection.gem_utils import draw_embedded_gem
 
 
 class GachaStageWidget(QWidget):
@@ -422,6 +423,9 @@ class GachaStageWidget(QWidget):
             char.description
         )
 
+        # Khảm viên ngọc pha lê phát sáng theo Rate ở đáy thẻ đơn
+        draw_embedded_gem(painter, card_x + card_w / 2.0, card_y + card_h - 4.0, r_col, size=13.0)
+
     def _paint_multi_reveal(self, painter: QPainter, cx: float, cy: float, w: float, h: float):
         count = len(self._current_results)
         if count == 0:
@@ -452,17 +456,18 @@ class GachaStageWidget(QWidget):
             ix = start_x + idx * (card_w + 12.0)
             iy = card_y
 
-            painter.setBrush(QBrush(QColor("#241622" if char.rarity == "mythic" else ("#28241E" if is_bonus else "#22252E"))))
-            border_c = QColor("#D4A359") if is_bonus else QColor(r_col.red(), r_col.green(), r_col.blue(), 145)
+            # Nền tối Obsidian và viền luôn chuẩn xác theo đúng phẩm cấp Rarity (Hiếm = Xanh, Sử thi = Tím,...)
+            painter.setBrush(QBrush(QColor("#1C101B" if char.rarity == "mythic" else "#080C14")))
+            border_c = QColor(r_col.red(), r_col.green(), r_col.blue(), 230 if is_bonus else 145)
             painter.setPen(QPen(border_c, 1.8 if is_bonus else 1.4))
-            painter.drawRoundedRect(QRectF(ix, iy, card_w, card_h), 10.0, 10.0)
+            painter.drawRoundedRect(QRectF(ix, iy, card_w, card_h), 12.0, 12.0)
 
             if is_bonus:
-                badge_text = "★ +1 RATE" if res.is_new else f"★ +{res.shards_gained} Mảnh"
-                painter.setPen(QColor("#D4A359"))
+                badge_text = "★ MỚI" if res.is_new else f"★ +{res.shards_gained} Mảnh"
+                painter.setPen(r_col)
             else:
                 badge_text = "MỚI" if res.is_new else f"+{res.shards_gained} Mảnh"
-                painter.setPen(QColor("#7AA2C4") if res.is_new else QColor("#A78BFA"))
+                painter.setPen(r_col if res.is_new else QColor("#C084FC"))
             b_font = QFont("Arial", 8, QFont.Weight.Bold)
             painter.setFont(b_font)
             painter.drawText(QRectF(ix + 4, iy + 8, card_w - 8, 16), Qt.AlignmentFlag.AlignCenter, badge_text)
@@ -479,18 +484,23 @@ class GachaStageWidget(QWidget):
                     pass
                 painter.restore()
 
-            painter.setPen(QColor("#E5E7EB"))
+            painter.setPen(QColor("#FFFFFF"))
             n_font = QFont("Arial", 9, QFont.Weight.Bold)
             painter.setFont(n_font)
             painter.drawText(
-                QRectF(ix + 6, iy + card_h - 46, card_w - 12, 24),
+                QRectF(ix + 6, iy + card_h - 48, card_w - 12, 22),
                 Qt.AlignmentFlag.AlignCenter | Qt.TextFlag.TextWordWrap,
                 char.name
             )
             painter.setPen(r_col)
             r_font = QFont("Arial", 8, QFont.Weight.Bold)
             painter.setFont(r_font)
-            painter.drawText(QRectF(ix + 4, iy + card_h - 20, card_w - 8, 14), Qt.AlignmentFlag.AlignCenter, r_label.upper())
+            painter.drawText(QRectF(ix + 4, iy + card_h - 26, card_w - 8, 14), Qt.AlignmentFlag.AlignCenter, r_label.upper())
+
+            # Khảm viên ngọc pha lê phát sáng theo Rate ở đáy thẻ
+            gem_cx = ix + card_w / 2.0
+            gem_cy = iy + card_h - 7.0
+            draw_embedded_gem(painter, gem_cx, gem_cy, r_col, size=10.0)
 
         if total_shards > 0:
             painter.setPen(QColor("#A78BFA"))

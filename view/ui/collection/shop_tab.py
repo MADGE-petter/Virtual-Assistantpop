@@ -42,17 +42,17 @@ class CharacterShopCard(QFrame):
         r_label = r_info.get("label", "Thường")
         shard_cost = r_info.get("shard_cost", 100)
 
-        self.setFixedHeight(216)
-        bg_col = "#241622" if char.rarity == "mythic" else ("#22252E" if is_owned else "#1F222A")
-        border_col = "#F43F5E" if char.rarity == "mythic" else ("#4A7C6B" if is_equipped else "#2E323E")
-        hover_bg = "#321C2C" if char.rarity == "mythic" else "#272B36"
-        hover_border = "#FDA4AF" if char.rarity == "mythic" else "#5B8BB2"
+        self.setFixedHeight(220)
+        bg_col = "#1A101A" if char.rarity == "mythic" else ("#0C1418" if is_equipped else ("#090D16" if is_owned else "#060910"))
+        border_col = "#F43F5E" if char.rarity == "mythic" else ("#00FFAA" if is_equipped else "rgba(255, 255, 255, 0.12)")
+        hover_bg = "#241422" if char.rarity == "mythic" else "#101624"
+        hover_border = "#FDA4AF" if char.rarity == "mythic" else "rgba(255, 255, 255, 0.45)"
 
         self.setStyleSheet(f"""
             CharacterShopCard {{
                 background: {bg_col};
                 border: {"1.5px solid " + border_col if char.rarity == "mythic" else "1px solid " + border_col};
-                border-radius: 10px;
+                border-radius: 12px;
             }}
             CharacterShopCard:hover {{
                 background: {hover_bg};
@@ -267,15 +267,15 @@ class ShopTab(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(10)
 
-        # 1. Flat 2D 44px Top Toolbar: Filters (Left) + Quick Core Pack Supply (Right)
+        # 1. 46px Top Toolbar: Filters (Left) + Quick Core Pack Supply (Right)
         toolbar = QFrame()
         toolbar.setObjectName("shopToolbar")
-        toolbar.setFixedHeight(44)
+        toolbar.setFixedHeight(46)
         toolbar.setStyleSheet("""
             QFrame#shopToolbar {
-                background: #22252E;
-                border: 1px solid #2E323E;
-                border-radius: 9px;
+                background: #080C14;
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                border-radius: 11px;
             }
             QFrame#shopToolbar QLabel {
                 background: transparent;
@@ -306,16 +306,46 @@ class ShopTab(QWidget):
         tb_layout.addStretch()
 
         self.count_lbl = QLabel("")
-        self.count_lbl.setStyleSheet("font-size: 11px; font-weight: 600; color: #9CA3AF;")
+        self.count_lbl.setStyleSheet("font-size: 11px; font-weight: 700; color: #FFFFFF;")
         tb_layout.addWidget(self.count_lbl)
 
         layout.addWidget(toolbar)
 
-        # 2. Scroll Area for 3-Column Character Cards
+        # 2. Scroll Area for 3-Column Character Cards (Inset Scrollbar)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
-        scroll.setStyleSheet("background: transparent;")
+        scroll.setStyleSheet("""
+            QScrollArea {
+                background: transparent;
+                border: none;
+            }
+            QScrollBar:vertical {
+                background: transparent;
+                width: 8px;
+                margin: 4px 2px 4px 2px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical {
+                background: rgba(255, 255, 255, 0.22);
+                min-height: 36px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: rgba(255, 255, 255, 0.50);
+            }
+            QScrollBar::handle:vertical:pressed {
+                background: rgba(255, 255, 255, 0.75);
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0px;
+                background: none;
+                border: none;
+            }
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                background: none;
+            }
+        """)
 
         self.cards_container = QWidget()
         self.cards_layout = QGridLayout(self.cards_container)
@@ -337,29 +367,30 @@ class ShopTab(QWidget):
             if key == self._active_filter:
                 btn.setStyleSheet("""
                     QPushButton {
-                        background: #3D6B8E;
-                        color: #F3F4F6;
+                        background: #FFFFFF;
+                        color: #000000;
                         font-size: 11px;
-                        font-weight: 700;
-                        border-radius: 5px;
+                        font-weight: 800;
+                        border-radius: 7px;
                         border: none;
-                        padding: 0 11px;
+                        padding: 0 12px;
                     }
                 """)
             else:
                 btn.setStyleSheet("""
                     QPushButton {
-                        background: #1C1F26;
-                        color: #9CA3AF;
+                        background: rgba(255, 255, 255, 0.04);
+                        color: #94A3B8;
                         font-size: 11px;
                         font-weight: 600;
-                        border-radius: 5px;
-                        border: 1px solid #2A2E39;
-                        padding: 0 11px;
+                        border-radius: 7px;
+                        border: 1px solid rgba(255, 255, 255, 0.10);
+                        padding: 0 12px;
                     }
                     QPushButton:hover {
-                        background: #2B2F3A;
-                        color: #E5E7EB;
+                        background: rgba(255, 255, 255, 0.12);
+                        color: #FFFFFF;
+                        border-color: rgba(255, 255, 255, 0.30);
                     }
                 """)
 

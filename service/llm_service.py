@@ -323,6 +323,15 @@ class LLMService:
     def is_loaded(self) -> bool:
         return self._llm is not None
 
+    def is_cloud_enabled(self) -> bool:
+        """Check if user configured and enabled Cloud Model API."""
+        try:
+            from view.ui.settings.settings_config import load_user_settings
+            cfg = load_user_settings()
+            return bool(cfg.get("use_cloud_api", False))
+        except Exception:
+            return False
+
     def unload(self) -> None:
         """Free GPU/CPU memory by dropping the model reference."""
         with self._load_lock:
@@ -369,6 +378,29 @@ class LLMService:
         Returns:
             Assistant reply text (stripped).
         """
+        # 1. Check if Cloud Model API is enabled
+        if self.is_cloud_enabled():
+            try:
+                from service.cloud_llm_service import CloudLLMService
+                cloud_svc = CloudLLMService.from_settings()
+                if cloud_svc.is_configured():
+                    logger.info(f"[LLMService] Routing request to Cloud Model ({cloud_svc.provider} / {cloud_svc.model})")
+                    return cloud_svc.chat(
+                        messages=messages,
+                        system_prompt=system_prompt,
+                        max_tokens=max_tokens,
+                        temperature=temperature,
+                        top_p=top_p,
+                        stop=stop,
+                        response_format=response_format
+                    )
+                else:
+                    logger.warning("[LLMService] Cloud API enabled but credentials missing. Falling back to local model.")
+            except Exception as e:
+                logger.error(f"[LLMService] Cloud API error: {e}")
+                raise
+
+        # 2. Local Llama GGUF Model Inference
         llm = self._ensure_loaded()
 
         msgs: List[Dict[str, str]] = []
@@ -403,6 +435,14 @@ class LLMService:
         stop: Optional[List[str]] = None,
     ) -> str:
         """Raw text completion (no chat template)."""
+        if self.is_cloud_enabled():
+            return self.chat(
+                [{"role": "user", "content": prompt}],
+                max_tokens=max_tokens,
+                temperature=temperature,
+                top_p=top_p,
+                stop=stop
+            )
         llm = self._ensure_loaded()
         try:
             response = llm(

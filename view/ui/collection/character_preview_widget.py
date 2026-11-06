@@ -62,12 +62,13 @@ class CharacterPreviewWidget(QWidget):
 
         is_ex = bool(self._char and (getattr(self._char, "is_exclusive", False) or self._char.id == "aemeath_idol"))
         if is_ex:
-            bg_color = QColor("#221520")
+            bg_color = QColor("#1F101B")
             border_color = QColor("#F43F5E")
             painter.setPen(QPen(border_color, 1.4))
         else:
-            bg_color = QColor("#1C1F26")
-            border_color = QColor(r_color.red(), r_color.green(), r_color.blue(), 85)
+            bg_color = QColor(6, 9, 14, 230)
+            alpha = 110 if (self._char and self._char.rarity in ("mythic", "legendary", "epic")) else 35
+            border_color = QColor(r_color.red(), r_color.green(), r_color.blue(), alpha)
             painter.setPen(QPen(border_color, 1.0))
 
         painter.setBrush(QBrush(bg_color))

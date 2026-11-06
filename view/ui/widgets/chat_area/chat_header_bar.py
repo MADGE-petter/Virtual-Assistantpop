@@ -14,6 +14,7 @@ class ChatHeaderBarWidget(QFrame):
 
     toggleRightPanel = pyqtSignal()
     openSettings = pyqtSignal()
+    openCodeStudio = pyqtSignal()
     windowHideToMascot = pyqtSignal()
     windowMinimize = pyqtSignal()
     windowMaximize = pyqtSignal()
@@ -49,6 +50,17 @@ class ChatHeaderBarWidget(QFrame):
             "QPushButton:hover { background: rgba(255, 255, 255, 0.08); border-radius: 8px; }"
         )
         self.settings_btn.clicked.connect(self.openSettings.emit)
+
+        self.code_btn = QPushButton()
+        self.code_btn.setIcon(create_vector_icon("code", DesignTokens.TEXT_SECONDARY, 17))
+        self.code_btn.setFixedSize(32, 32)
+        self.code_btn.setToolTip("Mở POP Code Studio")
+        self.code_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.code_btn.setStyleSheet(
+            "QPushButton { border: none; background: transparent; padding: 0px; } "
+            "QPushButton:hover { background: rgba(0, 255, 170, 0.12); border-radius: 8px; }"
+        )
+        self.code_btn.clicked.connect(self.openCodeStudio.emit)
 
         win_controls = QHBoxLayout()
         win_controls.setSpacing(4)
@@ -106,6 +118,7 @@ class ChatHeaderBarWidget(QFrame):
         win_controls.addWidget(self.close_btn)
 
         layout.addStretch()
+        layout.addWidget(self.code_btn)
         layout.addWidget(self.panel_btn)
         layout.addWidget(self.settings_btn)
         layout.addLayout(win_controls)

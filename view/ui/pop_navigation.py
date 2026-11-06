@@ -29,6 +29,13 @@ class PopNavigation(QObject):
         self.settings_page.open_tab(tab_index)
         self.center_stack.setCurrentIndex(1)
 
+    def show_code_editor_view(self):
+        """Switch to Code Editor Studio in central stack and mode 2 in sidebar."""
+        self.sidebar.set_mode(2)
+        self.center_stack.setCurrentIndex(2)
+        if self.right_panel.isVisible():
+            self.toggle_right_panel()
+
     def toggle_right_panel(self):
         """Smoothly slide open or closed the right telemetry panel with OutCubic curve."""
         is_open = self.right_panel.width() > 10 and self.right_panel.isVisible()

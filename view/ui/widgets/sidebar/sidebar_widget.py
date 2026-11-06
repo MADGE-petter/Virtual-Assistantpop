@@ -32,6 +32,10 @@ class SidebarWidget(QWidget):
     toggleCollapsed = pyqtSignal()
     memoryClicked = pyqtSignal()
     logoutRequested = pyqtSignal()
+    codeEditorRequested = pyqtSignal()
+    toggleExplorerRequested = pyqtSignal()
+    toggleTerminalRequested = pyqtSignal()
+    toggleAIPanelRequested = pyqtSignal()
 
     def __init__(self, chat_model: PopChatModel, user_name: str, parent=None):
         super().__init__(parent)
@@ -146,6 +150,61 @@ class SidebarWidget(QWidget):
         self.settings_nav_list.currentRowChanged.connect(self._on_settings_tab_clicked)
         self.body_stack.addWidget(self.settings_nav_list)
 
+        # Page 2: Code Studio Slim Icon Rail
+        self.code_rail_container = QWidget()
+        rail_layout = QVBoxLayout(self.code_rail_container)
+        rail_layout.setContentsMargins(0, 10, 0, 10)
+        rail_layout.setSpacing(14)
+        rail_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+
+        btn_rail_style = (
+            "QPushButton { border: none; background: transparent; padding: 0px; border-radius: 8px; } "
+            "QPushButton:hover { background: rgba(0, 255, 170, 0.15); }"
+        )
+
+        self.rail_back_btn = QPushButton()
+        self.rail_back_btn.setIcon(create_vector_icon("message", DesignTokens.TEXT_SECONDARY, 20))
+        self.rail_back_btn.setFixedSize(38, 38)
+        self.rail_back_btn.setToolTip("Quay lại Trò chuyện (Chat)")
+        self.rail_back_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.rail_back_btn.setStyleSheet(btn_rail_style)
+        self.rail_back_btn.clicked.connect(self._on_rail_back_clicked)
+
+        self.rail_explorer_btn = QPushButton()
+        self.rail_explorer_btn.setIcon(create_vector_icon("folder", DesignTokens.TEXT_SECONDARY, 20))
+        self.rail_explorer_btn.setFixedSize(38, 38)
+        self.rail_explorer_btn.setToolTip("Bật / Tắt Cây thư mục dự án")
+        self.rail_explorer_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.rail_explorer_btn.setStyleSheet(btn_rail_style)
+        self.rail_explorer_btn.clicked.connect(self.toggleExplorerRequested.emit)
+
+        self.rail_terminal_btn = QPushButton()
+        self.rail_terminal_btn.setIcon(create_vector_icon("command", DesignTokens.TEXT_SECONDARY, 20))
+        self.rail_terminal_btn.setFixedSize(38, 38)
+        self.rail_terminal_btn.setToolTip("Bật / Tắt Terminal")
+        self.rail_terminal_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.rail_terminal_btn.setStyleSheet(btn_rail_style)
+        self.rail_terminal_btn.clicked.connect(self.toggleTerminalRequested.emit)
+
+        self.rail_ai_btn = QPushButton()
+        self.rail_ai_btn.setIcon(create_vector_icon("code", DesignTokens.CYAN_ACCENT, 20))
+        self.rail_ai_btn.setFixedSize(38, 38)
+        self.rail_ai_btn.setToolTip("Bật / Tắt AI Coding Assistant")
+        self.rail_ai_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.rail_ai_btn.setStyleSheet(
+            "QPushButton { border: 1px solid rgba(0, 255, 170, 0.35); background: rgba(0, 255, 170, 0.1); border-radius: 8px; } "
+            "QPushButton:hover { background: rgba(0, 255, 170, 0.25); border-color: #00FFAA; }"
+        )
+        self.rail_ai_btn.clicked.connect(self.toggleAIPanelRequested.emit)
+
+        rail_layout.addWidget(self.rail_back_btn)
+        rail_layout.addWidget(self.rail_explorer_btn)
+        rail_layout.addWidget(self.rail_terminal_btn)
+        rail_layout.addWidget(self.rail_ai_btn)
+        rail_layout.addStretch()
+
+        self.body_stack.addWidget(self.code_rail_container)
+
         main_layout.addWidget(self.body_stack, stretch=1)
 
         # Separator line
@@ -243,11 +302,27 @@ class SidebarWidget(QWidget):
         self._last_menu_closed_time = time.time()
 
     def set_mode(self, mode: int, selected_tab: int = 0):
-        """Mode 0: Chat Mode (Conversation List), Mode 1: Settings Mode (Settings Tabs)."""
+        """Mode 0: Chat Mode, Mode 1: Settings Mode, Mode 2: Code Studio Mode."""
         self.current_mode = mode
-        self.body_stack.setCurrentIndex(mode)
-        
-        if mode == 1:
+
+        if mode == 2:
+            # Code Studio Mode: Slim Icon Rail (58px) to maximize editor space
+            self.setMinimumWidth(58)
+            self.setMaximumWidth(58)
+            self.brand_text_container.hide()
+            self.new_chat_btn.hide()
+            self.user_text_container.hide()
+            self.body_stack.setCurrentIndex(2)
+        elif mode == 1:
+            # Settings Mode
+            self.new_chat_btn.show()
+            target_w = 64 if self.is_collapsed else 260
+            self.setMinimumWidth(target_w)
+            self.setMaximumWidth(target_w)
+            if not self.is_collapsed:
+                self.brand_text_container.show()
+                self.user_text_container.show()
+            self.body_stack.setCurrentIndex(1)
             self.settings_nav_list.setCurrentRow(selected_tab)
             if self.is_collapsed:
                 self.new_chat_btn.setText(" ←")
@@ -260,6 +335,15 @@ class SidebarWidget(QWidget):
                 f"QPushButton:hover {{ background-color: {DesignTokens.SURFACE_3}; border-color: rgba(0, 229, 255, 0.4); color: #FFFFFF; }}"
             )
         else:
+            # Chat Mode
+            self.new_chat_btn.show()
+            target_w = 64 if self.is_collapsed else 260
+            self.setMinimumWidth(target_w)
+            self.setMaximumWidth(target_w)
+            if not self.is_collapsed:
+                self.brand_text_container.show()
+                self.user_text_container.show()
+            self.body_stack.setCurrentIndex(0)
             if self.is_collapsed:
                 self.new_chat_btn.setText(" +")
                 self.new_chat_btn.setToolTip("Tạo cuộc trò chuyện mới")
@@ -271,8 +355,12 @@ class SidebarWidget(QWidget):
                 f"QPushButton:hover {{ background-color: rgba(0, 230, 153, 0.16); border-color: {DesignTokens.CYAN_ACCENT}; color: #FFFFFF; }}"
             )
 
+    def _on_rail_back_clicked(self):
+        self.set_mode(0)
+        self.backToChatRequested.emit()
+
     def _on_top_btn_clicked(self):
-        if self.current_mode == 1:
+        if self.current_mode in (1, 2):
             self.set_mode(0)
             self.backToChatRequested.emit()
         else:
@@ -315,11 +403,11 @@ class SidebarWidget(QWidget):
         if self.is_collapsed:
             self.brand_text_container.hide()
             self.user_text_container.hide()
-            self.new_chat_btn.setText(" ←" if self.current_mode == 1 else " +")
-            self.new_chat_btn.setToolTip("Quay lại Chat" if self.current_mode == 1 else "New Chat")
+            self.new_chat_btn.setText(" ←" if self.current_mode in (1, 2) else " +")
+            self.new_chat_btn.setToolTip("Quay lại Chat" if self.current_mode in (1, 2) else "New Chat")
         else:
-            self.new_chat_btn.setText(" ←  Quay lại Chat" if self.current_mode == 1 else " +  New Chat")
-            self.new_chat_btn.setToolTip("Thoát cài đặt về giao diện trò chuyện" if self.current_mode == 1 else "Tạo cuộc trò chuyện mới")
+            self.new_chat_btn.setText(" ←  Quay lại Chat" if self.current_mode in (1, 2) else " +  New Chat")
+            self.new_chat_btn.setToolTip("Thoát về giao diện trò chuyện" if self.current_mode in (1, 2) else "Tạo cuộc trò chuyện mới")
 
         self._anim = QVariantAnimation(self)
         self._anim.setDuration(220)
