@@ -54,21 +54,6 @@ class CodeEditorStudioWidget(QWidget):
         toolbar_layout.setContentsMargins(12, 6, 16, 6)
         toolbar_layout.setSpacing(10)
 
-        # Brand Icon (2D vector icon)
-        brand_icon = QLabel()
-        brand_icon.setPixmap(create_vector_icon("code", "#00FFAA", 16).pixmap(16, 16))
-
-        brand_lbl = QLabel("POP Code Studio")
-        brand_lbl.setStyleSheet("font-size: 13px; font-weight: 700; color: #00FFAA; letter-spacing: 0.5px;")
-
-        self.workspace_lbl = QLabel(f"•  {os.path.basename(self.workspace_dir)}")
-        self.workspace_lbl.setStyleSheet("color: #64748B; font-size: 11px;")
-
-        toolbar_layout.addWidget(brand_icon)
-        toolbar_layout.addWidget(brand_lbl)
-        toolbar_layout.addWidget(self.workspace_lbl)
-        toolbar_layout.addWidget(self._create_divider())
-
         # Main Quick Action Buttons (Icon-only: Folder, Save, Run)
         self.open_folder_btn = self._create_action_icon_btn(
             "folder", self._on_open_folder_clicked, tooltip="Mở Thư Mục Dự Án (Ctrl+O)"
@@ -360,7 +345,8 @@ class CodeEditorStudioWidget(QWidget):
 
     def _on_workspace_folder_changed(self, new_dir: str):
         self.workspace_dir = new_dir
-        self.workspace_lbl.setText(f"•  {os.path.basename(new_dir)}")
+        if hasattr(self, 'workspace_lbl') and self.workspace_lbl:
+            self.workspace_lbl.setText(f"•  {os.path.basename(new_dir)}")
         self.terminal_widget.set_working_dir(new_dir)
         self._set_status_message(f"Đã chuyển thư mục làm việc sang {new_dir}")
 
