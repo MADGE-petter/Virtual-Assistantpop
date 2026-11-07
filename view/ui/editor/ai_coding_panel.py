@@ -10,7 +10,7 @@ from PyQt6.QtCore import Qt, QThread, pyqtSignal, QObject, QTimer
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTextEdit, QFrame, QScrollArea, QApplication,
-    QProgressBar, QMessageBox, QSizePolicy
+    QProgressBar, QMessageBox, QSizePolicy, QGridLayout
 )
 from PyQt6.QtGui import QFont, QColor, QKeyEvent
 
@@ -130,14 +130,15 @@ class AICodingPanel(QWidget):
         # ----------------------------------------------------
         # 2. SUGGESTION PILLS (Chips matching chat UI)
         # ----------------------------------------------------
-        pills_layout = QHBoxLayout()
+        pills_layout = QGridLayout()
         pills_layout.setContentsMargins(0, 0, 0, 0)
-        pills_layout.setSpacing(6)
+        pills_layout.setHorizontalSpacing(6)
+        pills_layout.setVerticalSpacing(6)
 
         pill_style = (
             f"QPushButton {{ background: rgba(255, 255, 255, 0.03); color: {DesignTokens.TEXT_SECONDARY}; "
             f"border: 1px solid; border-color: {DesignTokens.BORDER_GRADIENT}; border-radius: 12px; "
-            f"padding: 4px 10px; font-size: 11px; font-weight: 500; }}"
+            f"padding: 5px 8px; font-size: 11px; font-weight: 500; text-align: center; }}"
             f"QPushButton:hover {{ background: rgba(0, 255, 170, 0.12); border-color: {DesignTokens.CYAN_ACCENT}; color: #FFFFFF; }}"
         )
 
@@ -161,11 +162,10 @@ class AICodingPanel(QWidget):
         self.btn_chip_test.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_chip_test.clicked.connect(self._on_test_clicked)
 
-        pills_layout.addWidget(self.btn_chip_explain)
-        pills_layout.addWidget(self.btn_chip_fix)
-        pills_layout.addWidget(self.btn_chip_refactor)
-        pills_layout.addWidget(self.btn_chip_test)
-        pills_layout.addStretch()
+        pills_layout.addWidget(self.btn_chip_explain, 0, 0)
+        pills_layout.addWidget(self.btn_chip_fix, 0, 1)
+        pills_layout.addWidget(self.btn_chip_refactor, 1, 0)
+        pills_layout.addWidget(self.btn_chip_test, 1, 1)
         main_layout.addLayout(pills_layout)
 
         # Subtle progress indicator

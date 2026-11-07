@@ -260,6 +260,16 @@ def create_vector_icon(icon_type: str, color_hex: str = "#96D7E9", size: int = 2
         painter.drawLine(QPointF(s * 0.35, s * 0.5), QPointF(s * 0.6, s - pad))
         painter.drawLine(QPointF(s * 0.75, pad), QPointF(s * 0.5, s * 0.5))
 
+    elif icon_type in ("arrow_left", "back", "chevron_left"):
+        # Crisp modern left navigation arrow
+        painter.setPen(QPen(color, 1.8, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
+        path = QPainterPath()
+        path.moveTo(s * 0.46, pad * 1.1)
+        path.lineTo(s * 0.22, s * 0.5)
+        path.lineTo(s * 0.46, s - pad * 1.1)
+        painter.drawPath(path)
+        painter.drawLine(QPointF(s * 0.24, s * 0.5), QPointF(s * 0.78, s * 0.5))
+
     elif icon_type == "copy":
         # Copy clipboard
         painter.drawRoundedRect(QRectF(s * 0.2, s * 0.35, s * 0.45, s * 0.45), 3, 3)
@@ -313,11 +323,13 @@ def create_vector_icon(icon_type: str, color_hex: str = "#96D7E9", size: int = 2
         painter.drawArc(QRectF(s * 0.2, s * 0.5, s * 0.6, s * 0.4), 0, 180 * 16)
 
     elif icon_type in ("folder", "database"):
-        # Clean folder icon
+        # Modern 2D filled folder with tab and body
+        painter.setPen(QPen(color, 1.2, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
+        painter.setBrush(QBrush(QColor(color.red(), color.green(), color.blue(), 45)))
         path = QPainterPath()
-        path.moveTo(pad, pad * 1.3)
-        path.lineTo(s * 0.45, pad * 1.3)
-        path.lineTo(s * 0.55, pad * 1.8)
+        path.moveTo(pad, pad * 1.2)
+        path.lineTo(s * 0.42, pad * 1.2)
+        path.lineTo(s * 0.52, pad * 1.8)
         path.lineTo(s - pad, pad * 1.8)
         path.lineTo(s - pad, s - pad)
         path.lineTo(pad, s - pad)
@@ -334,16 +346,30 @@ def create_vector_icon(icon_type: str, color_hex: str = "#96D7E9", size: int = 2
         painter.drawLine(QPointF(s - pad, s - pad), QPointF(s - pad, s * 0.55))
 
     elif icon_type in ("file", "rules", "doc"):
-        # Document sheet with folded corner
+        # Modern 2D document with folded top-right corner
+        painter.setPen(QPen(color, 1.2, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
+        painter.setBrush(QBrush(QColor(color.red(), color.green(), color.blue(), 30)))
         path = QPainterPath()
-        path.moveTo(pad, pad)
-        path.lineTo(s * 0.65, pad)
-        path.lineTo(s - pad, s * 0.35)
+        fold = s * 0.28
+        path.moveTo(pad * 1.2, pad)
+        path.lineTo(s - pad - fold, pad)
+        path.lineTo(s - pad, pad + fold)
         path.lineTo(s - pad, s - pad)
-        path.lineTo(pad, s - pad)
+        path.lineTo(pad * 1.2, s - pad)
         path.closeSubpath()
         painter.drawPath(path)
-        painter.drawLine(QPointF(s * 0.65, pad), QPointF(s * 0.65, s * 0.35))
+        painter.drawLine(QPointF(s - pad - fold, pad), QPointF(s - pad - fold, pad + fold))
+        painter.drawLine(QPointF(s - pad - fold, pad + fold), QPointF(s - pad, pad + fold))
+
+    elif icon_type in ("terminal", "console"):
+        # Crisp terminal prompt >_
+        painter.setPen(QPen(color, 1.4, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
+        path = QPainterPath()
+        path.moveTo(s * 0.24, s * 0.28)
+        path.lineTo(s * 0.46, s * 0.50)
+        path.lineTo(s * 0.24, s * 0.72)
+        painter.drawPath(path)
+        painter.drawLine(QPointF(s * 0.52, s * 0.72), QPointF(s * 0.76, s * 0.72))
     elif icon_type in ("image", "photo", "picture"):
         # Picture frame with mountain and sun
         painter.drawRoundedRect(QRectF(pad, pad, s - 2 * pad, s - 2 * pad), 3, 3)

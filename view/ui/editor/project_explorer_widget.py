@@ -166,7 +166,8 @@ class ProjectExplorerWidget(QWidget):
         self.model.setRootPath(self.root_path)
         self.tree_view.setRootIndex(self.model.index(self.root_path))
         folder_name = os.path.basename(self.root_path) or self.root_path
-        self.title_lbl.setText(folder_name.upper())
+        self.title_lbl.setText("DỰ ÁN")
+        self.title_lbl.setToolTip(f"Thư mục làm việc: {self.root_path}")
         self.folderOpened.emit(self.root_path)
 
     open_directory = set_workspace

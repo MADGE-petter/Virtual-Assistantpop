@@ -227,6 +227,8 @@ class PopView(QMainWindow):
 
         # Code Studio Window Events
         if hasattr(self, 'code_editor_page') and self.code_editor_page:
+            self.code_editor_page.backToChatRequested.connect(self.navigation.show_chat_view)
+            self.code_editor_page.openSettings.connect(lambda: self.navigation.open_settings_page(0))
             self.code_editor_page.windowHideToMascot.connect(self.window_mgr.switch_to_mini_mascot)
             self.code_editor_page.windowMinimize.connect(self.showMinimized)
             self.code_editor_page.windowMaximize.connect(self.window_mgr.toggle_maximize)

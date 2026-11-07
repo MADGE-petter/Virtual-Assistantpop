@@ -23,6 +23,8 @@ from view.ui.editor.ai_coding_panel import AICodingPanel
 class CodeEditorStudioWidget(QWidget):
     """Embedded POP Assistant Native Code Studio Widget."""
 
+    backToChatRequested = pyqtSignal()
+    openSettings = pyqtSignal()
     windowHideToMascot = pyqtSignal()
     windowMinimize = pyqtSignal()
     windowMaximize = pyqtSignal()
@@ -39,25 +41,25 @@ class CodeEditorStudioWidget(QWidget):
 
     def _setup_ui(self):
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(10, 0, 10, 8)
+        main_layout.setContentsMargins(10, 6, 10, 8)
         main_layout.setSpacing(6)
 
         # ----------------------------------------------------
-        # 1. TOP HEADER (Super compact 34px bar - no cluttered F5/navigation buttons)
+        # 1. TOP HEADER (Compact bar matching PopView Chat Header style)
         # ----------------------------------------------------
         toolbar = QWidget()
-        toolbar.setFixedHeight(34)
+        toolbar.setFixedHeight(50)
         toolbar.setObjectName("editorToolbar")
         toolbar_layout = QHBoxLayout(toolbar)
-        toolbar_layout.setContentsMargins(6, 2, 6, 2)
-        toolbar_layout.setSpacing(8)
+        toolbar_layout.setContentsMargins(12, 6, 16, 6)
+        toolbar_layout.setSpacing(10)
 
         # Brand Icon (2D vector icon)
         brand_icon = QLabel()
-        brand_icon.setPixmap(create_vector_icon("code", "#00FFAA", 15).pixmap(15, 15))
+        brand_icon.setPixmap(create_vector_icon("code", "#00FFAA", 16).pixmap(16, 16))
 
         brand_lbl = QLabel("POP Code Studio")
-        brand_lbl.setStyleSheet("font-size: 12px; font-weight: 700; color: #00FFAA; letter-spacing: 0.5px;")
+        brand_lbl.setStyleSheet("font-size: 13px; font-weight: 700; color: #00FFAA; letter-spacing: 0.5px;")
 
         self.workspace_lbl = QLabel(f"•  {os.path.basename(self.workspace_dir)}")
         self.workspace_lbl.setStyleSheet("color: #64748B; font-size: 11px;")
@@ -67,15 +69,15 @@ class CodeEditorStudioWidget(QWidget):
         toolbar_layout.addWidget(self.workspace_lbl)
         toolbar_layout.addWidget(self._create_divider())
 
-        # Main Quick Action Buttons
-        self.open_folder_btn = self._create_tool_button(
-            "Mở Thư Mục", self._on_open_folder_clicked, icon_name="folder", tooltip="Mở Thư Mục Dự Án (Ctrl+O)"
+        # Main Quick Action Buttons (Icon-only: Folder, Save, Run)
+        self.open_folder_btn = self._create_action_icon_btn(
+            "folder", self._on_open_folder_clicked, tooltip="Mở Thư Mục Dự Án (Ctrl+O)"
         )
-        self.save_btn = self._create_tool_button(
-            "Lưu", self._on_save_clicked, icon_name="disk", tooltip="Lưu File Hiện Tại (Ctrl+S)"
+        self.save_btn = self._create_action_icon_btn(
+            "disk", self._on_save_clicked, tooltip="Lưu File Hiện Tại (Ctrl+S)"
         )
-        self.run_btn = self._create_tool_button(
-            "Chạy File (F5)", self._on_run_clicked, highlight=True, icon_name="play", tooltip="Chạy File Hiện Tại (F5)"
+        self.run_btn = self._create_action_icon_btn(
+            "play", self._on_run_clicked, tooltip="Chạy File Hiện Tại (F5)", highlight=True
         )
 
         toolbar_layout.addWidget(self.open_folder_btn)
@@ -84,17 +86,42 @@ class CodeEditorStudioWidget(QWidget):
 
         toolbar_layout.addStretch()
 
-        # Workspace Tool Toggles
-        self.terminal_toggle_btn = self._create_tool_button(
-            "Terminal", self._toggle_terminal, icon_name="command", tooltip="Bật / Tắt Terminal tích hợp"
+        # Action Buttons (100% matching ChatHeaderBar: [code_btn] [panel_btn] [settings_btn])
+        # Active in Code Studio: glowing emerald, clicking toggles directly back to Chat Area!
+        self.code_btn = QPushButton()
+        self.code_btn.setIcon(create_vector_icon("code", DesignTokens.CYAN_ACCENT, 17))
+        self.code_btn.setFixedSize(32, 32)
+        self.code_btn.setToolTip("Quay lại Trò chuyện (Chat)")
+        self.code_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.code_btn.setStyleSheet(
+            "QPushButton { border: 1px solid rgba(0, 255, 170, 0.4); background: rgba(0, 255, 170, 0.14); padding: 0px; border-radius: 8px; } "
+            "QPushButton:hover { background: rgba(0, 255, 170, 0.28); border-color: #00FFAA; }"
         )
-        self.ai_toggle_btn = self._create_tool_button(
-            "AI Assistant", self._toggle_ai_panel, icon_name="bot", tooltip="Bật / Tắt POP AI Coding Assistant"
-        )
+        self.code_btn.clicked.connect(self.backToChatRequested.emit)
+        self.code_toggle_btn = self.code_btn
 
-        toolbar_layout.addWidget(self.terminal_toggle_btn)
-        toolbar_layout.addWidget(self.ai_toggle_btn)
-        toolbar_layout.addWidget(self._create_divider())
+        self.panel_btn = QPushButton()
+        self.panel_btn.setIcon(create_vector_icon("panel_toggle", DesignTokens.TEXT_SECONDARY, 18))
+        self.panel_btn.setFixedSize(32, 32)
+        self.panel_btn.setToolTip("Bật / Tắt Bảng AI Assistant")
+        self.panel_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.panel_btn.setStyleSheet(
+            "QPushButton { border: none; background: transparent; padding: 0px; } "
+            "QPushButton:hover { background: rgba(0, 229, 255, 0.1); border-radius: 8px; }"
+        )
+        self.panel_btn.clicked.connect(self._toggle_ai_panel)
+        self.ai_toggle_btn = self.panel_btn
+
+        self.settings_btn = QPushButton()
+        self.settings_btn.setIcon(create_vector_icon("settings", DesignTokens.TEXT_SECONDARY, 18))
+        self.settings_btn.setFixedSize(32, 32)
+        self.settings_btn.setToolTip("Cài đặt")
+        self.settings_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.settings_btn.setStyleSheet(
+            "QPushButton { border: none; background: transparent; padding: 0px; } "
+            "QPushButton:hover { background: rgba(255, 255, 255, 0.08); border-radius: 8px; }"
+        )
+        self.settings_btn.clicked.connect(self.openSettings.emit)
 
         # Window Controls (matching PopView top-right controls)
         win_controls = QHBoxLayout()
@@ -147,6 +174,9 @@ class CodeEditorStudioWidget(QWidget):
         win_controls.addWidget(self.max_btn)
         win_controls.addWidget(self.close_btn)
 
+        toolbar_layout.addWidget(self.code_btn)
+        toolbar_layout.addWidget(self.panel_btn)
+        toolbar_layout.addWidget(self.settings_btn)
         toolbar_layout.addLayout(win_controls)
         main_layout.addWidget(toolbar)
 
@@ -187,10 +217,10 @@ class CodeEditorStudioWidget(QWidget):
         # 3. STATUS BAR (Transparent Container Frame)
         # ----------------------------------------------------
         status_bar = QFrame()
-        status_bar.setFixedHeight(24)
+        status_bar.setFixedHeight(26)
         status_bar.setObjectName("editorStatusBar")
         sb_layout = QHBoxLayout(status_bar)
-        sb_layout.setContentsMargins(8, 0, 8, 0)
+        sb_layout.setContentsMargins(12, 2, 12, 2)
         sb_layout.setSpacing(10)
 
         self.status_msg_lbl = QLabel("Sẵn sàng")
@@ -211,12 +241,34 @@ class CodeEditorStudioWidget(QWidget):
         sb_layout.addWidget(self.status_info_lbl)
 
         main_layout.addWidget(status_bar)
+        self._update_toggle_btn_states()
 
     def _create_divider(self) -> QWidget:
         div = QWidget()
         div.setFixedSize(1, 18)
         div.setStyleSheet("background-color: rgba(255, 255, 255, 0.08);")
         return div
+
+    def _create_action_icon_btn(self, icon_name: str, callback, tooltip: str = "", highlight: bool = False) -> QPushButton:
+        btn = QPushButton()
+        color = "#00FFAA" if highlight else DesignTokens.TEXT_SECONDARY
+        btn.setIcon(create_vector_icon(icon_name, color, 16 if highlight else 17))
+        btn.setFixedSize(32, 32)
+        if tooltip:
+            btn.setToolTip(tooltip)
+        btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        if highlight:
+            btn.setStyleSheet(
+                "QPushButton { border: 1px solid rgba(0, 255, 170, 0.35); background: rgba(0, 255, 170, 0.1); padding: 0px; border-radius: 8px; } "
+                "QPushButton:hover { background: rgba(0, 255, 170, 0.25); border-color: #00FFAA; }"
+            )
+        else:
+            btn.setStyleSheet(
+                "QPushButton { border: none; background: transparent; padding: 0px; border-radius: 8px; } "
+                "QPushButton:hover { background: rgba(0, 229, 255, 0.1); }"
+            )
+        btn.clicked.connect(callback)
+        return btn
 
     def _create_tool_button(self, text: str, callback, highlight: bool = False, icon_name: Optional[str] = None, tooltip: str = "") -> QPushButton:
         btn = QPushButton(f" {text}" if icon_name else text)
@@ -334,6 +386,7 @@ class CodeEditorStudioWidget(QWidget):
         # Ensure terminal is visible
         if not self.terminal_widget.isVisible():
             self.terminal_widget.setVisible(True)
+            self._update_toggle_btn_states()
 
         self.terminal_widget.run_file(curr_file)
         self._set_status_message(f"Đang chạy {os.path.basename(curr_file)}...")
@@ -341,10 +394,24 @@ class CodeEditorStudioWidget(QWidget):
     def _toggle_terminal(self):
         is_vis = self.terminal_widget.isVisible()
         self.terminal_widget.setVisible(not is_vis)
+        self._update_toggle_btn_states()
 
     def _toggle_ai_panel(self):
         is_vis = self.ai_panel.isVisible()
         self.ai_panel.setVisible(not is_vis)
+        self._update_toggle_btn_states()
+
+    def _update_toggle_btn_states(self):
+        """Update toggle button icons and hover styles based on panel visibility."""
+        if hasattr(self, 'ai_panel') and hasattr(self, 'panel_btn'):
+            ai_vis = not self.ai_panel.isHidden()
+            ai_color = DesignTokens.CYAN_ACCENT if ai_vis else DesignTokens.TEXT_SECONDARY
+            ai_bg = "background: rgba(0, 229, 255, 0.12);" if ai_vis else "background: transparent;"
+            self.panel_btn.setIcon(create_vector_icon("panel_toggle", ai_color, 18))
+            self.panel_btn.setStyleSheet(
+                f"QPushButton {{ border: none; {ai_bg} padding: 0px; border-radius: 8px; }} "
+                f"QPushButton:hover {{ background: rgba(0, 229, 255, 0.2); border-radius: 8px; }}"
+            )
 
     # ----------------------------------------------------
     # Active Editor & AI Synchronization

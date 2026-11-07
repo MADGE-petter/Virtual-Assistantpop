@@ -54,6 +54,7 @@ class SidebarWidget(QWidget):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(10, 12, 10, 12)
         main_layout.setSpacing(10)
+        self.main_layout = main_layout
 
         # ----------------------------------------------------
         # 1. BRAND HEADER (POP Logo + AI Assistant)
@@ -61,6 +62,7 @@ class SidebarWidget(QWidget):
         brand_layout = QHBoxLayout()
         brand_layout.setContentsMargins(4, 0, 4, 0)
         brand_layout.setSpacing(8)
+        self.brand_layout = brand_layout
 
         self.logo_btn = QPushButton()
         self.logo_btn.setIcon(get_pop_logo_icon(34))
@@ -162,14 +164,6 @@ class SidebarWidget(QWidget):
             "QPushButton:hover { background: rgba(0, 255, 170, 0.15); }"
         )
 
-        self.rail_back_btn = QPushButton()
-        self.rail_back_btn.setIcon(create_vector_icon("message", DesignTokens.TEXT_SECONDARY, 20))
-        self.rail_back_btn.setFixedSize(38, 38)
-        self.rail_back_btn.setToolTip("Quay lại Trò chuyện (Chat)")
-        self.rail_back_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.rail_back_btn.setStyleSheet(btn_rail_style)
-        self.rail_back_btn.clicked.connect(self._on_rail_back_clicked)
-
         self.rail_explorer_btn = QPushButton()
         self.rail_explorer_btn.setIcon(create_vector_icon("folder", DesignTokens.TEXT_SECONDARY, 20))
         self.rail_explorer_btn.setFixedSize(38, 38)
@@ -179,7 +173,7 @@ class SidebarWidget(QWidget):
         self.rail_explorer_btn.clicked.connect(self.toggleExplorerRequested.emit)
 
         self.rail_terminal_btn = QPushButton()
-        self.rail_terminal_btn.setIcon(create_vector_icon("command", DesignTokens.TEXT_SECONDARY, 20))
+        self.rail_terminal_btn.setIcon(create_vector_icon("terminal", DesignTokens.TEXT_SECONDARY, 20))
         self.rail_terminal_btn.setFixedSize(38, 38)
         self.rail_terminal_btn.setToolTip("Bật / Tắt Terminal")
         self.rail_terminal_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -197,7 +191,6 @@ class SidebarWidget(QWidget):
         )
         self.rail_ai_btn.clicked.connect(self.toggleAIPanelRequested.emit)
 
-        rail_layout.addWidget(self.rail_back_btn)
         rail_layout.addWidget(self.rail_explorer_btn)
         rail_layout.addWidget(self.rail_terminal_btn)
         rail_layout.addWidget(self.rail_ai_btn)
@@ -230,6 +223,7 @@ class SidebarWidget(QWidget):
         profile_layout = QHBoxLayout(self.profile_container)
         profile_layout.setContentsMargins(6, 6, 6, 6)
         profile_layout.setSpacing(10)
+        self.profile_layout = profile_layout
 
         # Avatar circle
         is_admin = (self.user_name.strip().lower() == "admin")
@@ -309,12 +303,22 @@ class SidebarWidget(QWidget):
             # Code Studio Mode: Slim Icon Rail (58px) to maximize editor space
             self.setMinimumWidth(58)
             self.setMaximumWidth(58)
+            self.main_layout.setContentsMargins(6, 12, 6, 12)
+            self.brand_layout.setContentsMargins(0, 0, 0, 0)
+            self.brand_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self.brand_text_container.hide()
             self.new_chat_btn.hide()
             self.user_text_container.hide()
+            self.profile_layout.setContentsMargins(0, 4, 0, 4)
+            self.profile_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self.body_stack.setCurrentIndex(2)
         elif mode == 1:
             # Settings Mode
+            self.main_layout.setContentsMargins(10, 12, 10, 12)
+            self.brand_layout.setContentsMargins(4, 0, 4, 0)
+            self.brand_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+            self.profile_layout.setContentsMargins(6, 6, 6, 6)
+            self.profile_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
             self.new_chat_btn.show()
             target_w = 64 if self.is_collapsed else 260
             self.setMinimumWidth(target_w)
@@ -336,6 +340,11 @@ class SidebarWidget(QWidget):
             )
         else:
             # Chat Mode
+            self.main_layout.setContentsMargins(10, 12, 10, 12)
+            self.brand_layout.setContentsMargins(4, 0, 4, 0)
+            self.brand_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
+            self.profile_layout.setContentsMargins(6, 6, 6, 6)
+            self.profile_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
             self.new_chat_btn.show()
             target_w = 64 if self.is_collapsed else 260
             self.setMinimumWidth(target_w)
